@@ -249,8 +249,12 @@ export class Services {
           break;
         }
       }
+      // A worker's own agent CLI listening for itself (an IDE helper, an OAuth callback) is not a
+      // service. The walk above drops it, but a terminal host detached from the office (reparented
+      // away, so the chain never reaches the office) can't confirm that: the port lands here, and
+      // without this the env fallback below would credit the worker with its own terminal.
       if (owner) found.set(l.port, { l, workerId: owner.workerId });
-      else if (!underOffice) unresolved.push(l);
+      else if (!underOffice && byPty.get(l.pid)?.agent !== true) unresolved.push(l);
     }
     // Detached (nohup, daemonized) servers lost their parent: go by env, then working directory.
     const dirs = await cwds(unresolved.map((l) => l.pid));

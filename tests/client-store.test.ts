@@ -35,6 +35,7 @@ function floorView(floor: string) {
     issues: { items: [], fetchedAt: 1, loading: false },
     pulls: { items: [], fetchedAt: 1, loading: false },
     queue: { tasks: [], maxWorkers: 2 },
+    coordinator: { phase: null, goal: null, chapters: [], cards: [], summary: { inFlight: '', planned: '', ready: '', resume: '' }, timeline: [], at: 0 },
     decor: [],
     plan: { labels: {}, wing: 1 },
     services: { items: [], port: 4600 },
@@ -74,10 +75,10 @@ const welcome = () =>
   });
 
 /** What a floor you arrive on fires, in order. */
-const FLOOR_TOPICS = ['floor', 'project', 'workers', 'issues', 'pulls', 'queue', 'meeting', 'decor', 'floorPlan', 'services', 'dog', 'jukebox', 'whiteboard', 'drawing', 'cabinet', 'cabinetFrame', 'ball', 'cars', 'jail'];
+const FLOOR_TOPICS = ['floor', 'project', 'workers', 'issues', 'pulls', 'queue', 'meeting', 'decor', 'floorPlan', 'services', 'dog', 'jukebox', 'whiteboard', 'drawing', 'cabinet', 'cabinetFrame', 'ball', 'cars', 'jail', 'coordinator'];
 
 /** Every topic, to listen for them all. */
-const TOPICS = ['peers', 'workers', 'issues', 'pulls', 'chat', 'project', 'screens', 'team', 'upgrade', 'services', 'decor', 'floorPlan', 'usage', 'limits', 'queue', 'me', 'accounts', 'signins', 'notify', 'machine', 'floors', 'floor', 'projectsDir', 'repos', 'dog', 'jukebox', 'sky', 'theme', 'map', 'leaveOnMerge', 'whiteboard', 'drawing', 'cabinet', 'cabinetFrame', 'meeting', 'prompts', 'ball', 'cars', 'jail'] as const;
+const TOPICS = ['peers', 'workers', 'issues', 'pulls', 'chat', 'project', 'screens', 'team', 'upgrade', 'services', 'decor', 'floorPlan', 'usage', 'limits', 'queue', 'me', 'accounts', 'signins', 'notify', 'machine', 'floors', 'floor', 'projectsDir', 'folders', 'dog', 'jukebox', 'sky', 'theme', 'map', 'leaveOnMerge', 'whiteboard', 'drawing', 'cabinet', 'cabinetFrame', 'meeting', 'prompts', 'ball', 'cars', 'jail', 'coordinator'] as const;
 
 /** Every message the store takes in (and one it doesn't), and the topics it fires, in the order it has always fired them. */
 const RUN: [ServerMsg, string[]][] = [
@@ -86,7 +87,7 @@ const RUN: [ServerMsg, string[]][] = [
   [msg({ t: 'pong', at: -1e6, now: 1_000_000 }), []],
   [msg({ t: 'floors', floors: [{ id: 'f1', name: 'f1' }] }), ['floors']],
   [msg({ t: 'projectsDir', state: { dir: '~/q', custom: true } }), ['projectsDir']],
-  [msg({ t: 'floor.repos', repos: [] }), ['repos']],
+  [msg({ t: 'floor.folders', path: '/home', home: '/home', dirs: [] }), ['folders']],
   [msg({ t: 'peer.join', peer: peer('p-c') }), ['peers']],
   [msg({ t: 'peer.update', peer: peer('p-c', { name: 'C' }) }), ['peers']],
   [msg({ t: 'peer.move', id: 'p-c', x: 1, y: 0, z: 1, rotY: 0, moving: true }), []],
@@ -225,7 +226,7 @@ test('what the browser remembers keeps its keys and shapes', () => {
 
 test("the store's keys are its state, as window.__office shows them", () => {
   // As the office had them before its store was split into slices: methods and the slices aren't among them.
-  assert.deepEqual(Object.keys(store).sort(), ['accounts', 'ball', 'cabinet', 'cabinetFrame', 'cars', 'carsAt', 'chat', 'clock', 'decor', 'dog', 'dogStart', 'drawing', 'floor', 'floorPlan', 'floors', 'ice', 'invites', 'issues', 'jail', 'jukebox', 'leaveOnMerge', 'limits', 'machine', 'map', 'me', 'meeting', 'notify', 'peers', 'profile', 'project', 'projectsDir', 'prompts', 'pulls', 'queue', 'repos', 'screens', 'services', 'signins', 'sky', 'subs', 'team', 'theme', 'upgrade', 'usage', 'whiteboard', 'workers', 'you']);
+  assert.deepEqual(Object.keys(store).sort(), ['accounts', 'ball', 'cabinet', 'cabinetFrame', 'cars', 'carsAt', 'chat', 'clock', 'coordinator', 'decor', 'dog', 'dogStart', 'drawing', 'floor', 'floorPlan', 'floors', 'folders', 'ice', 'invites', 'issues', 'jail', 'jukebox', 'leaveOnMerge', 'limits', 'machine', 'map', 'me', 'meeting', 'notify', 'peers', 'profile', 'project', 'projectsDir', 'prompts', 'pulls', 'queue', 'screens', 'services', 'signins', 'sky', 'subs', 'team', 'theme', 'upgrade', 'usage', 'whiteboard', 'workers', 'you']);
 });
 
 test('a new store starts every field where it always has', async () => {
@@ -239,7 +240,7 @@ test('a new store starts every field where it always has', async () => {
     JSON.parse(JSON.stringify(rest, (_k, v) => (v instanceof Map ? [...v] : v === undefined ? '<undefined>' : v))),
     {
       you: '', peers: [], workers: [], screens: [], project: null, floors: [], floor: null, projectsDir: { dir: '', custom: false },
-      repos: { list: [], loading: false, at: 0 }, issues: { items: [], fetchedAt: 0, loading: true }, pulls: { items: [], fetchedAt: 0, loading: true },
+      folders: { path: '', home: '', dirs: [], loading: false }, issues: { items: [], fetchedAt: 0, loading: true }, pulls: { items: [], fetchedAt: 0, loading: true },
       ice: [], chat: [], invites: false, queue: { tasks: [], maxWorkers: 0 }, me: { admin: false },
       upgrade: { available: false, phase: 'idle' },
       usage: { total: { input: 0, output: 0, cacheWrite: 0, cacheRead: 0, cost: 0, calls: 0 }, today: { input: 0, output: 0, cacheWrite: 0, cacheRead: 0, cost: 0, calls: 0 }, day: '', pauseHiring: false },
@@ -250,6 +251,7 @@ test('a new store starts every field where it always has', async () => {
       whiteboard: [], drawing: [], cabinet: { player: null, scores: [] }, cabinetFrame: null, ball: {},
       cars: parked(), carsAt: [], jail: { prisoners: [], bones: 0 },
       team: null, accounts: null, signins: null,
+      coordinator: { phase: null, goal: null, chapters: [], cards: [], summary: { inFlight: '', planned: '', ready: '', resume: '' }, timeline: [], at: 0 },
     },
   );
 });

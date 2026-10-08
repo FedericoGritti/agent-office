@@ -8,7 +8,7 @@
 // server message and from each floor you arrive on. The store runs the slices in the one order they're
 // registered in (./slices/index.ts), and that order is the order their topics fire in.
 
-import type { ChatLine, FloorInfo, FloorView, GhIssue, GhPull, GhState, Me, PeerInfo, ProjectInfo, ProjectsDirState, QueueState, QueueTask, RepoChoice, Run, ServerMsg, WorkerInfo } from '../../shared/protocol';
+import type { ChatLine, FloorInfo, FloorView, GhIssue, GhPull, GhState, Me, PeerInfo, ProjectInfo, ProjectsDirState, QueueState, QueueTask, Run, ServerMsg, WorkerInfo } from '../../shared/protocol';
 import { randomLook } from '../../shared/avatar';
 import { AVATAR_COLORS, type Profile } from './persist';
 
@@ -31,7 +31,7 @@ export interface Topics {
   me: true;
   floors: true;
   projectsDir: true;
-  repos: true;
+  folders: true;
   floor: true;
   project: true;
   workers: true;
@@ -99,10 +99,10 @@ export class Store {
   /** Every floor of the building, and the one you're on (null while there are none). */
   floors: FloorInfo[] = [];
   floor: string | null = null;
-  /** Where the office clones new floors to. */
+  /** Where a floor cloned by the first-run walkthrough goes. */
   projectsDir: ProjectsDirState = { dir: '', custom: false };
-  /** The repositories the office's gh login can clone, once asked for (see floor.repos). */
-  repos: { list: RepoChoice[]; error?: string; loading: boolean; at: number } = { list: [], loading: false, at: 0 };
+  /** The folders of the office's machine the elevator is browsing, once asked for (see floor.folders). */
+  folders: { path: string; home: string; parent?: string; dirs: string[]; error?: string; loading: boolean } = { path: '', home: '', dirs: [], loading: false };
   issues: GhState<GhIssue> = { items: [], fetchedAt: 0, loading: true };
   pulls: GhState<GhPull> = { items: [], fetchedAt: 0, loading: true };
   ice: RTCIceServer[] = [];

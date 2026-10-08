@@ -436,8 +436,8 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
         h('span.title', {}, `${info.icon} ${w.name} · ${STATUS_LABEL[w.status]}`),
         doing ? aside(doing) : '',
         spent ? h('span.cost', { title: usageTitle(w.usage!, provider) }, spent) : '',
-        key('E', isAsleep(w.status) ? 'Wake with a prompt' : 'Prompt'),
-        key('O', 'Terminal'),
+        key('E', 'Open terminal'),
+        key('P', isAsleep(w.status) ? 'Wake with a prompt' : 'Prompt'),
         key('X', 'Send home'),
       ],
     };
@@ -467,8 +467,9 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
     use: (it, key) => {
       if (!it.deskId) return;
       const w = store.workerAtDesk(it.deskId);
-      if (key === 'E' || key === 'P') return askStation(it.deskId);
-      if (key === 'O' && w) return openWorkerTerminal(w.id);
+      // Like a desk: nobody there means asking hires it, and once it's there E opens its terminal.
+      if (key === 'E') return w ? openWorkerTerminal(w.id) : askStation(it.deskId);
+      if (key === 'P') return askStation(it.deskId);
       if (key === 'X' && w) return killWorker(w.id);
     },
   });

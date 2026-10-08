@@ -9,6 +9,7 @@ import type { BallState } from '../hoop.js';
 import type { JukeboxState } from '../jukebox.js';
 import type { WhiteboardView } from '../whiteboard.js';
 import type { AgentProvider } from './agents.js';
+import type { CoordinatorState } from './coordinator.js';
 import type { GhIssue, GhPull, GhState } from './github.js';
 import type { MeetingState } from './meetings.js';
 import type { PeerInfo } from './presence.js';
@@ -73,7 +74,7 @@ export interface CloneProgress {
   detail?: string;
 }
 
-/** Where the elevator's "add a project" clones to: <dir>/<owner>/<repo> on the office's machine. */
+/** Where a floor cloned by the first-run walkthrough goes: <dir>/<owner>/<repo> on the office's machine. */
 export interface ProjectsDirState {
   /** For showing people: under the home folder it's ~/…. */
   dir: string;
@@ -83,7 +84,7 @@ export interface ProjectsDirState {
   at?: number;
 }
 
-/** A repository the office's `gh` login can clone, for the elevator's "add a project". */
+/** A repository the office's `gh` login can clone, for the first-run walkthrough (see setup.ts). */
 export interface RepoChoice {
   /** owner/name */
   name: string;
@@ -91,6 +92,18 @@ export interface RepoChoice {
   private: boolean;
   /** ISO time of the last push. */
   pushedAt?: string;
+}
+
+/** One folder of the office's machine, as the elevator browses it to add a project. */
+export interface FolderListing {
+  /** The folder being shown, absolute. */
+  path: string;
+  /** The folder above it; absent at the root of the filesystem. */
+  parent?: string;
+  /** The office's home folder, so a browser can show a path as ~/…. */
+  home: string;
+  /** Its sub-folders' names, sorted. */
+  dirs: string[];
 }
 
 /** Everything that belongs to the floor you're on: sent when you walk in, and when you change floors. */
@@ -103,6 +116,8 @@ export interface FloorView {
   issues: GhState<GhIssue>;
   pulls: GhState<GhPull>;
   queue: QueueState;
+  /** The floor's coordinator board, read from its `plans/` folder (see shared/coordinator.ts). */
+  coordinator: CoordinatorState;
   /** Pictures on this floor's walls. */
   decor: Decoration[];
   /** The signs over this floor's desks, and how far its back office is built out. */
@@ -133,11 +148,11 @@ export type FloorClientMsg =
    * floor list), or the ladder or fire pole you came by.
    */
   | { t: 'floor.go'; floor: string; at?: { x: number; y: number; z: number; rotY: number } }
-  /** The repositories that could become a floor; answered with `floor.repos`. */
-  | { t: 'floor.repos'; refresh?: boolean }
-  /** Clone a repository and make it a new floor; answered with `floor.added` once it's there. */
-  | { t: 'floor.add'; repo: string }
-  /** Stop a floor's clone before it's there (admins, or whoever added it); the one who added it hears `floor.added` with why. */
+  /** The folders of the office's machine a floor could be made of (`path` is the folder to show, home by default); answered with `floor.folders`. */
+  | { t: 'floor.folders'; path?: string }
+  /** Make the folder at `path` a floor, as it is: nothing is cloned and nothing in it is written; answered with `floor.added`. */
+  | { t: 'floor.addFolder'; path: string }
+  /** Stop a floor's clone before it's there (admins, or whoever added it). */
   | { t: 'floor.cancel'; floor: string }
   /** Take a floor off the building (admins only). Its checkout stays on disk; everyone on it rides to another floor. */
   | { t: 'floor.remove'; floor: string }
@@ -156,9 +171,9 @@ export type FloorServerMsg =
   | ({ t: 'floor.enter'; peers: PeerInfo[] } & FloorView)
   | { t: 'floors'; floors: FloorInfo[] }
   /** Sent to whoever asked. */
-  | { t: 'floor.repos'; repos: RepoChoice[]; error?: string }
-  /** Sent to whoever asked for the floor, once it's cloned (or couldn't be). */
-  | { t: 'floor.added'; repo: string; floor?: string; error?: string }
+  | ({ t: 'floor.folders' } & FolderListing & { error?: string })
+  /** Sent to whoever asked for the floor, once it's there (or couldn't be made). */
+  | { t: 'floor.added'; path: string; floor?: string; error?: string }
   /** The projects folder moved (see floor.projectsDir). */
   | { t: 'projectsDir'; state: ProjectsDirState }
   /** Your floor's signs changed, or its back office was built out or walled up. */

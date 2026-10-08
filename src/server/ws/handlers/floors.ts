@@ -1,7 +1,9 @@
 // The building's floors: riding the elevator between them and up to the roof, and adding and taking
 // off floors.
+import os from 'node:os';
 import type { FloorClientMsg } from '../../../shared/protocol.js';
 import { ROOF } from '../../../shared/rooftop.js';
+import { listFolders } from '../../folders.js';
 import { arrivalSpot, str } from '../../office/input.js';
 import type { HandlerMap, ViewPieces } from './types.js';
 
@@ -18,34 +20,23 @@ export const floorHandlers = {
     if (!floor) ctx.warn(c, ctx.building.pending().some((d) => d.id === msg.floor) ? "That floor is still being cloned — it'll be ready in a moment" : 'No such floor');
     else ctx.goToFloor(c, floor, arrivalSpot(msg.at));
   },
-  'floor.repos'(ctx, c, msg) {
-    void ctx.building.repos(msg.refresh === true).then(
-      (repos) => ctx.sendTo(c, { t: 'floor.repos', repos }),
-      (err: Error) => ctx.sendTo(c, { t: 'floor.repos', repos: [], error: `Couldn't list your repositories with gh: ${err.message}` }),
-    );
+  'floor.folders'(ctx, c, msg) {
+    const home = os.homedir();
+    const listing = listFolders(typeof msg.path === 'string' ? msg.path : '', home);
+    if (typeof listing === 'string') return ctx.sendTo(c, { t: 'floor.folders', path: msg.path ?? home, home, dirs: [], error: listing });
+    ctx.sendTo(c, { t: 'floor.folders', ...listing });
   },
-  'floor.add'(ctx, c, msg) {
+  'floor.addFolder'(ctx, c, msg) {
     const who = c.peer.name;
-    const repo = str(msg.repo, 200);
-    void ctx.building
-      .add(
-        repo,
-        who,
-        (def) => {
-          ctx.floorsChanged();
-          ctx.toastAll(`🛗 ${who} is adding a floor for ${def.repo ?? def.name}…`);
-        },
-        c.accountId,
-      )
-      .then((r) => {
-        ctx.floorsChanged();
-        if (typeof r === 'string') return ctx.sendTo(c, { t: 'floor.added', repo, error: r });
-        const floor = ctx.openFloor(r);
-        if (!floor) return ctx.sendTo(c, { t: 'floor.added', repo, error: `Cloned ${r.repo}, but couldn't open its floor — see the office's log` });
-        console.log(`  ${who} added a floor for ${r.repo} (${r.dir})`);
-        ctx.toastAll(`🛗 New floor: ${r.name}, added by ${who}`);
-        ctx.sendTo(c, { t: 'floor.added', repo, floor: floor.id });
-      });
+    const dir = str(msg.path, 1024);
+    const r = ctx.building.addLocal(dir, who);
+    if (typeof r === 'string') return ctx.sendTo(c, { t: 'floor.added', path: dir, error: r });
+    ctx.floorsChanged();
+    const floor = ctx.openFloor(r);
+    if (!floor) return ctx.sendTo(c, { t: 'floor.added', path: dir, error: `Added ${r.name}, but couldn't open its floor — see the office's log` });
+    console.log(`  ${who} added the folder ${r.dir} as a floor`);
+    ctx.toastAll(`🛗 New floor: ${r.name}, added by ${who}`);
+    ctx.sendTo(c, { t: 'floor.added', path: dir, floor: floor.id });
   },
   'floor.cancel'(ctx, c, msg) {
     const who = c.peer.name;

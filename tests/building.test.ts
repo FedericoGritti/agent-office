@@ -83,3 +83,52 @@ test('the floor the office was started in comes off too, stays off after a resta
   assert.equal(third.ensureLocal(defs[0].dir, 'the office')?.id, 'api');
   assert.deepEqual(third.list().map((d) => d.id), ['web', 'docs', 'api']);
 });
+
+test('a folder of this machine becomes a floor as it is, and comes off leaving the folder alone', (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'agent-office-addlocal-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const dataDir = path.join(root, '.agent-office');
+  mkdirSync(dataDir);
+  const projects = path.join(root, 'office');
+  const project = path.join(root, 'raspnas', 'development', 'projects', 'web_apps', 'omnitrade');
+  mkdirSync(project, { recursive: true });
+  writeFileSync(path.join(project, 'README.md'), '# omnitrade\n');
+  execFileSync('git', ['init', '-q', project]);
+  execFileSync('git', ['-C', project, 'remote', 'add', 'origin', 'https://github.com/FedericoGritti/omnitrade.git']);
+
+  const building = new Building(dataDir, projects);
+  const def = building.addLocal(project, 'Federico');
+  assert.equal(typeof def, 'object', String(def));
+  assert.equal((def as FloorDef).dir, project);
+  // A checkout of a GitHub repository keeps it, so the floor's boards work; a folder with none is local only.
+  assert.equal((def as FloorDef).repo, 'FedericoGritti/omnitrade');
+  assert.deepEqual(building.list().map((d) => d.name), ['omnitrade']);
+  assert.ok(existsSync(path.join(project, 'README.md')), 'nothing inside the folder was touched');
+
+  // The same folder isn't a second floor, and nothing was cloned to get the first one.
+  assert.match(building.addLocal(project, 'Federico') as string, /already a floor/);
+  assert.equal(existsSync(projects), false, 'adding a folder clones nothing, so no projects folder is made');
+
+  // It's still a floor at the next start, and taking it off leaves the folder where it is.
+  const again = new Building(dataDir, projects);
+  assert.deepEqual(again.list().map((d) => d.dir), [project]);
+  assert.equal(typeof again.remove(again.list()[0].id), 'object');
+  assert.ok(existsSync(path.join(project, 'README.md')), 'the folder stays exactly as it is');
+  assert.deepEqual(again.list(), []);
+});
+
+test('a folder that is not a folder, or not there, or not named in full, says why', (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'agent-office-addlocal-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const dataDir = path.join(root, '.agent-office');
+  mkdirSync(dataDir);
+  const file = path.join(root, 'notes.txt');
+  writeFileSync(file, 'x');
+  const building = new Building(dataDir, path.join(root, 'office'));
+
+  assert.match(building.addLocal('', 'Sam') as string, /Type the folder/);
+  assert.match(building.addLocal('raspnas/development', 'Sam') as string, /Use a full path/);
+  assert.match(building.addLocal(path.join(root, 'nope'), 'Sam') as string, /no folder at/);
+  assert.match(building.addLocal(file, 'Sam') as string, /isn't a folder/);
+  assert.deepEqual(building.list(), []);
+});

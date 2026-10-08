@@ -1,11 +1,12 @@
 import { execFileSync, spawn } from 'node:child_process';
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { FLOOR_PALETTES, MAX_FLOORS, normalizeRepo, sameRepo } from '../shared/floors.js';
 import type { CloneProgress, ProjectsDirState, RepoChoice } from '../shared/protocol.js';
 import { CloneRun, dropLog, whyCloneFailed, type CloneEnd, type CloneRunOptions } from './clone.js';
 import { gh } from './github.js';
+import { listRepos } from './repos.js';
 
 /** A floor as floors.json keeps it. */
 export interface FloorDef {
@@ -63,13 +64,13 @@ export interface BuildingOptions {
 
 /** How long the list of repositories `gh` can see is reused before it's asked again. */
 const REPOS_TTL_MS = 5 * 60_000;
-const MAX_REPOS = 1000;
 
 /**
  * The floors of the building, saved in <office>/.agent-office/floors.json: which projects there are,
- * where their checkouts live, and how each floor is painted. New floors are cloned with the office
- * machine's `gh` login into <projects>/<owner>/<repo>; the projects folder can be picked in ⚙️ Settings
- * (kept in projects-folder.json).
+ * where their checkouts live, and how each floor is painted. A floor is added either as a folder
+ * that's already there (addLocal: nothing is cloned, nothing in it is touched), or by cloning a
+ * repository with the office machine's `gh` login into <projects>/<owner>/<repo> (the first-run
+ * walkthrough does that; the projects folder is kept in projects-folder.json).
  */
 export class Building {
   private defs: FloorDef[] = [];
@@ -329,6 +330,34 @@ export class Building {
     return def;
   }
 
+  /**
+   * Makes a folder that is already on the office's machine a floor, as it is: nothing is cloned, and
+   * nothing inside it is written — adding a floor and taking it off both leave the folder alone. A
+   * folder that is a checkout of a GitHub repository keeps that repository, so its boards still work.
+   */
+  addLocal(raw: string, by: string): FloorDef | string {
+    const typed = raw.trim();
+    if (!typed) return 'Type the folder to add';
+    const given = untildify(typed);
+    if (!path.isAbsolute(given)) return `Use a full path, like ${tildify(path.join(os.homedir(), 'raspnas', 'development', 'projects'))}`;
+    const dir = path.resolve(given);
+    let real: string;
+    try {
+      real = realpathSync(dir);
+      if (!statSync(real).isDirectory()) return `${tildify(dir)} isn't a folder`;
+    } catch {
+      return `There's no folder at ${tildify(dir)}`;
+    }
+    if (this.defs.some((d) => path.resolve(d.dir) === real)) return `${tildify(dir)} is already a floor`;
+    if (this.defs.length + this.cloning.size >= MAX_FLOORS) return `The building is full (${MAX_FLOORS} floors)`;
+    const def = this.newDef(path.basename(dir), originRepo(real), real, by);
+    this.defs.push(def);
+    // Started in this folder, taken off, and now added back: a restart shouldn't add it twice.
+    if (this.localOff && path.resolve(this.localOff.dir) === real) this.setLocalOff(undefined);
+    this.save();
+    return def;
+  }
+
   /** Clones a floor on its way, or checks that what's already there is its repository. Resolves to an error, if any. */
   private async clone(p: Pending): Promise<string | undefined> {
     const { dir: dest } = p.def;
@@ -549,39 +578,4 @@ function cloneHere(repo: string, dest: string): Promise<string | undefined> {
     child.once('error', (err: NodeJS.ErrnoException) => resolve(err.code === 'ENOENT' ? "The GitHub CLI (gh) isn't installed on this machine" : `Couldn't run gh: ${err.message}`));
     child.once('exit', (code, signal) => resolve(code === 0 ? undefined : `Couldn't clone ${repo}: gh ${signal ? `stopped (${signal})` : `failed (exit ${code})`}`));
   });
-}
-
-async function listRepos(cwd: string): Promise<RepoChoice[]> {
-  const out = await gh(
-    [
-      'api',
-      '--paginate',
-      'user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member',
-      '--jq',
-      '.[] | {name: .full_name, description: (.description // ""), private: .private, pushedAt: .pushed_at}',
-    ],
-    cwd,
-    90_000,
-  );
-  const repos: RepoChoice[] = [];
-  const seen = new Set<string>();
-  for (const line of out.split('\n')) {
-    if (!line.trim()) continue;
-    try {
-      const r = JSON.parse(line) as { name?: unknown; description?: unknown; private?: unknown; pushedAt?: unknown };
-      const name = normalizeRepo(r.name);
-      if (!name || seen.has(name.toLowerCase())) continue;
-      seen.add(name.toLowerCase());
-      repos.push({
-        name,
-        description: typeof r.description === 'string' && r.description ? r.description.slice(0, 200) : undefined,
-        private: r.private === true,
-        pushedAt: typeof r.pushedAt === 'string' ? r.pushedAt : undefined,
-      });
-    } catch {
-      // not a line of ours
-    }
-    if (repos.length >= MAX_REPOS) break;
-  }
-  return repos.sort((a, b) => (b.pushedAt ?? '').localeCompare(a.pushedAt ?? ''));
 }

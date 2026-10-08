@@ -13,6 +13,7 @@ import headless from '@xterm/headless';
 import serialize from '@xterm/addon-serialize';
 import { PTY_PROTOCOL, SCROLLBACK, readMessages, type FromHost, type SpawnOpts, type ToHost } from './ptys.js';
 import { screenSnapshot } from './screen.js';
+import { killTree } from './ptytree.js';
 
 /** How long terminals keep running with no office connected before the host gives up on it. */
 const ORPHAN_MS = 30 * 60_000;
@@ -61,6 +62,23 @@ function drop(s: Session) {
   s.term.dispose();
 }
 
+/**
+ * Ends a terminal and everything it started. The host is detached on purpose, so a worker's
+ * browsers, language servers and broker daemons would otherwise outlive it as orphans.
+ */
+function killSession(s: Session) {
+  if (process.platform === 'win32') {
+    // No /proc to walk; keep the terminal's own process as the only thing signalled.
+    try {
+      s.proc.kill();
+    } catch {
+      // already gone
+    }
+    return;
+  }
+  killTree(s.proc.pid);
+}
+
 /** No office connected: wait for one to come back, but not forever. */
 function orphaned() {
   clearTimeout(idleTimer);
@@ -75,11 +93,7 @@ function stopAll() {
   for (const s of sessions.values()) {
     if (s.exitCode !== undefined) continue;
     n++;
-    try {
-      s.proc.kill();
-    } catch {
-      // already gone
-    }
+    killSession(s);
   }
   if (!n) process.exit(0);
   setTimeout(() => process.exit(0), 3000);
@@ -177,13 +191,7 @@ function onMessage(msg: ToHost) {
       const s = sessions.get(msg.id);
       if (!s) break;
       if (s.exitCode !== undefined) drop(s);
-      else {
-        try {
-          s.proc.kill();
-        } catch {
-          // already gone
-        }
-      }
+      else killSession(s);
       break;
     }
     case 'stop':

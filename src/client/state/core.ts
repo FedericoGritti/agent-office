@@ -60,7 +60,7 @@ export const me: Slice = {
   },
 };
 
-/** The building's floors, where new ones are cloned to, and the repositories that could be one. */
+/** The building's floors, where a cloned one goes, and the folders a new floor could be made of. */
 export const building: Slice = {
   on: {
     welcome(s, m) {
@@ -76,9 +76,9 @@ export const building: Slice = {
       s.projectsDir = m.state;
       return ['projectsDir'];
     },
-    'floor.repos'(s, m) {
-      s.repos = { list: m.repos, error: m.error, loading: false, at: Date.now() };
-      return ['repos'];
+    'floor.folders'(s, m) {
+      s.folders = { path: m.path, home: m.home, parent: m.parent, dirs: m.dirs, error: m.error, loading: false };
+      return ['folders'];
     },
   },
 };

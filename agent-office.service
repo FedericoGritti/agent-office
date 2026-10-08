@@ -1,0 +1,24 @@
+[Unit]
+Description=Agent Office (OMP workers, reached through Tailscale Serve)
+Documentation=https://github.com/AgentSystemLabs/agent-office
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=%h/raspnas/system/personalization/llms/agents/tool_homes/agent_office
+Environment=HOME=%h
+Environment=PATH=%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=NODE_ENV=production
+# Loopback only: Tailscale Serve reaches it, nothing else does. --no-open: no browser on a server.
+ExecStart=%h/.local/bin/office --host 127.0.0.1 --port 4600 --trust-proxy --no-open
+Restart=always
+RestartSec=3
+# Stopping the office stops the office, not its workers: their terminals run in a process of their
+# own that the next office picks back up. The default (control-group) would stop every worker mid-task.
+KillMode=process
+LimitNOFILE=65536
+
+[Install]
+WantedBy=default.target

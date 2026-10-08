@@ -162,7 +162,7 @@ export function buildBeanbag(def: DeskDef, index: number): DeskView {
   return { def, group, laptopAnchor, seatAnchor, stage, chair: bag, vacancy, vacancyY };
 }
 
-const KIOSK_SIGN: Record<StationKind, string> = { issues: '📌 Ask me', pulls: '🔀 Ask me', queue: '📋 Ask me' };
+const KIOSK_SIGN: Record<StationKind, string> = { coordinator: '🧑‍💼 Ask me' };
 
 /**
  * A board agent's kiosk: a little counter in its color with a sign on the front, and the agent standing
@@ -187,7 +187,7 @@ export function buildKiosk(def: DeskDef): DeskView {
   group.add(sign);
 
   // No laptop: its lid would hide the agent's face from whoever walks up, and its screen would face
-  // the wall. The agent's terminal is a key press away (O).
+  // the wall. The agent's terminal is a key press away (E).
   const laptopAnchor = new THREE.Object3D();
   laptopAnchor.visible = false;
   group.add(laptopAnchor);

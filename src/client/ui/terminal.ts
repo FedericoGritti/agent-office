@@ -471,6 +471,33 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     sendEsc();
     term.focus();
   });
+  // A finger has no wheel: drag the terminal to scroll it, the way a finger moves anything it touches.
+  // This xterm binds no touch handler of its own, and the office only hears about a wheel when there
+  // is one, so without this a phone could read a terminal but never scroll back through it.
+  const rowHeight = () => (host.clientHeight || 1) / Math.max(1, term.rows);
+  let touchAt: number | null = null;
+  let touchPx = 0;
+  host.addEventListener('touchstart', (e) => {
+    touchAt = e.touches.length === 1 ? e.touches[0].clientY : null;
+    touchPx = 0;
+  }, { passive: true });
+  host.addEventListener('touchmove', (e) => {
+    if (touchAt === null || e.touches.length !== 1) return;
+    const at = e.touches[0].clientY;
+    touchPx += at - touchAt;
+    touchAt = at;
+    e.preventDefault();
+    const rows = Math.trunc(touchPx / rowHeight());
+    if (!rows) return;
+    touchPx -= rows * rowHeight();
+    term.scrollLines(-rows);
+  }, { passive: false });
+  const endTouch = () => {
+    touchAt = null;
+    touchPx = 0;
+  };
+  host.addEventListener('touchend', endTouch);
+  host.addEventListener('touchcancel', endTouch);
   for (const k of KEYPAD) {
     const b = h('button.btn', { type: 'button', title: k.title, 'aria-label': k.title }, k.label);
     // Not the terminal's focus: a key from here shouldn't bring up the phone's keyboard.

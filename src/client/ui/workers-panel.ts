@@ -8,8 +8,40 @@ import { $, h, STATUS_LABEL, timeAgo } from './dom';
 import { usageLabel, usageTitle } from './usage';
 import { providerLabel, providerUsageState, providerWaitingLabel, resolvedProvider, modelBadge } from './provider';
 
+/** What a row opens, and the row the pointer went down on. */
+let openRow: ((id: string) => void) | null = null;
+let pressedRow: string | null = null;
+let bound = false;
+
+/**
+ * Opening a row is handled on the list rather than on each row: a worker update redraws the list, and
+ * a row replaced between press and release takes the pointer's own node with it, so a per-row click
+ * never fires. That redraw lands while a worker is busy — the very moment you want to watch it — which
+ * is why it only swallows a click now and then. The list itself is never replaced, so pressing and
+ * releasing on the same worker always opens its terminal.
+ */
+function bindRows(ul: HTMLElement) {
+  if (bound) return;
+  bound = true;
+  const rowAt = (target: EventTarget | null) => (target as HTMLElement | null)?.closest('li[data-id]')?.getAttribute('data-id') ?? null;
+  ul.addEventListener('pointerdown', (e) => {
+    if (e.button === 0) pressedRow = rowAt(e.target);
+  });
+  ul.addEventListener('pointerup', (e) => {
+    const row = rowAt(e.target);
+    const down = pressedRow;
+    pressedRow = null;
+    if (e.button === 0 && row && row === down) openRow?.(row);
+  });
+  ul.addEventListener('pointercancel', () => {
+    pressedRow = null;
+  });
+}
+
 export function renderWorkers(onOpen: (id: string) => void) {
+  openRow = onOpen;
   const ul = $('workers');
+  bindRows(ul);
   ul.replaceChildren();
   const workers = needyFirst(store.workers.values());
   for (const w of workers) {
@@ -26,7 +58,7 @@ export function renderWorkers(onOpen: (id: string) => void) {
     ul.append(
       h(
         'li',
-        { class: asking ? 'needs-you-row' : '', onclick: () => onOpen(w.id), title: asking ? `${w.name} needs you: open its terminal to answer` : `Open ${w.name}'s terminal` },
+        { class: asking ? 'needs-you-row' : '', 'data-id': w.id, title: asking ? `${w.name} needs you: open its terminal to answer` : `Open ${w.name}'s terminal` },
         h('span.dot', { style: `background:${w.color}` }),
         h('span.name', {}, w.name, sub ? h('span.sub', {}, sub) : null,
           usageState === 'tracked' && w.usage ? h('span.cost', { title: usageTitle(w.usage, providerKind) }, usageLabel(w.usage, providerKind)) : null),

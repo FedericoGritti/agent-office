@@ -128,9 +128,43 @@ store.on('project', renderFloors);
 /** What each worker was last, to tell when one starts waiting on someone. */
 const lastStatus = new Map<string, string>();
 
+/** What the pointer went down on (see bindRows). */
+let pressedRow: { id: string; say: boolean } | null = null;
+let rowsBound = false;
+
+/**
+ * The cards are handled on the list rather than on each card: the list is redrawn on every worker
+ * update (and every 30s), and a card replaced between press and release takes the pointer's own node
+ * with it, so a per-card click then never fires. The list itself stays put, so pressing and releasing
+ * on the same card always works — ✍️ likewise, which is why the press records which of the two it hit.
+ */
+function bindRows(ul: HTMLElement) {
+  if (rowsBound) return;
+  rowsBound = true;
+  const rowAt = (target: EventTarget | null) => (target as HTMLElement | null)?.closest('li[data-id]')?.getAttribute('data-id') ?? null;
+  const sayAt = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest('.lite-say');
+  ul.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const id = rowAt(e.target);
+    pressedRow = id ? { id, say: sayAt(e.target) } : null;
+  });
+  ul.addEventListener('pointerup', (e) => {
+    const id = rowAt(e.target);
+    const down = pressedRow;
+    pressedRow = null;
+    if (e.button !== 0 || !id || !down || down.id !== id || down.say !== sayAt(e.target)) return;
+    if (down.say) promptWorker(id);
+    else openWorker(id);
+  });
+  ul.addEventListener('pointercancel', () => {
+    pressedRow = null;
+  });
+}
+
 function renderWorkers() {
   const list = byUrgency(store.workers.values());
   const ul = $('workers');
+  bindRows(ul);
   ul.replaceChildren(...list.map(workerCard));
   if (!list.length) ul.append(h('li.lite-empty', {}, store.project ? 'Nobody is working on this floor. ✨ New task hires someone.' : 'No workers here.'));
   $('waiting-now').textContent = waitingLabel(waitingInOrder(list));
@@ -162,10 +196,10 @@ function workerCard(w: WorkerInfo): HTMLElement {
   ].filter(Boolean);
   return h(
     'li.lite-worker',
-    { class: `${w.status}${waiting ? ' waiting' : ''}` },
+    { class: `${w.status}${waiting ? ' waiting' : ''}`, 'data-id': w.id },
     h(
       'button.lite-card',
-      { type: 'button', onclick: () => openWorker(w.id), 'aria-label': `${w.name}, ${STATUS_LABEL[w.status] ?? w.status}: open its terminal` },
+      { type: 'button', 'aria-label': `${w.name}, ${STATUS_LABEL[w.status] ?? w.status}: open its terminal` },
       h('span.dot', { style: `background:${w.color}` }),
       h(
         'span.lite-info',
@@ -178,7 +212,7 @@ function workerCard(w: WorkerInfo): HTMLElement {
       h('span.lite-state', {}, h('span.pill', { class: w.status }, STATUS_LABEL[w.status] ?? w.status), waiting && w.waitingSince ? h('small', {}, timeAgo(w.waitingSince)) : null),
     ),
     // One that's asking something is answered in its terminal, where the question is.
-    asleep || w.lost || w.status === 'needs_input' ? null : h('button.btn.lite-say', { type: 'button', title: `Send ${w.name} a prompt`, 'aria-label': `Send ${w.name} a prompt`, onclick: () => promptWorker(w.id) }, '✍️'),
+    asleep || w.lost || w.status === 'needs_input' ? null : h('button.btn.lite-say', { type: 'button', title: `Send ${w.name} a prompt`, 'aria-label': `Send ${w.name} a prompt` }, '✍️'),
   );
 }
 

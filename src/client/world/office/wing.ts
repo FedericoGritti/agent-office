@@ -173,7 +173,8 @@ export function buildWing(group: THREE.Group, colliders: Collider[], interactabl
         take(shell);
 
         // The floor: the room's planks carried on through (the same texture, lined up with it), on a
-        // slab like the room's; and the ceiling's tiles over it.
+        // slab like the room's. No ceiling tiles and no roof over them: the room it opens off has
+        // none either (see stack.ts), and looking up from the back office you see the sky.
         const w = WING.maxX - WING.minX;
         const d = FLOOR.minZ - back;
         const floorGeo = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2).translate(midX, 0, (back + FLOOR.minZ) / 2);
@@ -189,15 +190,7 @@ export function buildWing(group: THREE.Group, colliders: Collider[], interactabl
         slab.position.set(midX, -SLAB / 2 - 0.005, (back - T + FLOOR.minZ - T) / 2);
         slab.receiveShadow = true;
         take(slab);
-        const ceilGeo = new THREE.PlaneGeometry(w, d).rotateX(Math.PI / 2).translate(midX, WALL_HEIGHT, (back + FLOOR.minZ) / 2);
-        const cuv = ceilGeo.getAttribute('uv');
-        const cpos = ceilGeo.getAttribute('position');
-        for (let k = 0; k < cpos.count; k++) cuv.setXY(k, cpos.getX(k), cpos.getZ(k));
-        take(new THREE.Mesh(ceilGeo, ceiling)).receiveShadow = false;
-        // Its roof, flush with the tops of its walls, for when there's no floor over it.
-        take(mesh(box(w + 2 * T, 0.02, d + T), toon('#fffaf3'), midX, WALL_HEIGHT + 0.03, (back - T + FLOOR.minZ) / 2, false));
         mine.push({ minX: WING.minX - T, maxX: FLOOR.maxX + T, minZ: back - T, maxZ: FLOOR.minZ - T, bottom: -SLAB, top: 0 });
-        mine.push({ minX: WING.minX, maxX: FLOOR.maxX, minZ: back, maxZ: FLOOR.minZ, bottom: WALL_HEIGHT, top: WALL_HEIGHT + SLAB });
       }
       colliders.push(...mine);
 

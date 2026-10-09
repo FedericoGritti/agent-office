@@ -443,12 +443,16 @@ export function buildStack(colliders: Collider[], planks: THREE.Material): Stack
     // Down the hole, the pole is right there to grab; this only catches anyone who somehow isn't sliding.
     for (const p of holes) mine.push({ ...around(p, POLE.hole), bottom: -1.4, top: -1.2 });
 
-    // The ceiling: tiles, WALL_HEIGHT up, with the hatch and the poles' holes when they come from somewhere.
-    const ceilingHoles: Hole[] = [];
-    if (above) ceilingHoles.push(LADDER.hatch);
-    if (above) for (const p of POLES) ceilingHoles.push({ x: p.x, z: p.z, r: POLE.hole });
-    take(mesh(surface(rectOutline(FLOOR), ceilingHoles, 1), ceilingMat, 0, WALL_HEIGHT, 0, false)).receiveShadow = false;
-    mine.push({ ...FLOOR, bottom: WALL_HEIGHT, top: WALL_HEIGHT + SLAB });
+    // The ceiling: tiles, WALL_HEIGHT up, with the hatch and the poles' holes when they come from
+    // somewhere. The top of the building has none: with nothing over it the sky is its roof, and the
+    // room reads open instead of closed in. Under another floor the slab above is the ceiling, so it
+    // stays. (The collider goes with it: there is nothing up there to stop anyone.)
+    if (above) {
+      const ceilingHoles: Hole[] = [LADDER.hatch];
+      for (const p of POLES) ceilingHoles.push({ x: p.x, z: p.z, r: POLE.hole });
+      take(mesh(surface(rectOutline(FLOOR), ceilingHoles, 1), ceilingMat, 0, WALL_HEIGHT, 0, false)).receiveShadow = false;
+      mine.push({ ...FLOOR, bottom: WALL_HEIGHT, top: WALL_HEIGHT + SLAB });
+    }
 
     // The ladder, when there's anywhere to climb to.
     ladder.visible = others;

@@ -350,8 +350,10 @@ export function buildTower(colliders: Collider[], night: NightParts): Tower {
         parts.add(back);
       }
     }
-    // On top, a cornice, and the rooftop bar over it; but up on the roof, it's the roof's own.
-    if (index < count) {
+    // On top, a cornice, and the rooftop bar over it; but up on the roof, it's the roof's own. The
+    // building's top floor takes neither: the office there has no ceiling over it (see stack.ts's
+    // roof), so a cornice or a bar at that height would be the roof it is open to the sky without.
+    if (index < count - 1) {
       const top = (count - 1 - index) * STOREY + WALL_HEIGHT;
       crown(parts, top);
       roofTop(parts, top + SLAB);

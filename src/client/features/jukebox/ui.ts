@@ -49,10 +49,12 @@ export function openJukebox(net: Net, openVolume: () => void, player: JukeboxPla
 
   const button = (label: string, title: string, send: () => void, primary = false) => h(primary ? 'button.btn.primary' : 'button.btn', { type: 'button', title, onclick: send }, label);
 
-  /** Where a YouTube link plays: the jukebox's own player, in the window while it is open, and out of the
-   *  way but still playing once it is closed. */
+  /** Where a YouTube link plays: the jukebox's own player, over the room this window leaves for it, so it
+   *  carries on untouched while you walk the floor. */
   const wherePlays = (j: typeof store.jukebox) => {
-    if (!j.on || j.track !== YOUTUBE) return '';
+    const on = j.on && j.track === YOUTUBE;
+    screen.classList.toggle('on', on);
+    if (!on) return '';
     player.mount(screen);
     return '';
   };

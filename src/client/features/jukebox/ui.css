@@ -7,9 +7,15 @@
 @keyframes jb-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .jb-disc.spin { animation: none; } }
 
-/* The slot the player goes into, and what the window says while it is empty. */
+/* The slot the player goes into, and what the window says while it is empty. The window leaves it a
+   16:9 room and the player's own box sits over it, exactly. */
 .jukebox .jb-screen:empty {
   display: none;
+}
+.jukebox .jb-screen.on {
+  display: block;
+  aspect-ratio: 16 / 9;
+  margin-top: 16px;
 }
 /* What the floor has played, newest first: scrollable, because it is kept for a while. */
 .jukebox .jb-history {
@@ -23,28 +29,31 @@
   padding: 8px 4px;
 }
 
-/* The jukebox's YouTube player: in the jukebox's window while that is open... */
-.jukebox .jb-frame {
-  margin-top: 16px;
-}
-.jukebox .jb-frame iframe,
-.jb-holder .jb-frame iframe {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border: 0;
-  border-radius: 10px;
-  background: #000;
-}
-/* ...and in its holder once the window is closed: out of the way, but still playing. */
+/* The player's own box: over the window's slot while that is open... */
 .jb-holder {
   position: fixed;
+  z-index: 60;
+  overflow: hidden;
+  border-radius: 10px;
+}
+/* ...and out of the way once it closes — off to the side, not display:none, because the music has to
+   carry on playing. */
+.jb-holder.hidden {
   left: -10000px;
   top: 0;
   width: 480px;
   height: 270px;
+  opacity: 0;
   pointer-events: none;
 }
 .jb-frame.hidden {
   display: none;
+}
+.jb-frame,
+.jb-frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
 }

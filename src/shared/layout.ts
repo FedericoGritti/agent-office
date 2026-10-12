@@ -30,12 +30,12 @@ export const DESK_SIZE = { width: DESK_WIDTH, depth: DESK_DEPTH, height: 0.78 } 
 function buildDesks(): DeskDef[] {
   const desks: DeskDef[] = [];
   const clusterX = [-10.5, -1.5];
-  // Each pod is two back-to-back rows; the far row faces +z (rotY = PI).
-  const pods = [
-    { back: -4.55, front: -3.45 },
-    { back: 3.45, front: 4.55 },
-  ];
-  let n = 1;
+  // Each pod is two back-to-back rows; the far row faces +z (rotY = PI). Pods are counted from the north,
+  // and the first one is not built: the row of boards stands where it was (see FIGURES and WHITEBOARD), and
+  // one pod seats the eight workers this office is ever asked for. The numbers carry on from where that pod
+  // left off, so a worker saved at desk-9 is still at desk-9.
+  const pods = [{ back: 3.45, front: 4.55 }];
+  let n = 9;
   for (const pod of pods) {
     for (const cx of clusterX) {
       for (const [z, rotY] of [
@@ -293,11 +293,11 @@ export function plantsAt(level: number): readonly (readonly [x: number, z: numbe
 }
 
 /**
- * The whiteboard on wheels everyone draws on together: at the east end of the row of figures boards in
- * the middle aisle, facing the desks the same way they do (-z). `width` and `height` are its writing
- * surface, whose bottom edge is `bottom` above the floor.
+ * The whiteboard on wheels everyone draws on together: at the east end of the row of figures boards, where
+ * the north pod of desks used to stand, facing the desks that are left behind it (-z). `width` and `height`
+ * are its writing surface, whose bottom edge is `bottom` above the floor.
  */
-export const WHITEBOARD = { x: -2, z: 0, width: 4, height: 2.2, bottom: 0.5 } as const;
+export const WHITEBOARD = { x: -2, z: -4, width: 4, height: 2.2, bottom: 0.5 } as const;
 
 /** One figures board: where its stand stands, and how big its face is. */
 export interface FiguresBoard {
@@ -310,15 +310,15 @@ export interface FiguresBoard {
 }
 
 /**
- * The figures boards: rolling stands side by side in the middle aisle among the desks, with the
- * whiteboard closing the row on the east, all three the same size and height, on the whiteboard's line,
- * and all facing the desks' north side (-z). Each shows one picture from the project's `images/` folder
- * at a time, its file name along the bottom, and a click (or E) moves that board on to its next one (see
- * features/figures/).
+ * The figures boards: rolling stands side by side where the north pod of desks used to stand, with the
+ * whiteboard closing the row on the east, all three the same size and height, on the whiteboard's line, and
+ * all facing the desks that are left behind them (-z). Each shows one picture from the project's `images/`
+ * folder at a time, its file name on the plate above it, and a click (or E) moves that board on to its next
+ * one (see features/figures/).
  */
 export const FIGURES: readonly FiguresBoard[] = [
-  { x: -11, z: 0, width: 4, height: 2.2, bottom: 0.5 },
-  { x: -6.5, z: 0, width: 4, height: 2.2, bottom: 0.5 },
+  { x: -11, z: -4, width: 4, height: 2.2, bottom: 0.5 },
+  { x: -6.5, z: -4, width: 4, height: 2.2, bottom: 0.5 },
 ];
 
 /**

@@ -1,4 +1,4 @@
-import { STREAM } from '../../../shared/jukebox';
+import { STREAM, YOUTUBE } from '../../../shared/jukebox';
 import type { AudioCore } from '../../sound/core';
 import { biquad, rms } from '../../sound/dsp';
 import { TunePlayer } from '../../sound/music';
@@ -119,6 +119,8 @@ export class Jukebox {
     const j = this.jukebox;
     if (!j) return;
     if (j.track === STREAM && j.url) return this.startStream(j.url);
+    // A YouTube link is played by YouTube's own player, in the jukebox's window: nothing is synthesized here.
+    if (j.track === YOUTUBE) return;
     const tune = (this.tune = new TunePlayer(ctx, this.musicIn, j.track));
     this.a.count('tune');
     // On a timer rather than every frame, so it carries on in a background tab.

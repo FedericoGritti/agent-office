@@ -311,13 +311,14 @@ export interface FiguresBoard {
 
 /**
  * The figures boards: rolling stands side by side in the middle aisle among the desks, with the
- * whiteboard closing the row on the east, all of them facing the desks' north side (-z). Each shows one
- * picture from the project's `images/` folder at a time, its file name along the bottom, and a click (or
- * E) moves that board on to its next one (see features/figures/).
+ * whiteboard closing the row on the east, all three the same size and height, on the whiteboard's line,
+ * and all facing the desks' north side (-z). Each shows one picture from the project's `images/` folder
+ * at a time, its file name along the bottom, and a click (or E) moves that board on to its next one (see
+ * features/figures/).
  */
 export const FIGURES: readonly FiguresBoard[] = [
-  { x: -9.5, z: 0, width: 3, height: 1.9, bottom: 0.5 },
-  { x: -6, z: 0, width: 3, height: 1.9, bottom: 0.5 },
+  { x: -11, z: 0, width: 4, height: 2.2, bottom: 0.5 },
+  { x: -6.5, z: 0, width: 4, height: 2.2, bottom: 0.5 },
 ];
 
 /**

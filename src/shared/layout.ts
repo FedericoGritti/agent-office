@@ -357,12 +357,13 @@ export interface Opening {
   y1: number;
 }
 
-/** Windows you can see out of, and the loft's two, which sit higher up. */
+/** Windows you can see out of, and the boss's office's four, which sit higher up. */
 export const WINDOWS: Opening[] = [
   ...[-14, -9, 1].map((u) => ({ wall: 'south' as const, u, width: 3, y0: 1.1, y1: 3.3 })),
   ...[-9, -3, 3].map((u) => ({ wall: 'west' as const, u, width: 3, y0: 1.1, y1: 3.3 })),
-  { wall: 'south', u: LOFT.minX + 2, width: 2.8, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 },
-  { wall: 'east', u: (LOFT.minZ + LOFT.maxZ) / 2, width: 2.8, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 },
+  // The boss's office: a pair in the south wall either side of its nameplate, a pair in the east one.
+  ...[LOFT.minX + 1.6, LOFT.minX + 7.4].map((u) => ({ wall: 'south' as const, u, width: 2.4, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 })),
+  ...[LOFT.minZ + 1.4, LOFT.minZ + 3.6].map((u) => ({ wall: 'east' as const, u, width: 1.8, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 })),
 ];
 
 /**

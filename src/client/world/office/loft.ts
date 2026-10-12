@@ -55,16 +55,17 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   group.add(mesh(box(0.04, 0.25, d), trimMat, maxX - 0.02, floorY + 0.125, cz, false));
 
   // The two sides that face the desks are open all the way up: you look down on everyone working with
-  // nothing in between. Only the frame of that glass wall is left, so the wall still shows where it is.
+  // nothing in between — a post at the corner where the two sides meet, the door's jamb, and the rails at
+  // the floor and the roof. Nothing else stands between you and the room.
   const doorZ = STAIRS.minZ;
   const bar = (bw: number, bh: number, bd: number, x: number, y: number, z: number) => group.add(mesh(box(bw, bh, bd), frameMat, x, y, z, false));
   const northZ = minZ + T / 2;
   const westX = minX + T / 2;
-  for (let i = 0; i <= 6; i++) bar(0.1, height, T + 0.04, minX + i * (w / 6), floorY + height / 2, northZ);
+  const westLen = doorZ - minZ;
+  bar(0.1, height, T + 0.04, minX, floorY + height / 2, northZ);
+  bar(T + 0.04, height, 0.1, westX, floorY + height / 2, doorZ);
   bar(w, 0.12, T + 0.06, cx, floorY + 0.06, northZ);
   bar(w, 0.12, T + 0.06, cx, roofY - 0.06, northZ);
-  const westLen = doorZ - minZ;
-  for (let i = 0; i <= 2; i++) bar(T + 0.04, height, 0.1, westX, floorY + height / 2, minZ + i * (westLen / 2));
   bar(T + 0.06, 0.12, westLen, westX, floorY + 0.06, minZ + westLen / 2);
   bar(T + 0.06, 0.12, westLen, westX, roofY - 0.06, minZ + westLen / 2);
   colliders.push({ minX, maxX, minZ, maxZ: minZ + T, bottom: floorY, top: 99 });
@@ -212,10 +213,10 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   lamp.position.set(deskX, roofY - 0.4, cz);
   group.add(lamp);
 
-  // Signs: one on the back wall inside, one over the glass for everyone downstairs.
+  // Signs: one on the back wall inside, between its two windows, one over the open side for downstairs.
   const inside = textPlane('👑 Boss Office', { bg: '#fffaf3', size: 64 });
   inside.scale.multiplyScalar(0.8);
-  inside.position.set(maxX - 3, floorY + 1.9, maxZ - 0.04);
+  inside.position.set(cx, floorY + 1.9, maxZ - 0.04);
   inside.rotation.y = Math.PI;
   group.add(inside);
   const outside = textPlane('👑 Boss Office', { bg: '#2b2d42', color: '#fffaf3', size: 64, border: '#fffaf3' });

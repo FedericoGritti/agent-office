@@ -142,10 +142,10 @@ export class SpendBoardTexture {
     g.fillText(title, x, 150);
     g.fillStyle = GOLD;
     g.font = `900 60px ${HEAD}`;
-    g.fillText(fmtTokens(w.tokens), x, 216);
+    g.fillText(fmtCost(w.cost), x, 216);
     g.fillStyle = MUTED;
     g.font = `800 26px ${HEAD}`;
-    g.fillText(clip(`≈ API eq. ${fmtCost(w.cost)} · ${w.calls} richieste`, 40), x, 252);
+    g.fillText(clip(`${fmtTokens(w.tokens)} token · ${w.calls} richieste`, 40), x, 252);
     KINDS.forEach((k, i) => {
       const y = 306 + i * 40;
       const n: SpendNumbers = w.byAgent[k.key];

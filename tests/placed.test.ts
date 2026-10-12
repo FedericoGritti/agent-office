@@ -24,8 +24,9 @@ test('a quarter turn turns a piece on the spot, not about where it was built', (
 
   // The middle hasn't travelled...
   assert.deepEqual([middle.position.x, middle.position.z], [5, -2]);
-  // ...and the plaque, a metre out to the east, is a metre out to the north of it.
+  // ...and the plaque, a metre out to the east, is a metre out to the north of it (a right-handed turn
+  // about y takes +x to -z).
   assert.ok(Math.abs(plaque.position.x - 5) < 1e-9, `x ${plaque.position.x}`);
-  assert.ok(Math.abs(plaque.position.z - -1) < 1e-9, `z ${plaque.position.z}`);
+  assert.ok(Math.abs(plaque.position.z - -3) < 1e-9, `z ${plaque.position.z}`);
   assert.ok(Math.abs(plaque.rotation.y - Math.PI / 2) < 1e-9, `rot ${plaque.rotation.y}`);
 });

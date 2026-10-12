@@ -63,7 +63,7 @@ modifiche, non un HTTP a parte: passa per la stessa rete delle altre cose.
 | `src/server/office/layout.ts` | il file per piano: lettura, scrittura, validazione |
 | `src/server/ws/handlers/layout.ts` | il gestore di `layout.set` + una riga negli handler |
 | `src/client/state/slices/layout.ts` | il campo nello store e l'ingresso in `SLICES` |
-| `src/client/features/layout-editor/` | `index.ts` (tasto e ciclo), `select.ts` (raggi e trascinamento), `ui.ts` + `ui.css` (il pannello) |
+| `src/client/features/layout-editor/` | `index.ts` (tasto, attività e barra dei comandi), `carry.ts` (mira, presa, posa, giro, rimozione) |
 | i costruttori degli arredi | una riga ciascuno: leggono `place()` e firmano il gruppo |
 
 Nessuna modifica al centro di `main.ts`, `server.ts`, allo store o a `protocol.ts`: una riga per

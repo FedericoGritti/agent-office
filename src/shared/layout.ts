@@ -253,19 +253,19 @@ export const TV = { x: FLOOR.maxX - 0.1, y: 2.2, z: 0, width: 6.4, height: 3.6 }
  */
 export const MACHINE_MONITOR = { x: FLOOR.minX, y: 2.2, z: -6, width: 2.3, height: 1.3 } as const;
 /**
- * The jukebox: against the north wall beside the bookshelf of the project's docs, facing into the room
- * (+z) like the boards next to it. `y` is its speaker.
+ * The jukebox: against the north wall west of the bookshelf of the project's docs, in the corner the
+ * room's west wall makes, facing into the room (+z) like the boards beside it. `y` is its speaker.
  */
-export const JUKEBOX = { x: -15.4, z: FLOOR.minZ + 0.44, y: 0.75, width: 1.3, depth: 0.72, height: 1.85 } as const;
+export const JUKEBOX = { x: -17.25, z: FLOOR.minZ + 0.44, y: 0.75, width: 1.3, depth: 0.72, height: 1.85 } as const;
 /** The arcade cabinet, against the east wall between the jukebox and the loft, facing into the room. `width` runs along the wall. */
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 
 /**
  * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): against the north
- * wall beside the checklist board, on the spot a potted plant used to stand, with the jukebox next to it,
- * all of them facing into the room (+z). `width` runs along x.
+ * wall beside the checklist board, on the spot a potted plant used to stand, with the jukebox in the
+ * corner to its west, all of them facing into the room (+z). `width` runs along x.
  */
-export const BOOKSHELF = { x: -17, z: FLOOR.minZ + 0.29, width: 1.7, depth: 0.42, height: 2.3 } as const;
+export const BOOKSHELF = { x: -15.6, z: FLOOR.minZ + 0.29, width: 1.7, depth: 0.42, height: 2.3 } as const;
 
 export const SPAWN = { x: 8, z: 7 } as const;
 

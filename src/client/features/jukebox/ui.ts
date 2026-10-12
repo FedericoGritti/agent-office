@@ -1,8 +1,9 @@
 import './ui.css';
-import { JUKEBOX_TUNES, STREAM, YOUTUBE, checkStreamUrl, trackTitle, tuneById, youtubeEmbed, youtubeWatch, type JukeboxPlay } from '../../../shared/jukebox';
+import { JUKEBOX_TUNES, STREAM, YOUTUBE, checkStreamUrl, trackTitle, tuneById, youtubeWatch, type JukeboxPlay } from '../../../shared/jukebox';
 import type { Net } from '../../net';
 import { store } from '../../state';
 import { h, openModal, toast } from '../../ui/dom';
+import type { JukeboxPlayer } from './player';
 
 /** "2 minutes ago", for the history. */
 function ago(at: number): string {
@@ -17,7 +18,7 @@ function ago(at: number): string {
 
 /** The jukebox: what's on, the tunes to pick from, skip and stop, a box for a stream or a YouTube link,
  *  and what the floor has played before, newest first. */
-export function openJukebox(net: Net, openVolume: () => void, showPlayer: () => void) {
+export function openJukebox(net: Net, openVolume: () => void, player: JukeboxPlayer) {
   const close = h('button.btn.close', { 'aria-label': 'Close' }, '✕');
   const now = h('div.jb-now');
   const list = h('ul.svc-list');
@@ -48,16 +49,12 @@ export function openJukebox(net: Net, openVolume: () => void, showPlayer: () => 
 
   const button = (label: string, title: string, send: () => void, primary = false) => h(primary ? 'button.btn.primary' : 'button.btn', { type: 'button', title, onclick: send }, label);
 
-  /** Where a YouTube link plays: the jukebox's own player, out on your screen, so it carries on while you
-   *  walk the floor. The window only points at it — two players would play twice. */
+  /** Where a YouTube link plays: the jukebox's own player, in the window while it is open, and out of the
+   *  way but still playing once it is closed. */
   const wherePlays = (j: typeof store.jukebox) => {
     if (!j.on || j.track !== YOUTUBE) return '';
-    return h(
-      'div.jb-where',
-      {},
-      h('div.svc-meta', {}, 'It plays in the jukebox’s player, on your screen, so it carries on while you walk the floor.'),
-      button('▶️ Show the player', 'Bring the jukebox’s player back', () => showPlayer()),
-    );
+    player.mount(screen);
+    return '';
   };
 
   /** One history row: what it was, who put it on, when. Clicking it puts it on again. */
@@ -147,7 +144,14 @@ export function openJukebox(net: Net, openVolume: () => void, showPlayer: () => 
     if (e.key === 'Enter') play();
   });
 
-  const modal = openModal(el, { doing: '🎵 at the jukebox', onClose: store.on('jukebox', render) });
+  const off = store.on('jukebox', render);
+  const modal = openModal(el, {
+    doing: '🎵 at the jukebox',
+    onClose: () => {
+      player.park();
+      off();
+    },
+  });
   close.addEventListener('click', () => modal.close());
   volume.addEventListener('click', () => {
     modal.close();

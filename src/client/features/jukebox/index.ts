@@ -42,7 +42,7 @@ export function installJukebox(ctx: Ctx, deps: JukeboxDeps) {
   });
 
   function showJukebox() {
-    openJukebox(ctx.net, () => deps.showSettings('sound'), player.open);
+    openJukebox(ctx.net, () => deps.showSettings('sound'), player);
   }
 
   return { playJukebox };

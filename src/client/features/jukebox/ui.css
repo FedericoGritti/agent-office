@@ -7,24 +7,9 @@
 @keyframes jb-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .jb-disc.spin { animation: none; } }
 
-/* A YouTube link plays in a visible player: YouTube's own terms want it seen, and it keeps playing
-   while the window is open. */
+/* The slot the player goes into, and what the window says while it is empty. */
 .jukebox .jb-screen:empty {
   display: none;
-}
-.jukebox .jb-player {
-  margin-top: 16px;
-}
-.jukebox .jb-player iframe {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border: 0;
-  border-radius: 10px;
-  background: #000;
-}
-.jukebox .jb-player .svc-meta {
-  margin-top: 6px;
 }
 /* What the floor has played, newest first: scrollable, because it is kept for a while. */
 .jukebox .jb-history {
@@ -38,47 +23,28 @@
   padding: 8px 4px;
 }
 
-/* The jukebox's YouTube player: its own little window out on the screen, so it keeps playing while you
-   walk the floor, and visible while it plays, which is what YouTube's terms ask for. */
-.jb-dock {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  width: min(360px, 42vw);
-  z-index: 40;
-  padding: 8px;
-  border-radius: 12px;
-  background: var(--panel, #1b1e27);
-  border: 1px solid var(--line, #2b2d42);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+/* The jukebox's YouTube player: in the jukebox's window while that is open... */
+.jukebox .jb-frame {
+  margin-top: 16px;
 }
-.jb-dock.hidden {
-  display: none;
-}
-.jb-dock header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.jb-dock .jb-title {
-  font-weight: 700;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.jb-dock .jb-watch {
-  font-size: 12px;
-}
-.jb-dock .jb-frame iframe {
+.jukebox .jb-frame iframe,
+.jb-holder .jb-frame iframe {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  margin-top: 6px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #000;
 }
-.jukebox .jb-where {
-  margin-top: 12px;
+/* ...and in its holder once the window is closed: out of the way, but still playing. */
+.jb-holder {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 480px;
+  height: 270px;
+  pointer-events: none;
+}
+.jb-frame.hidden {
+  display: none;
 }

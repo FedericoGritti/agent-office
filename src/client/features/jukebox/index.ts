@@ -4,7 +4,7 @@ import { aside, hintTitle, key, onE } from '../../core/hint';
 import { store } from '../../state';
 import { clip } from '../../ui/dom';
 import { openJukebox } from './ui';
-import { installJukeboxPlayer } from './player';
+import { makeJukeboxPlayer } from './player';
 import type { SettingsPane } from '../../ui/settings';
 
 // The kinds of thing you can use that this defines (see InteractKinds in world/types.ts).
@@ -22,7 +22,7 @@ export interface JukeboxDeps {
 /** The jukebox on your floor, the office's own: what's on, and E to put a song on. */
 export function installJukebox(ctx: Ctx, deps: JukeboxDeps) {
   // The jukebox's YouTube player, out on its own so it carries on while you walk the floor.
-  const player = installJukeboxPlayer();
+  const player = makeJukeboxPlayer();
   // The jukebox on your floor: everyone there hears it from the same bar, and its lights say what's on.
   // It's the office's: on a map of its own there's none to hear.
   function playJukebox() {

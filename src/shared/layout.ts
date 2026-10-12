@@ -32,10 +32,9 @@ function buildDesks(): DeskDef[] {
   const clusterX = [-10.5, -1.5];
   // Each pod is two back-to-back rows; the far row faces +z (rotY = PI). Pods are counted from the north,
   // and the first one is not built: the row of boards stands where it was (see FIGURES and WHITEBOARD), and
-  // one pod seats the eight workers this office is ever asked for. The numbers carry on from where that pod
-  // left off, so a worker saved at desk-9 is still at desk-9.
+  // one pod seats the eight workers this office is ever asked for.
   const pods = [{ back: 3.45, front: 4.55 }];
-  let n = 9;
+  let n = 1;
   for (const pod of pods) {
     for (const cx of clusterX) {
       for (const [z, rotY] of [

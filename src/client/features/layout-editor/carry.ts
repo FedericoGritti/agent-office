@@ -92,6 +92,13 @@ export class Carrying {
     if (!this.moving) return;
     this.raycaster.setFromCamera(CENTRE, this.camera);
     if (this.held) {
+      // Carry it over a plane the look-ray actually meets: looking down, the floor it stands on (a couch
+      // in the loft follows the loft's floor); looking up, the height it hangs at (a board two metres up,
+      // with your eye below it). The other plane is never reached from your eye, and the piece would sit
+      // there and not move at all.
+      const floorY = this.held.colliders.reduce((y, box) => Math.max(y, box.bottom ?? 0), 0);
+      const hangY = this.held.parts[0]!.position.y;
+      this.floor.constant = -(this.raycaster.ray.direction.y < 0 ? floorY : hangY);
       const at = this.raycaster.ray.intersectPlane(this.floor, this.at);
       if (!at) return;
       const x = this.snap(at.x, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN);
@@ -121,9 +128,6 @@ export class Carrying {
     if (!piece) return false;
     this.held = piece;
     this.from = { ...piece.at };
-    // The floor it's carried over is the one it stands on: a couch up in the loft follows the loft's
-    // floor, not the ground floor's.
-    this.floor.constant = -piece.parts[0]!.getWorldPosition(new THREE.Vector3()).y;
     this.deps.changed();
     return true;
   }

@@ -77,10 +77,10 @@ export const boards: Fixture<'boardMeshes'> = (site) => {
     const it: Interactable = { kind: key, x: b.x + nx * 1.6, z: b.z + nz * 1.6, radius: 2.4 };
     site.interactables.push(it);
     bg.userData.interact = it;
-    // The board is hung on a wall, and it stays on that wall: the editor slides it along it (see onWall).
+    // The board hangs on a wall as the room is built; the editor may take it off and float it anywhere.
     const wall = wallFacing(b.rotY);
     // The board and its label travel together when the editor moves it.
-    placed([bg, label], `board-${key}`, { x: b.x, z: b.z, rotY: b.rotY, wall }, [], site);
+    placed([bg, label], `board-${key}`, { x: b.x, z: b.z, rotY: b.rotY }, [], site);
     // The board and its label above it, up to the ceiling.
     const bottom = b.y - (b.height + 0.3) / 2;
     site.wall(wall, wall === 'north' || wall === 'south' ? b.x : b.z, (bottom + WALL_HEIGHT) / 2, b.width + 0.3, WALL_HEIGHT - bottom);
@@ -102,8 +102,7 @@ export const tv: Fixture<'tvScreen'> = (site) => {
   const it: Interactable = { kind: 'tv', x: TV.x - 4.5, z: TV.z, radius: 3.2 };
   site.interactables.push(it);
   tvGroup.userData.interact = it;
-  // Hung on the east wall: the editor slides it along the wall rather than out into the room.
-  placed(tvGroup, 'tv', { ...TV, wall: 'east' }, [], site);
+  placed(tvGroup, 'tv', TV, [], site);
   site.wall('east', TV.z, TV.y, TV.width + 0.3, TV.height + 0.3);
   return { handle: { tvScreen } };
 };
@@ -120,8 +119,7 @@ export const machineMonitor: Fixture<'machineScreen'> = (site) => {
   monitor.position.set(MACHINE_MONITOR.x + 0.07, MACHINE_MONITOR.y, MACHINE_MONITOR.z);
   monitor.rotation.y = Math.PI / 2;
   site.group.add(monitor);
-  // Hung on the west wall: the editor slides it along it, like the boards and the TV.
-  placed(monitor, 'machine-monitor', { ...MACHINE_MONITOR, wall: 'west' }, [], site);
+  placed(monitor, 'machine-monitor', MACHINE_MONITOR, [], site);
   site.wall('west', MACHINE_MONITOR.z, MACHINE_MONITOR.y, MACHINE_MONITOR.width + 0.2, MACHINE_MONITOR.height + 0.2);
   return { handle: { machineScreen } };
 };

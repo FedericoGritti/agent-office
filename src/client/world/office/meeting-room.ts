@@ -154,7 +154,7 @@ export function buildMeetingRoom(group: THREE.Group, colliders: Collider[], inte
   const read: Interactable = { kind: 'meeting', x: b.x, z: b.z - 1.4, radius: 2.4 };
   interactables.push(read);
   frame.userData.interact = read;
-  placed(frame, 'meeting-board', { x: b.x, z: b.z, rotY: Math.PI, wall: 'south' }, [], { colliders, interactables });
+  placed(frame, 'meeting-board', { x: b.x, z: b.z, rotY: Math.PI }, [], { colliders, interactables });
 
   // The panel on the glass beside the door, like a room-booking screen: what's on, the round, the
   // tokens, and the summary once it's over. Beside the door rather than past it, so the board shows.
@@ -170,7 +170,7 @@ export function buildMeetingRoom(group: THREE.Group, colliders: Collider[], inte
   interactables.push(door);
   // The panel and its plate travel together, and the door you use to call a meeting goes with them.
   sign.userData.interact = door;
-  placed([sign, plate], 'meeting-sign', { x: sign.position.x, z: R.minZ + T / 2 + 0.03, wall: 'north' }, [], { colliders, interactables });
+  placed([sign, plate], 'meeting-sign', { x: sign.position.x, z: R.minZ + T / 2 + 0.03 }, [], { colliders, interactables });
   sign.userData.interact = door;
   plate.userData.interact = door;
 

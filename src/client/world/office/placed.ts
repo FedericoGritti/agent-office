@@ -6,7 +6,6 @@
 
 import * as THREE from 'three';
 import { place, type Base, type Placed } from '../../../shared/placement';
-import type { WallId } from '../../../shared/decor';
 import type { Collider, Interactable } from '../types';
 
 /** The room a piece joins: the lists its colliders and its use-point go in (see Site in fixture.ts). */
@@ -18,9 +17,7 @@ export interface Room {
 /** One piece of furniture, as its builder declared it: what to move, and what moves with it. */
 export interface Piece {
   id: string;
-  base: Required<Pick<Base, 'x' | 'z' | 'rotY'>>;
-  /** The wall it hangs on, if it hangs on one: the editor slides it along that wall (see placement.ts). */
-  wall?: WallId;
+  base: Required<Base>;
   /** Every object that makes the piece up, moved together: its group, and anything the builder left beside it. */
   parts: THREE.Object3D[];
   /** Its footprint, in world coordinates, as built at the base. */
@@ -89,7 +86,6 @@ export function placed(
   const piece: Piece = {
     id,
     base: { x: base.x, z: base.z, rotY: base.rotY ?? 0 },
-    wall: base.wall,
     parts: list,
     colliders,
     interact,

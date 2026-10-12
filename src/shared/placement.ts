@@ -6,7 +6,6 @@
 
 import { BEANBAGS, DESKS, SEATING, STATIONS } from './layout.js';
 import type { DeskDef } from './layout.js';
-import type { WallId } from './decor.js';
 
 /** What the editor saves for one piece: only what differs from the base in layout.ts. */
 export interface Placement {
@@ -35,18 +34,6 @@ export interface Base {
   x: number;
   z: number;
   rotY?: number;
-  /** The wall it hangs on, if it hangs on one: the editor keeps it there as you move it. */
-  wall?: WallId;
-}
-
-/**
- * Where a piece goes while you carry it: a thing hung on a wall slides along that wall and keeps its
- * distance from it, so a board stays on the wall it was hung on instead of floating out in the room.
- */
-export function onWall(wall: WallId | undefined, base: { x: number; z: number }, x: number, z: number): { x: number; z: number } {
-  if (wall === 'north' || wall === 'south') return { x, z: base.z };
-  if (wall === 'east' || wall === 'west') return { x: base.x, z };
-  return { x, z };
 }
 
 /** What each piece is called on the panel. A piece without an entry goes by its id. */
@@ -55,7 +42,8 @@ export const PLACEABLE_LABELS: Record<string, string> = {
   bookshelf: '📚 Bookshelf',
   whiteboard: '📝 Whiteboard',
   'figures-1': '🖼️ Figures (west)',
-  'figures-2': '🖼️ Figures (east)',
+  'figures-2': '🖼️ Figures (middle)',
+  'figures-3': '🖼️ Figures (east)',
   'board-issues': '📋 Checklist board',
   'board-queue': '🕓 Timeline board',
   'board-pulls': '🎯 Phase board',

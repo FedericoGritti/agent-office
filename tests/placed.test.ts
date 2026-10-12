@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { onWall, setPlacements } from '../src/shared/placement.js';
+import { setPlacements } from '../src/shared/placement.js';
 import { applyPiece, clearPieces, placed, placedPieces } from '../src/client/world/office/placed.js';
 import type { Collider } from '../src/client/world/types.js';
 
@@ -49,12 +49,13 @@ test('a piece takes its colliders with it when it moves', () => {
   assert.deepEqual([box.maxX - box.minX, box.maxZ - box.minZ], [2, 1]);
 });
 
-test('a thing hung on a wall slides along it and keeps its distance', () => {
-  const base = { x: -9.84, z: -4 };
-  assert.deepEqual(onWall('north', base, -7.25, 2), { x: -7.25, z: -4 });
-  assert.deepEqual(onWall('south', base, -7.25, 2), { x: -7.25, z: -4 });
-  assert.deepEqual(onWall('east', base, 9, -1.5), { x: -9.84, z: -1.5 });
-  assert.deepEqual(onWall('west', base, 9, -1.5), { x: -9.84, z: -1.5 });
-  // Nothing hung on a wall goes wherever you carry it.
-  assert.deepEqual(onWall(undefined, base, 5, 5), { x: 5, z: 5 });
+test('a board goes wherever you carry it, and keeps the height it hangs at', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  // A wall board two metres up: carried across the room it stays two metres up, so it floats.
+  group.position.set(-9.84, 2.1, -12.92);
+  placed(group, 'test-board', { x: -9.84, z: -12.92, rotY: 0 });
+  applyPiece(placedPieces()[0], { x: 2.5, z: -4, rotY: 0, hidden: false });
+  assert.deepEqual([group.position.x, group.position.y, group.position.z], [2.5, 2.1, -4]);
 });

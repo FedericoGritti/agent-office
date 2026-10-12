@@ -4,6 +4,9 @@
 // deleted one isn't in the room at all. Nothing here touches the DOM or the scene: it's the file and
 // the arithmetic, and the tests in tests/placement.test.ts pin it.
 
+import { DESKS, STATIONS } from './layout.js';
+import type { DeskDef } from './layout.js';
+
 /** What the editor saves for one piece: only what differs from the base in layout.ts. */
 export interface Placement {
   x?: number;
@@ -57,6 +60,7 @@ export const PLACEABLE_LABELS: Record<string, string> = {
   'boss-telescope': '🔭 Telescope',
   'meeting-board': "📋 The meeting's board",
   'meeting-sign': '🚪 Meeting room panel',
+  'station-coordinator': "🧑‍💼 The coordinator's desk",
 };
 
 /** What an id is called: a plant goes by its number, `plant-3` reading "Plant 3". */
@@ -66,14 +70,36 @@ export function labelFor(id: string): string {
   const plant = /^plant-(\d+)$/.exec(id);
   if (plant) return `🌿 Plant ${plant[1]}`;
   const rug = /^rug-(\d+)$/.exec(id);
-  return rug ? `🧶 Rug ${rug[1]}` : id;
+  if (rug) return `🧶 Rug ${rug[1]}`;
+  const desk = /^desk-(\d+)$/.exec(id);
+  return desk ? `🪑 Desk ${desk[1]}` : id;
 }
 
 let saved: Placements = {};
 
+/**
+ * The seats whose furniture the editor can move: a desk moved in the room is the *seat* moved too, or
+ * the office would hire into where the desk used to be and walk through where it is now. Their places
+ * are what the room was built with, kept here so a move can be undone all the way.
+ */
+const MOVABLE_SEATS: readonly DeskDef[] = [...DESKS, ...STATIONS];
+const SEAT_BASE = new Map(MOVABLE_SEATS.map((s) => [s.id, { x: s.x, z: s.z, rotY: s.rotY }]));
+
+/** Puts the seats where the file says, and the rest back where layout.ts has them. */
+function applyToSeats(): void {
+  for (const seat of MOVABLE_SEATS) {
+    const base = SEAT_BASE.get(seat.id)!;
+    const p = saved[seat.id];
+    seat.x = num(p?.x) ?? base.x;
+    seat.z = num(p?.z) ?? base.z;
+    seat.rotY = num(p?.rotY) ?? base.rotY;
+  }
+}
+
 /** The floor's saved file, before the room is built: what the editor wrote, or nothing at all. */
 export function setPlacements(file: Placements | null | undefined): void {
   saved = file ?? {};
+  applyToSeats();
 }
 
 /** The saved file as it stands, for the panel to show and to change. */
@@ -108,6 +134,7 @@ export function change(id: string, base: Base, at: Placed): Placements {
   if (Object.keys(p).length) next[id] = p;
   else delete next[id];
   saved = next;
+  applyToSeats();
   return next;
 }
 

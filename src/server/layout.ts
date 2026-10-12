@@ -5,7 +5,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { sanitize, type Placements } from '../shared/placement.js';
+import { sanitize, setPlacements, type Placements } from '../shared/placement.js';
 
 export class Layout {
   private file: string;
@@ -14,6 +14,8 @@ export class Layout {
   constructor(dataDir: string) {
     this.file = path.join(dataDir, 'layout.json');
     this.load();
+    // The seats the room moved are the seats the office hires into (see shared/placement).
+    setPlacements(this.saved);
   }
 
   /** Where the furniture stands on this floor: what the editor saved, or nothing. */
@@ -26,6 +28,7 @@ export class Layout {
   set(next: Placements): boolean {
     const before = JSON.stringify(this.saved);
     this.saved = next;
+    setPlacements(next);
     if (JSON.stringify(next) === before) return false;
     try {
       writeFileSync(this.file, `${JSON.stringify(next, null, 2)}\n`);

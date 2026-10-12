@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { BEANBAGS, DESKS, DESK_SIZE, FLOOR, KIOSK, SEATING_BY_ID, STATIONS, STATION_AGENT, deskSeat, type DeskDef, type StationKind } from '../../../shared/layout';
 import { deskPoint } from '../../../shared/nav';
+import { placed } from './placed';
 import { mesh, roundedBox, textPlane, toon } from '../toon';
 import type { Collider, DeskView, Interactable } from '../types';
 import type { Fixture } from './fixture';
@@ -180,11 +181,14 @@ export const desks: Fixture = (site) => {
     site.desks.set(def.id, view);
     const hw = DESK_SIZE.width / 2 - 0.05;
     const hd = DESK_SIZE.depth / 2 - 0.02;
-    site.colliders.push({ minX: def.x - hw, maxX: def.x + hw, minZ: def.z - hd, maxZ: def.z + hd, top: DESK_SIZE.height });
+    const deskCollider: Collider = { minX: def.x - hw, maxX: def.x + hw, minZ: def.z - hd, maxZ: def.z + hd, top: DESK_SIZE.height };
+    site.colliders.push(deskCollider);
     const seat = deskSeat(def, 1.25);
     const it: Interactable = { kind: 'desk', deskId: def.id, x: seat.x, z: seat.z, radius: 1.3 };
     site.interactables.push(it);
     view.group.userData.interact = it;
+    // A desk a worker sits at: the editor moves it, and the seat it is moves with it (see shared/placement).
+    placed(view.group, def.id, def, [deskCollider], site);
   });
   return {};
 };
@@ -232,6 +236,7 @@ export const stationDesks: Fixture = (site) => {
     site.group.add(view.group);
     site.desks.set(def.id, view);
     const y = def.y ?? 0;
+
     // Whoever works here is shown by the seat itself (see idleAgentsIn), so no vacancy sign.
     view.group.remove(view.vacancy);
     // Its own floor: it stops a walker down in the meeting room where it stands high, and one up in the
@@ -241,7 +246,9 @@ export const stationDesks: Fixture = (site) => {
     );
     const xs = corners.map(([x]) => x);
     const zs = corners.map(([, z]) => z);
-    site.colliders.push({ minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs), bottom: y, top: y + 1.5 });
+    const postCollider: Collider = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs), bottom: y, top: y + 1.5 };
+    site.colliders.push(postCollider);
+    placed(view.group, def.id, def, [postCollider], site);
     // Walk up to the far side of the desk.
     const [fx, fz] = deskPoint(def, 0, -1);
     const it: Interactable = { kind: 'station', deskId: def.id, x: fx, y, z: fz, radius: 1.3 };

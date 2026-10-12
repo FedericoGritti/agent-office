@@ -32,7 +32,8 @@ every piece, what stands in it, and — where something can't be moved — why n
 | `meetingRoom` | the board on the back wall, the panel beside the door | ✔ |
 | `meetingRoom` | the table and its chairs | ✘ the seats a meeting is seated at |
 | `lamps` | five pendant lamps | ✘ each lights a halo of its own, and the light would stay behind |
-| `desks`, `beanbags`, `stationDesks` | every desk, every bean bag, the coordinator's post | ✘ the seating plan the server hires into |
+| `desks`, `stationDesks` | every desk a worker sits at, and the coordinator's | ✔ each: the seat moves with the desk |
+| `beanbags` | the bean bags and the lounge poufs | ✘ seats the overflow sits on: their places are the office's plan |
 | `signs` | the signs over the desks | ✘ they belong to the desk they're over |
 | `walls`, `shell`, `elevator`, `garageLift`, `wing`, `stack`, `tower`, `plug`, `clearOfStairs` | the room itself | ✘ |
 | `downstairs` (`cars`, `street`, `green`, `scenic`), `tee`, `hoop` | the street, the garage and the things out there | ✘ not this room |
@@ -42,9 +43,10 @@ every piece, what stands in it, and — where something can't be moved — why n
 A piece is pickable when its builder said so, with `placed(...)` (see
 `src/client/world/office/placed.ts`): the objects to move together, the position the room was built
 with, and the colliders it pushed. So "can I move it?" is exactly "did the builder declare it?", and
-everything the room walks into travels with the piece it belongs to — which is why a seat can't be
-moved by the same gesture: its place is data the office hires by (the floor plan, the queue's
-"workers at once", the walk map), not part of the furniture.
+everything the room walks into travels with the piece it belongs to — A desk is the one seat that
+is furniture too: moving it writes the piece *and* the seat (see `applyToSeats` in
+`src/shared/placement.ts`), so the office hires into the new place, and the walk map around it is
+computed from it. The bean bags and the meeting chairs have no furniture of their own to move.
 
 Moving is exact: at a quarter turn the objects, their colliders and the piece's use-point turn about
 the piece's own middle together, and the colliders stay square to the room. A piece taken out of the

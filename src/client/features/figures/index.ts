@@ -83,14 +83,21 @@ export function installFigures(ctx: Ctx) {
       pictures.set(name, pic);
     }
     draw();
-  }
+  let reading = false;
+  /** A read asked for while one was in flight: it runs again once that one's done. */
+  let again = false;
 
   /** The folder again: a floor change means another project's figures. */
   async function read() {
-    if (reading) return;
+    // Nothing to read until the welcome says which floor (and so which project) you're on.
+    if (!store.floor) return;
+    if (reading) {
+      again = true;
+      return;
+    }
     reading = true;
     try {
-      const r = await fetch(`/api/images?floor=${encodeURIComponent(store.floor ?? '')}`, { credentials: 'same-origin' });
+      const r = await fetch(`/api/images?floor=${encodeURIComponent(store.floor)}`, { credentials: 'same-origin' });
       if (!r.ok) throw new Error(String(r.status));
       names = ((await r.json()) as ImageList).files;
     } catch {
@@ -101,6 +108,10 @@ export function installFigures(ctx: Ctx) {
     note = 'No pictures in images/ yet';
     pictures.clear();
     show(0);
+    if (again) {
+      again = false;
+      void read();
+    }
   }
 
   /** The next picture, round the folder again at the end. */

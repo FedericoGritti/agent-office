@@ -143,7 +143,7 @@ export type StationKind = 'coordinator';
  * room, so at rotY PI the worker stands on the wall side of it. Nobody hires it from the desks or
  * the queue.
  */
-export const STATIONS: DeskDef[] = [{ id: 'station-coordinator', station: 'coordinator', x: -16.63, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Coordinator' }];
+export const STATIONS: DeskDef[] = [{ id: 'station-coordinator', station: 'coordinator', x: -16.63, z: FLOOR.minZ + 1.3, rotY: -Math.PI / 2, label: 'Coordinator' }];
 /** A board agent's kiosk: its top, and how far behind its middle (toward the wall) the agent stands. */
 export const KIOSK = { width: 0.8, depth: 0.5, height: 0.55, stand: 0.55 } as const;
 /** The coordinator's name and its color, the same whenever it's hired. */

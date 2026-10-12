@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { localDay, parseChecklist, parseMasterplan, parsePhase, parseTimeline } from '../src/shared/coordinator.js';
-import { readPlan } from '../src/server/coordinator.js';
+import { CHECKLIST_ROWS, clampRow, localDay, parseChecklist, parseMasterplan, parsePhase, parseTimeline } from '../src/shared/coordinator.js';
+import { Coordinator, readPlan } from '../src/server/coordinator.js';
 
 test('reads the phase the pointer names, and nothing when it names none', () => {
   assert.equal(parsePhase('Current phase: 03 — checkout\n'), '03 — checkout');
@@ -109,4 +109,43 @@ test("reads a floor's plan off disk, and says why when there is none", () => {
   // A pointer with no phase on it is the one thing it can't work around: it says so.
   writeFileSync(path.join(dir, 'plans', 'current.md'), 'nothing to see\n');
   assert.match(readPlan(dir).error ?? '', /Current phase/);
+});
+
+test("the checklist board's arrows move a row at a time, stop at both ends, and are kept per floor", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'coordinator-scroll-'));
+  const dataDir = path.join(dir, '.agent-office');
+  mkdirSync(dataDir, { recursive: true });
+  const phase = '02 — show it';
+  const at = path.join(dir, 'plans', phase);
+  mkdirSync(at, { recursive: true });
+  writeFileSync(path.join(dir, 'plans', 'current.md'), `Current phase: ${phase}\n`);
+  const lines = Array.from({ length: 30 }, (_, i) => `- [ ] 01.${i + 1}-x — Ready`);
+  writeFileSync(path.join(at, 'checklist.md'), `# Checklist\n\nReady: 01.1\n\n## 01 — x\n${lines.join('\n')}\n`);
+
+  const top = 30 - CHECKLIST_ROWS;
+  assert.equal(clampRow(999, 30), top);
+  assert.equal(clampRow(-5, 30), 0);
+  assert.equal(clampRow(4, 3), 0); // a plan that fits doesn't scroll
+
+  const c = new Coordinator(dir, dataDir, () => {});
+  try {
+    assert.equal(c.state().cards.length, 30);
+    assert.equal(c.state().row, 0);
+    c.scroll(-1);
+    assert.equal(c.state().row, 0); // up at the top does nothing
+    c.scroll(1);
+    assert.equal(c.state().row, 1);
+    for (let i = 0; i < 50; i++) c.scroll(1);
+    assert.equal(c.state().row, top); // down stops at the last full window
+  } finally {
+    c.shutdown();
+  }
+
+  // Where the board was left is the floor's own: a fresh office starts there.
+  const again = new Coordinator(dir, dataDir, () => {});
+  try {
+    assert.equal(again.state().row, top);
+  } finally {
+    again.shutdown();
+  }
 });

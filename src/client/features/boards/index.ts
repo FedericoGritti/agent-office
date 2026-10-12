@@ -141,5 +141,5 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
     if (w.meetingSign) showOn(w.meetingSign, meetingSignTex.texture);
   }
 
-  return { issuesTex, renderPullsBoard, renderServicesBoard, renderQueueBoard, dressBoards, cardMoved };
+  return { issuesTex, checklistTex, renderPullsBoard, renderServicesBoard, renderQueueBoard, dressBoards, cardMoved };
 }

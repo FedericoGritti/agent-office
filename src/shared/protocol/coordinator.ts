@@ -59,6 +59,8 @@ export interface CoordinatorState {
   summary: CoordinatorSummary;
   /** Every event `timeline.md` holds; the office shows today's (see todayEvents). */
   timeline: TimelineEvent[];
+  /** The first subplan row the checklist board shows: where its arrows moved the window to. */
+  row: number;
   /** Why the plan can't be read, when it can't. */
   error?: string;
   at: number;
@@ -66,7 +68,9 @@ export interface CoordinatorState {
 
 export type CoordinatorClientMsg =
   /** Look at this floor's plan files now, rather than on the office's own schedule. */
-  | { t: 'coordinator.refresh' };
+  | { t: 'coordinator.refresh' }
+  /** Move the checklist board's window a row (the arrows on it): -1 up, +1 down. */
+  | { t: 'coordinator.scroll'; by: number };
 
 export type CoordinatorServerMsg =
   /** The floor's coordinator board: on arriving, and whenever the plan files change. */

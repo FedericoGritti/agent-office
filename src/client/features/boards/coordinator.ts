@@ -4,7 +4,7 @@
 // the wall; the whole plan opens in the window (ui/coordinator.ts).
 
 import * as THREE from 'three';
-import { localDay } from '../../../shared/coordinator';
+import { CHECKLIST_ROWS, clampRow, localDay } from '../../../shared/coordinator';
 import type { CoordinatorState, SubplanStatus } from '../../../shared/protocol';
 import { clip } from '../../ui/dom';
 import { wrap } from './world';
@@ -12,6 +12,27 @@ import { wrap } from './world';
 const INK = '#2b2d42';
 const MUTED = '#5c5f73';
 const HEAD = 'Nunito, ui-rounded, system-ui, sans-serif';
+
+/** A rectangle on the board's canvas, in pixels. */
+type Rect = { x: number; y: number; w: number; h: number };
+
+/** Where one of the checklist board's arrows sits, in the strip along the bottom. */
+function arrowRect(W: number, H: number, which: 'up' | 'down'): Rect {
+  const size = 56;
+  const down = W - 32 - size;
+  return { x: which === 'down' ? down : down - size - 12, y: H - 18 - size, w: size, h: size };
+}
+
+/** A rounded rectangle's path, so the arrows read as buttons. */
+function roundPath(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
 
 /** The dot beside a subplan, by where it stands. */
 const STATUS_COLOR: Record<SubplanStatus, string> = {
@@ -35,6 +56,12 @@ export class CoordinatorBoardTexture {
   private ctx: CanvasRenderingContext2D;
   /** What it drew last, so it only redraws when the plan says something new. */
   private drawn = '';
+  /** The plan it drew last, so a hover can redraw the arrows without a new plan arriving. */
+  private last: CoordinatorState | null = null;
+  /** The checklist board's arrow under the mouse, drawn lit. */
+  private hovered: 'up' | 'down' | null = null;
+  /** Where the checklist board's two arrows sit, in canvas pixels (null when it has none). */
+  private arrows: { up: Rect; down: Rect } | null = null;
 
   constructor(private kind: 'checklist' | 'timeline' | 'summary') {
     this.canvas.width = 1200;
@@ -46,13 +73,30 @@ export class CoordinatorBoardTexture {
   }
 
   render(state: CoordinatorState) {
-    const key = JSON.stringify({ ...state, at: 0 });
+    this.last = state;
+    const key = `${JSON.stringify({ ...state, at: 0 })}|${this.hovered ?? ''}`;
     if (key === this.drawn) return;
     this.drawn = key;
     if (this.kind === 'checklist') this.drawChecklist(state);
     else if (this.kind === 'timeline') this.drawTimeline(state);
     else this.drawSummary(state);
     this.texture.needsUpdate = true;
+  }
+
+  /** The arrow at a point on the board's face (its uv), or null over the rows or bare board. */
+  arrowAt(uv: THREE.Vector2): 'up' | 'down' | null {
+    if (!this.arrows) return null;
+    const px = uv.x * this.canvas.width;
+    const py = (1 - uv.y) * this.canvas.height;
+    const on = (r: Rect) => px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+    return on(this.arrows.up) ? 'up' : on(this.arrows.down) ? 'down' : null;
+  }
+
+  /** Lights the arrow under the mouse, so it reads as a button (null for none). */
+  hover(arrow: 'up' | 'down' | null) {
+    if (arrow === this.hovered) return;
+    this.hovered = arrow;
+    if (this.last) this.render(this.last);
   }
 
   /** A board with nothing to show, in the colors of the one it stands for. */
@@ -85,8 +129,13 @@ export class CoordinatorBoardTexture {
     g.fillStyle = MUTED;
     g.font = `800 30px ${HEAD}`;
     g.fillText(clip(state.phase ?? '—', 40), 32, 108);
-    const cards = state.cards.slice(0, 12);
-    const rowH = Math.min(46, (H - 170) / Math.max(1, cards.length));
+    const total = state.cards.length;
+    const start = clampRow(state.row, total);
+    const cards = state.cards.slice(start, start + CHECKLIST_ROWS);
+    // The arrows get a strip along the bottom, and only when there's more than fits at once.
+    const scrollable = total > CHECKLIST_ROWS;
+    const bottom = scrollable ? H - 76 : H;
+    const rowH = Math.min(46, (bottom - 170) / Math.max(1, cards.length));
     cards.forEach((c, i) => {
       const y = 160 + i * rowH;
       g.beginPath();
@@ -102,11 +151,34 @@ export class CoordinatorBoardTexture {
       g.fillText(clip(c.statusText, 20), W - 32, y);
       g.textAlign = 'left';
     });
-    if (state.cards.length > cards.length) {
+    if (scrollable) {
+      this.arrows = { up: arrowRect(W, H, 'up'), down: arrowRect(W, H, 'down') };
       g.fillStyle = MUTED;
       g.font = `800 24px ${HEAD}`;
-      g.fillText(`+${state.cards.length - cards.length} more`, 32, H - 16);
+      g.fillText(`${start + 1}–${start + cards.length} of ${total}`, 32, H - 28);
+      this.drawArrow('up', '▲', this.arrows.up, start > 0);
+      this.drawArrow('down', '▼', this.arrows.down, start + CHECKLIST_ROWS < total);
+    } else {
+      this.arrows = null;
     }
+  }
+
+  /** Draws one of the checklist board's arrows: lit when it can move, faded when it's at the end. */
+  private drawArrow(which: 'up' | 'down', glyph: string, r: Rect, enabled: boolean) {
+    const g = this.ctx;
+    roundPath(g, r.x, r.y, r.w, r.h, 12);
+    g.fillStyle = enabled ? (this.hovered === which ? '#dbe7ff' : '#ffffff') : '#f0ece4';
+    g.fill();
+    g.lineWidth = 4;
+    g.strokeStyle = enabled ? INK : '#cdc7bd';
+    g.stroke();
+    g.fillStyle = enabled ? INK : '#cdc7bd';
+    g.font = `900 34px ${HEAD}`;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(glyph, r.x + r.w / 2, r.y + r.h / 2 + 2);
+    g.textAlign = 'left';
+    g.textBaseline = 'alphabetic';
   }
 
   private drawTimeline(state: CoordinatorState) {

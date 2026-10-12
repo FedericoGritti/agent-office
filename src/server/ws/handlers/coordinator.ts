@@ -10,4 +10,7 @@ export const coordinatorHandlers = {
   'coordinator.refresh'(ctx, c) {
     ctx.floorOf(c)?.coordinator.refresh();
   },
+  'coordinator.scroll'(ctx, c, msg) {
+    ctx.floorOf(c)?.coordinator.scroll(msg.by);
+  },
 } satisfies HandlerMap<CoordinatorClientMsg>;

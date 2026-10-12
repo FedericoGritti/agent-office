@@ -11,8 +11,20 @@ export const EMPTY_COORDINATOR: CoordinatorState = {
   cards: [],
   summary: { inFlight: '', planned: '', ready: '', resume: '' },
   timeline: [],
+  row: 0,
   at: 0,
 };
+
+/** How many subplan rows the checklist board shows at once; its arrows move the window by one. */
+export const CHECKLIST_ROWS = 12;
+
+/**
+ * Where the checklist board's window may start: never before the first row, and never past the
+ * last full one, so the arrows can't scroll off either end.
+ */
+export function clampRow(row: number, total: number, rows = CHECKLIST_ROWS): number {
+  return Math.min(Math.max(0, Math.trunc(row) || 0), Math.max(0, total - rows));
+}
 
 /** The statuses the coordinator's board uses, in the order the skill lists them. */
 const STATUSES: readonly SubplanStatus[] = ['Pending', 'Ready', 'Planned', 'In flight', 'Blocked', 'Done'];

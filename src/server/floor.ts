@@ -311,7 +311,7 @@ export class Floor {
     this.decor = new Decor(dataDir);
     this.jukebox = new Jukebox(dataDir);
     this.whiteboard = new Whiteboard(dataDir);
-    this.coordinator = new Coordinator(def.dir, (state) => ctx.emit(this, { t: 'coordinator', state }));
+    this.coordinator = new Coordinator(def.dir, dataDir, (state) => ctx.emit(this, { t: 'coordinator', state }));
     this.ready = this.workers.start();
 
     void this.github.refresh();

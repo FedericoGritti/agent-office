@@ -35,7 +35,7 @@ function floorView(floor: string) {
     issues: { items: [], fetchedAt: 1, loading: false },
     pulls: { items: [], fetchedAt: 1, loading: false },
     queue: { tasks: [], maxWorkers: 2 },
-    coordinator: { phase: null, goal: null, chapters: [], cards: [], summary: { inFlight: '', planned: '', ready: '', resume: '' }, timeline: [], at: 0 },
+    coordinator: { phase: null, goal: null, chapters: [], cards: [], summary: { inFlight: '', planned: '', ready: '', resume: '' }, timeline: [], row: 0, at: 0 },
     decor: [],
     plan: { labels: {}, wing: 1 },
     services: { items: [], port: 4600 },
@@ -251,7 +251,7 @@ test('a new store starts every field where it always has', async () => {
       whiteboard: [], drawing: [], cabinet: { player: null, scores: [] }, cabinetFrame: null, ball: {},
       cars: parked(), carsAt: [], jail: { prisoners: [], bones: 0 },
       team: null, accounts: null, signins: null,
-      coordinator: { phase: null, goal: null, chapters: [], cards: [], summary: { inFlight: '', planned: '', ready: '', resume: '' }, timeline: [], at: 0 },
+      coordinator: { phase: null, goal: null, chapters: [], cards: [], summary: { inFlight: '', planned: '', ready: '', resume: '' }, timeline: [], row: 0, at: 0 },
     },
   );
 });

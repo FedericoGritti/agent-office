@@ -4,16 +4,25 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { CASTLE } from '../src/shared/maps/castle.js';
 import { STATION } from '../src/shared/maps/station.js';
-import { DESK_BY_ID } from '../src/shared/layout.js';
+import { DESK_BY_ID, MEETING_SEATS, SEATS, STATIONS } from '../src/shared/layout.js';
 import { NavGrid, pathLength } from '../src/shared/nav.js';
 import { BUILTIN_MAPS, DEFAULT_DAIS, OFFICE_PLAN, checkCustomMaps, mapChoices, planMap, planOf, seatHereOn, type MapConfig } from '../src/shared/maps/index.js';
 import { clockWork, workedMs } from '../src/server/workers.js';
 import type { WorkerInfo } from '../src/shared/protocol.js';
 
 test('every built-in map places every seat the office has, by the same ids', () => {
+  // The office's own plan is checked first: it isn't built from a config like the others, and a seat it
+  // doesn't know is one whose hints read an entry that isn't there — an error on every frame you look at
+  // it (see officePlan in shared/maps). It may know more than DESK_BY_ID (the boss's desk is one), but
+  // never less.
+  const missing = [...DESK_BY_ID.keys()].filter((id) => !OFFICE_PLAN.byId.has(id));
+  assert.deepEqual(missing, [], 'the office plan knows every seat');
+  // A map seats the seats the office seats workers at of its own accord — not the boss's desk, which only a
+  // shell you start by hand uses (see BOSS_SEAT).
+  const seated = new Set([...SEATS, ...STATIONS, ...MEETING_SEATS].map((d) => d.id));
   for (const config of BUILTIN_MAPS) {
     const plan = planMap(config);
-    assert.deepEqual(new Set(plan.byId.keys()), new Set(DESK_BY_ID.keys()), `${config.id} has the office's seats`);
+    assert.deepEqual(new Set(plan.byId.keys()), seated, `${config.id} has the office's seats`);
     for (const [id, d] of plan.byId) {
       const office = DESK_BY_ID.get(id)!;
       assert.equal(!!d.station, !!office.station, `${id} is a kiosk on both`);

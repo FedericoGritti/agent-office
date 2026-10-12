@@ -191,7 +191,7 @@ export const MEETING_BOARD = { x: MEETING_TABLE.x, y: 1.95, z: FLOOR.maxZ - 0.08
 /** The boss's desk upstairs: not a seat the office hires into, but one you can put a shell at (B), so the boss's office has a normal terminal on its desk. Built by the loft. */
 export const BOSS_SEAT: DeskDef = { id: 'boss-seat', x: (LOFT.minX + LOFT.maxX) / 2 + 0.5, y: LOFT.y, z: (LOFT.minZ + LOFT.maxZ) / 2 + 0.7, rotY: Math.PI, label: '👑 Boss' };
 
-/** Any place a worker can be by id: the seats (the back office's included), the board agents' kiosks, the boss's desk and the meeting room's chairs. */
+/** Any place a worker can be by id: the seats (the back office's included), the board agents' kiosks, the boss's desk (a shell runs there, see BOSS_SEAT) and the meeting room's chairs. */
 export const DESK_BY_ID = new Map([...SEATS, ...STATIONS, BOSS_SEAT, ...MEETING_SEATS].map((d) => [d.id, d]));
 
 /**

@@ -4,7 +4,7 @@ import type { WorkerInfo } from '../../../shared/protocol';
 import type { Net } from '../../net';
 import { store } from '../../state';
 import { h, openModal, toast, type Modal } from '../../ui/dom';
-import { ScreenZoom } from '../arcade/ui';
+import { ScreenZoom } from './zoom';
 import { Blocks, H, W, paintScreen, type ScreenView } from './blocks';
 
 /** What the cabinet makes a noise about: a piece landing, lines clearing (how many), the game ending. */

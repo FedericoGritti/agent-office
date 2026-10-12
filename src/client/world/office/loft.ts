@@ -1,18 +1,18 @@
 import { placed } from './placed';
 import * as THREE from 'three';
-import { LOFT, STAIRS, WALL_T } from '../../../shared/layout';
+import { BOSS_SEAT, LOFT, STAIRS, WALL_T } from '../../../shared/layout';
 import { mesh, roundedBox, textPlane, toon } from '../toon';
-import type { Collider, Interactable } from '../types';
+import type { Collider, DeskView, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE, box, floorTexture, type Looks } from './materials';
 import { floorPlant, pendant, plant } from './props';
-import { chair, seatable } from './seats';
+import { chair, seatable, vacancyMarker } from './seats';
 
 /**
  * The upstairs office: a loft on posts in the south-east corner, with the two sides that face the desks
  * left open (nothing but the frame of what was glazed), reached by stairs along the south wall.
  */
-export function buildLoft(group: THREE.Group, colliders: Collider[], interactables: Interactable[], looks: Looks): THREE.Mesh {
+export function buildLoft(group: THREE.Group, colliders: Collider[], interactables: Interactable[], desks: Map<string, DeskView>, looks: Looks): void {
   const { minX, maxX, minZ, maxZ, y: floorY, height } = LOFT;
   const w = maxX - minX;
   const d = maxZ - minZ;
@@ -116,9 +116,11 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   for (const sx of [-1, 1]) desk.add(mesh(box(0.1, 0.72, 1.0), toon('#8a5a3b'), sx * 1.15, 0.37, 0));
   desk.add(mesh(roundedBox(0.9, 0.55, 0.06, 0.03), toon(PALETTE.ink), 0, 1.18, -0.2));
   desk.add(mesh(box(0.08, 0.2, 0.08), toon(PALETTE.ink), 0, 0.93, -0.2));
-  // Minesweeper plays on it (features/arcade/ui.ts).
-  const screen = mesh(new THREE.PlaneGeometry(0.8, 0.45), new THREE.MeshBasicMaterial({ color: '#4cc9f0' }), 0, 1.18, -0.165, false);
-  desk.add(screen);
+  // The laptop whoever works here gets: on the top, turned to the chair, scaled for this desk (see buildDesk in seats.ts).
+  const laptopAnchor = new THREE.Object3D();
+  laptopAnchor.position.set(0, 0.75, -0.06);
+  laptopAnchor.scale.setScalar(1.3);
+  desk.add(laptopAnchor);
   desk.add(mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.12, 10), toon('#ffd166'), 0.9, 0.89, 0.15));
   const plate = textPlane('👑 BOSS', { bg: '#ffd166', size: 48 });
   plate.scale.multiplyScalar(0.55);
@@ -130,8 +132,19 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   bossChair.position.set(0, 0, 1.0);
   desk.add(bossChair);
   seatable(bossChair, 'boss-chair', 1.2, interactables);
-  // Clicking the screen is using the chair: sit down, then play.
-  screen.userData.interact = bossChair.userData.interact;
+  // A desk like any other: whoever works here sits on the chair, and the laptop on the desk is its terminal.
+  const seatAnchor = new THREE.Object3D();
+  seatAnchor.position.set(0, 0.62, 1.0);
+  seatAnchor.rotation.y = Math.PI;
+  desk.add(seatAnchor);
+  // Up on the desk, clear of the mug and the plate, facing the chair (see buildDesk).
+  const stage = new THREE.Object3D();
+  stage.position.set(0.72, 0.68, 0.18);
+  desk.add(stage);
+  desks.set(BOSS_SEAT.id, { def: BOSS_SEAT, group: desk, laptopAnchor, seatAnchor, stage, chair: bossChair, vacancy: vacancyMarker(0), vacancyY: 0 });
+  const talk: Interactable = { kind: 'desk', deskId: BOSS_SEAT.id, x: deskX, y: floorY, z: deskZ + 1.9, radius: 1.6 };
+  interactables.push(talk);
+  desk.userData.interact = talk;
   desk.position.set(deskX, floorY, deskZ);
   group.add(desk);
   const deskCollider: Collider = { minX: deskX - 1.3, maxX: deskX + 1.3, minZ: deskZ - 0.6, maxZ: deskZ + 0.6, bottom: floorY, top: floorY + 0.8 };
@@ -211,15 +224,10 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   outside.position.set(cx, roofY + 0.2, minZ - 0.07);
   outside.rotation.y = Math.PI;
   group.add(outside);
-  return screen;
-}
-
-declare module '../types' {
-  interface OfficeHandles {
-    /** The monitor on the boss's desk upstairs, where Minesweeper plays (features/arcade/ui.ts). */
-    bossScreen: THREE.Mesh;
-  }
 }
 
 /** The loft up the stairs, over the meeting room: the boss's office. */
-export const loft: Fixture<'bossScreen'> = (site) => ({ handle: { bossScreen: buildLoft(site.group, site.colliders, site.interactables, site.looks) } });
+export const loft: Fixture = (site) => {
+  buildLoft(site.group, site.colliders, site.interactables, site.desks, site.looks);
+  return {};
+};

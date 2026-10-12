@@ -1,12 +1,11 @@
 /**
  * Sitting down: on a chair, a stool, the couch, the throne. Sitting there already, E gets you up, or
- * does what the seat's for (the TV from the couch, Minesweeper from the boss's chair, the bar's menu).
+ * does what the seat's for (the TV from the couch, the bar's menu).
  */
 import { seatPlace, type SeatDef, type SeatPlace } from '../../../shared/layout';
 import type { Ctx } from '../../core/context';
 import { aside, hintTitle, key, onE } from '../../core/hint';
 import { store } from '../../state';
-import type { Arcade } from '../arcade/ui';
 import { toast } from '../../ui/dom';
 import type { Interactable } from '../../world/types';
 
@@ -22,8 +21,6 @@ export interface SeatingDeps {
   shares(): [string, MediaStream][];
   /** Watches what's on the TV full screen (see features/voice). */
   watchShare(): void;
-  /** The boss's monitor (see features/arcade). */
-  arcade: Arcade;
   /** The bar's menu (see features/bar). */
   showBar(): void;
   /** What you can use where you are, and what's in the way of looking at it (see usable in input/pointer.ts). */
@@ -61,7 +58,6 @@ export function installSeating(ctx: Ctx, deps: SeatingDeps) {
     const player = ctx.player;
     if (player.seat?.seatId === seatId) {
       if (seat.tv && tvShowing()) deps.watchShare();
-      else if (seat.game) deps.arcade.play();
       else if (seat.bar) deps.showBar();
       else standUp();
       return;
@@ -112,11 +108,11 @@ export function installSeating(ctx: Ctx, deps: SeatingDeps) {
       if (!seat) return { k: '', parts: [] };
       if (ctx.player.seat?.seatId === seat.id) {
         const tv = !!seat.tv && tvShowing();
-        const use = tv ? 'Watch the TV' : seat.game ? 'Play Minesweeper' : seat.bar ? 'Order a drink' : '';
+        const use = tv ? 'Watch the TV' : seat.bar ? 'Order a drink' : '';
         return { k: `${seat.id}|sitting|${tv}`, parts: [hintTitle(seat.label), aside('sitting'), ...(use ? [key('E', use), key('W A S D', 'Get up')] : [key('E', 'Get up')])] };
       }
       const full = !freePlace(seat);
-      return { k: `${seat.id}|${full}`, parts: [hintTitle(seat.label), seat.game ? aside('💣 Minesweeper on the monitor') : '', full ? aside('no room') : key('E', 'Sit down')] };
+      return { k: `${seat.id}|${full}`, parts: [hintTitle(seat.label), full ? aside('no room') : key('E', 'Sit down')] };
     },
     use: onE((it) => {
       if (it.seatId) useSeat(it.seatId);

@@ -188,9 +188,11 @@ export const MEETING_SEATS: DeskDef[] = (
 ).map(([x, z, rotY], i) => ({ id: `meeting-${i + 1}`, x, z, rotY, label: i === 0 ? 'Head of the table' : `Meeting chair ${i + 1}`, room: true }));
 /** The board on the meeting room's back (south) wall that shows the meeting's output file as it's written. */
 export const MEETING_BOARD = { x: MEETING_TABLE.x, y: 1.95, z: FLOOR.maxZ - 0.08, width: 3.6, height: 1.2 } as const;
+/** The boss's desk upstairs: not a seat the office hires into, but one you can put a shell at (B), so the boss's office has a normal terminal on its desk. Built by the loft. */
+export const BOSS_SEAT: DeskDef = { id: 'boss-seat', x: (LOFT.minX + LOFT.maxX) / 2 + 0.5, y: LOFT.y, z: (LOFT.minZ + LOFT.maxZ) / 2 + 0.7, rotY: Math.PI, label: '👑 Boss' };
 
-/** Any place a worker can be by id: the seats (the back office's included), the board agents' kiosks and the meeting room's chairs. */
-export const DESK_BY_ID = new Map([...SEATS, ...STATIONS, ...MEETING_SEATS].map((d) => [d.id, d]));
+/** Any place a worker can be by id: the seats (the back office's included), the board agents' kiosks, the boss's desk and the meeting room's chairs. */
+export const DESK_BY_ID = new Map([...SEATS, ...STATIONS, BOSS_SEAT, ...MEETING_SEATS].map((d) => [d.id, d]));
 
 /**
  * The seat a new worker takes when nobody picks one: the first free desk (in the back office too, as
@@ -312,10 +314,8 @@ export interface FiguresBoard {
 }
 
 /**
- * The figures boards: rolling stands side by side where the north pod of desks used to stand, the whiteboard
- * closing the row on the east: four boards the same size and height, half a metre apart, on the whiteboard's
- * line, facing the desks left behind them (-z). Each shows one picture from the `images/` folder at a time,
- * its name on the plate above it, and a click (or E) moves that board on to its next (see features/figures/).
+ * The figures boards: four rolling stands where the north pod of desks stood, the whiteboard closing the row
+ * on the east — same size and height, half a metre apart, on its line, facing the desks left behind (-z).
  */
 export const FIGURES: readonly FiguresBoard[] = [
   { x: -15.5, z: -4, width: 4, height: 2.2, bottom: 0.5 },
@@ -460,8 +460,6 @@ export interface SeatDef {
   out: number;
   /** It faces the lounge TV: sitting down there puts whatever's being shared up on your screen. */
   tv?: boolean;
-  /** It faces the boss's monitor: E there, sitting down, plays Minesweeper on it. */
-  game?: boolean;
   /** Up on the rooftop bar, not in the office. */
   roof?: boolean;
   /** At the bar: E there, sitting down, orders a drink. */
@@ -480,7 +478,7 @@ export const SEATING: SeatDef[] = [
   { id: 'lounge-beanbag-2', label: '🫘 Beanbag', x: 14.5, y: 0, z: -3.4, rotY: Math.atan2(TV.x - 14.5, TV.z + 3.4), places: [0], hips: 0.42, depth: -0.1, out: 1.2 },
   // Up in the boss office: the couch against the east wall, and the chair at the big desk, facing the glass.
   { id: 'loft-couch', label: '🛋️ Couch', x: LOFT.maxX - 0.65, y: LOFT.y, z: (LOFT.minZ + LOFT.maxZ) / 2, rotY: -Math.PI / 2, places: [-0.5, 0.5], hips: 0.5, depth: -0.05, out: 0.9 },
-  { id: 'boss-chair', label: "🪑 Boss's chair", x: (LOFT.minX + LOFT.maxX) / 2 + 0.5, y: LOFT.y, z: (LOFT.minZ + LOFT.maxZ) / 2 + 0.7, rotY: Math.PI, places: [0], hips: 0.62, depth: -0.05, out: -0.8, game: true },
+  { id: 'boss-chair', label: "🪑 Boss's chair", x: (LOFT.minX + LOFT.maxX) / 2 + 0.5, y: LOFT.y, z: (LOFT.minZ + LOFT.maxZ) / 2 + 0.7, rotY: Math.PI, places: [0], hips: 0.62, depth: -0.05, out: -0.8 },
   // Out on the balcony: the bench under the window, looking out over the street, and a stool either side of the bistro table.
   { id: 'bench', label: '🪑 Bench', x: -9, y: 0, z: BALCONY.minZ + 0.3, rotY: 0, places: [-0.5, 0.5], hips: 0.47, depth: 0, out: 0.8 },
   { id: 'stool-1', label: '🪑 Stool', x: -0.6, y: 0, z: (BALCONY.minZ + BALCONY.maxZ) / 2 + 0.2, rotY: Math.PI / 2, places: [0], hips: 0.5, depth: 0, out: -0.7 },

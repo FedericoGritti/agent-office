@@ -15,7 +15,10 @@ import { ompAgentDir, recorded } from './omp-usage.js';
 const CHUNK = 4 * 1024 * 1024;
 /** The most of a session file looked at to find the folder it ran in. */
 const HEAD = 256 * 1024;
-/** The name OMP gives the advisor runtime's records inside a session's folder. */
+/**
+ * The name OMP gives the advisor runtime's records inside a session's folder. The advisor works for
+ * that session, so its calls are counted with it.
+ */
 const ADVISOR = '__advisor';
 /**
  * The providers whose spend the board counts. An OMP run on a subscription — Codex on a ChatGPT plan,
@@ -159,7 +162,7 @@ export class OmpSpend {
       } catch {
         continue;
       }
-      for (const sub of subs) read += this.follow(path.join(inner, sub), sub.startsWith(ADVISOR) ? 'advisors' : 'subagents') ? 1 : 0;
+      for (const sub of subs) read += this.follow(path.join(inner, sub), sub.startsWith(ADVISOR) ? base : 'subagents') ? 1 : 0;
     }
     return read;
   }

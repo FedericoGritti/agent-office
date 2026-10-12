@@ -3,8 +3,11 @@
 // session is: the project's own folder, a worker's worktree under it, and the sub-agents a session
 // spawns, which OMP files inside the session that spawned them.
 
-/** Who made the calls: the session's own agent, a sub-agent it spawned, or the advisor runtime. */
-export type SpendAgent = 'agents' | 'subagents' | 'advisors';
+/**
+ * Who made the calls: the project's own sessions (you, and the coordinator) or the workers it ran.
+ * The advisor runtime works inside the session it annotates, so its calls are that session's.
+ */
+export type SpendAgent = 'agents' | 'subagents';
 
 /** Token and cost counters, as OMP reports them. */
 export interface SpendNumbers {
@@ -49,7 +52,7 @@ export function noSpend(): SpendNumbers {
 
 /** A window with nothing counted yet. */
 export function noWindow(): SpendWindow {
-  return { ...noSpend(), byAgent: { agents: noSpend(), subagents: noSpend(), advisors: noSpend() }, byProvider: {} };
+  return { ...noSpend(), byAgent: { agents: noSpend(), subagents: noSpend() }, byProvider: {} };
 }
 
 /** A floor with no numbers read yet. */

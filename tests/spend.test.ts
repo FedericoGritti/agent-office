@@ -36,6 +36,7 @@ test("a project's spend counts its own folder and everything under it, its own a
   const ownFile = path.join(own, '2026-10-12T10-00-00-000Z_aaa.jsonl');
   writeFileSync(ownFile, lines(project, today, 100, 10, 0.5) + lines(project, older, 50, 5, 0.25) + lines(project, today, 900, 900, 9.9, 'openai-codex'));
   // A sub-agent and the advisor, in the folder OMP files them in: inside that session's own folder.
+  // The advisor works for that session, so its calls count with it.
   const inside = path.join(own, '2026-10-12T10-00-00-000Z_aaa');
   mkdirSync(inside, { recursive: true });
   writeFileSync(path.join(inside, 'Scout.jsonl'), lines(project, today, 20, 2, 0.1));
@@ -54,9 +55,8 @@ test("a project's spend counts its own folder and everything under it, its own a
   // Today: the project's own response, the sub-agent's, the advisor's and the worktree's — not `other`.
   assert.equal(state.today.tokens, 100 + 10 + 20 + 2 + 5 + 1 + 30 + 3);
   assert.equal(state.today.calls, 4);
-  assert.equal(state.today.byAgent.agents.calls, 1); // the project's own session
+  assert.equal(state.today.byAgent.agents.calls, 2); // the project's own session and its advisor
   assert.equal(state.today.byAgent.subagents.calls, 2); // the worker's worktree session and its sub-agent
-  assert.equal(state.today.byAgent.advisors.calls, 1);
   assert.equal(state.today.byProvider.deepseek.calls, 4);
   assert.equal(Math.round(state.today.cost * 1000) / 1000, 0.77);
   // All of it: today's four and the one from before them.

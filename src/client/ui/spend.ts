@@ -4,11 +4,10 @@ import type { Net } from '../net';
 import { store } from '../state';
 import { h, openModal, timeAgo } from './dom';
 
-/** The three kinds of agent the board tells apart, in the order it lists them. */
+/** The kinds of agent the board tells apart, in the order it lists them. */
 const KINDS: readonly { key: SpendAgent; label: string }[] = [
   { key: 'agents', label: 'Agenti' },
   { key: 'subagents', label: 'Sotto-agenti' },
-  { key: 'advisors', label: 'Advisor' },
 ];
 
 /** One kind of agent, and the same for every provider that spent. */
@@ -45,7 +44,7 @@ export function openSpend(net: Net) {
     { role: 'dialog', 'aria-label': 'Tokens', style: 'width:min(820px,100%)' },
     h('header', {}, h('h2', {}, '🪙 Token'), when, refresh, close),
     body,
-    h('footer', {}, 'Conta solo DeepSeek, a consumo: un abbonamento (ChatGPT) si paga a forfait e non entra nel conto. I dollari sono l’equivalente API.'),
+    h('footer', {}, 'Solo DeepSeek, a consumo: un abbonamento non entra nel conto, e i dollari sono l’equivalente API. L’advisor gira dentro la sessione, quindi è contato negli agenti.'),
   );
 
   function render() {

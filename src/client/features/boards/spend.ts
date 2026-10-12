@@ -1,8 +1,9 @@
 // The spend board: what the floor's project has spent in OMP, read off OMP's own session records
 // (see server/omp-spend.ts). Two windows side by side — today and all of it — each split into the
-// session's own agents, the sub-agents they spawned and the advisor, and by provider. The cost is
-// the API equivalent, never a flat plan's bill, and the board says so. The button top right reads
-// the records again: nothing here is on a timer (see ui/spend.ts for the window E opens).
+// project's own agents and the sub-agents (the workers it runs, and any a session spawns), and by
+// provider. Only metered providers count, and the cost is the API equivalent, never a flat plan's
+// bill. The button top right reads the records again: nothing here is on a timer (see ui/spend.ts
+// for the window E opens).
 
 import * as THREE from 'three';
 import { fmtCost, fmtTokens, type SpendNumbers, type SpendState, type SpendWindow } from '../../../shared/protocol';
@@ -27,11 +28,10 @@ function roundPath(g: CanvasRenderingContext2D, x: number, y: number, w: number,
   g.closePath();
 }
 
-/** The three kinds of agent the board tells apart, in the order it lists them. */
+/** The kinds of agent the board tells apart, in the order it lists them. */
 const KINDS = [
   { key: 'agents', label: 'Agenti' },
   { key: 'subagents', label: 'Sotto-agenti' },
-  { key: 'advisors', label: 'Advisor' },
 ] as const;
 
 export class SpendBoardTexture {
@@ -125,7 +125,7 @@ export class SpendBoardTexture {
     g.fillStyle = MUTED;
     g.font = `700 21px ${HEAD}`;
     g.fillText(clip(buckets(state.total), 120), 30, H - 52);
-    g.fillText(clip('Conta solo DeepSeek, a consumo: un abbonamento (ChatGPT) si paga a forfait e non entra nel conto. I dollari sono l’equivalente API.', 132), 30, H - 20);
+    g.fillText(clip('Solo DeepSeek, a consumo: un abbonamento non entra nel conto. L’advisor gira dentro la sessione, quindi è contato negli agenti.', 132), 30, H - 20);
     if (state.total.unpriced) {
       g.fillStyle = '#ffd166';
       g.textAlign = 'right';

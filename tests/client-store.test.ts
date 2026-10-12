@@ -31,8 +31,8 @@ const ZERO_SPEND = { tokens: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0
 const emptySpend = (project: string | null = null) => ({
   project,
   day: '',
-  today: { ...ZERO_SPEND, byAgent: { agents: ZERO_SPEND, subagents: ZERO_SPEND, advisors: ZERO_SPEND }, byProvider: {} },
-  total: { ...ZERO_SPEND, byAgent: { agents: ZERO_SPEND, subagents: ZERO_SPEND, advisors: ZERO_SPEND }, byProvider: {} },
+  today: { ...ZERO_SPEND, byAgent: { agents: ZERO_SPEND, subagents: ZERO_SPEND }, byProvider: {} },
+  total: { ...ZERO_SPEND, byAgent: { agents: ZERO_SPEND, subagents: ZERO_SPEND }, byProvider: {} },
   at: 0,
 });
 

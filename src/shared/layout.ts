@@ -261,7 +261,7 @@ export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, 
  * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): out on the open
  * floor in front of the whiteboard, turned to face it, so the two make a nook. `width` runs along x.
  */
-export const BOOKSHELF = { x: 5.4, z: -2.4, width: 1.7, depth: 0.42, height: 2.3 } as const;
+export const BOOKSHELF = { x: 5.4, z: 0, width: 1.7, depth: 0.42, height: 2.3 } as const;
 
 export const SPAWN = { x: 8, z: 7 } as const;
 

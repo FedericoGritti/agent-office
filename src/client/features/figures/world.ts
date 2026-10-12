@@ -31,8 +31,11 @@ export function buildFigures(): FiguresStand {
   const mid = bottom + height / 2;
   const post = width / 2 + 0.1;
 
-  // The surface in its aluminium frame; the back is a plain panel.
-  group.add(mesh(roundedBox(width + 0.14, 0.07, height + 0.14, 0.04), alu, 0, mid, 0));
+  // The surface in its aluminium frame; the back is a plain panel. The frame is a board lying flat,
+  // turned up on edge: without that it lies across the face and hides it.
+  const frame = mesh(roundedBox(width + 0.14, 0.07, height + 0.14, 0.04), alu, 0, mid, 0);
+  frame.rotation.x = Math.PI / 2;
+  group.add(frame);
   const face = document.createElement('canvas');
   face.width = Math.round(width * PX);
   face.height = Math.round(height * PX);

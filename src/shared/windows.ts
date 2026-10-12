@@ -29,9 +29,9 @@ export const WINDOW_DEFS: readonly WindowDef[] = [
   { id: 'window-east-1', wall: 'east', u: 5.7, width: 3, y0: 1.1, y1: 3.3 },
   { id: 'meeting-east-1', wall: 'east', u: 9.5, width: 1.8, y0: 0.9, y1: 2.5 },
   { id: 'meeting-east-2', wall: 'east', u: 11.7, width: 1.8, y0: 0.9, y1: 2.5 },
-  // A second row, high up on the three walls of the room itself, one over each window below it: below
-  // them there is no room left (the boards and the TV take the east wall, the stairs the south one),
-  // and up here nothing is in the way but the ladder, which climbs the pier between two of them.
+  // A second row, high up on the three walls of the room itself: over the windows below on the west and
+  // south walls, and over the boards and the TV on the east one, where the wall below is taken. Up here
+  // nothing is in the way but the ladder, which climbs the pier between two of them.
   ...[-14, -9, 1].map((u, i) => ({ id: `window-south-${i + 4}`, wall: 'south' as const, u, width: 3, y0: 4.4, y1: 6.2 })),
   ...[-9, -3, 3].map((u, i) => ({ id: `window-west-${i + 5}`, wall: 'west' as const, u, width: 3, y0: 4.4, y1: 6.2 })),
   ...[-9, -3, 3].map((u, i) => ({ id: `window-east-${i + 2}`, wall: 'east' as const, u, width: 3, y0: 4.4, y1: 6.2 })),

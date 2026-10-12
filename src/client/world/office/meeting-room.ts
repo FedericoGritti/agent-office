@@ -1,3 +1,4 @@
+import { placed } from './placed';
 import * as THREE from 'three';
 import { MEETING_BOARD, MEETING_LAPTOP, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, deskSeat, type DeskDef } from '../../../shared/layout';
 import type { NightParts } from '../outside';
@@ -150,6 +151,7 @@ export function buildMeetingRoom(group: THREE.Group, colliders: Collider[], inte
   const read: Interactable = { kind: 'meeting', x: b.x, z: b.z - 1.4, radius: 2.4 };
   interactables.push(read);
   frame.userData.interact = read;
+  placed(frame, 'meeting-board', { x: b.x, z: b.z, rotY: Math.PI }, [], { colliders, interactables });
 
   // The panel on the glass beside the door, like a room-booking screen: what's on, the round, the
   // tokens, and the summary once it's over. Beside the door rather than past it, so the board shows.
@@ -163,6 +165,9 @@ export function buildMeetingRoom(group: THREE.Group, colliders: Collider[], inte
   group.add(plate);
   const door: Interactable = { kind: 'meeting', x: sign.position.x, z: R.minZ - 1.2, radius: 1.8 };
   interactables.push(door);
+  // The panel and its plate travel together, and the door you use to call a meeting goes with them.
+  sign.userData.interact = door;
+  placed([sign, plate], 'meeting-sign', { x: sign.position.x, z: R.minZ + T / 2 + 0.03 }, [], { colliders, interactables });
   sign.userData.interact = door;
   plate.userData.interact = door;
 

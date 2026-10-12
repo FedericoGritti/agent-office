@@ -53,6 +53,10 @@ export const PLACEABLE_LABELS: Record<string, string> = {
   'lounge-rug': '🟪 Lounge rug',
   ashtray: '🚬 Ashtray',
   'smoke-sign': '🚬 Smoke break sign',
+  'boss-desk': "🪑 The boss's desk",
+  'boss-telescope': '🔭 Telescope',
+  'meeting-board': "📋 The meeting's board",
+  'meeting-sign': '🚪 Meeting room panel',
 };
 
 /** What an id is called: a plant goes by its number, `plant-3` reading "Plant 3". */

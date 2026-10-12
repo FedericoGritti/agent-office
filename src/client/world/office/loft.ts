@@ -1,3 +1,4 @@
+import { placed } from './placed';
 import * as THREE from 'three';
 import { LOFT, STAIRS, WALL_T } from '../../../shared/layout';
 import { mesh, roundedBox, textPlane, toon } from '../toon';
@@ -140,7 +141,9 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   screen.userData.interact = bossChair.userData.interact;
   desk.position.set(deskX, floorY, deskZ);
   group.add(desk);
-  colliders.push({ minX: deskX - 1.3, maxX: deskX + 1.3, minZ: deskZ - 0.6, maxZ: deskZ + 0.6, bottom: floorY, top: floorY + 0.8 });
+  const deskCollider: Collider = { minX: deskX - 1.3, maxX: deskX + 1.3, minZ: deskZ - 0.6, maxZ: deskZ + 0.6, bottom: floorY, top: floorY + 0.8 };
+  colliders.push(deskCollider);
+  placed(desk, 'boss-desk', { x: deskX, z: deskZ }, [deskCollider], { colliders, interactables });
 
   const couch = new THREE.Group();
   const couchMat = toon('#ef476f');
@@ -176,7 +179,9 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   const telescope: Interactable = { kind: 'telescope', x: scope.position.x, y: floorY, z: scope.position.z, radius: 1.65 };
   scope.userData.interact = telescope;
   interactables.push(telescope);
-  colliders.push({ minX: minX + 0.65, maxX: minX + 1.15, minZ: minZ + 0.65, maxZ: minZ + 1.15, bottom: floorY, top: floorY + 1.3 });
+  const scopeCollider: Collider = { minX: minX + 0.65, maxX: minX + 1.15, minZ: minZ + 0.65, maxZ: minZ + 1.15, bottom: floorY, top: floorY + 1.3 };
+  colliders.push(scopeCollider);
+  placed(scope, 'boss-telescope', { x: minX + 0.9, z: minZ + 0.9 }, [scopeCollider], { colliders, interactables });
 
   for (const [i, [px, pz, s]] of [
     [maxX - 0.6, minZ + 0.6, 1],
@@ -187,7 +192,10 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
     p.position.set(px, floorY, pz);
     group.add(p);
     const r = 0.3 * s;
-    colliders.push({ minX: px - r, maxX: px + r, minZ: pz - r, maxZ: pz + r, bottom: floorY, top: floorY + 0.5 * s });
+    const potCollider: Collider = { minX: px - r, maxX: px + r, minZ: pz - r, maxZ: pz + r, bottom: floorY, top: floorY + 0.5 * s };
+    colliders.push(potCollider);
+    // The room's six pots are 1 to 6, so the loft's carry on from there.
+    placed(p, `plant-${7 + i}`, { x: px, z: pz }, [potCollider], { colliders, interactables });
   }
 
   const lamp = pendant();

@@ -85,7 +85,7 @@ export class OmpSpend {
       const at = path.join(root, folder);
       const cwd = this.cwdOf(at);
       if (!cwd || !this.ours(cwd)) continue;
-      files += this.folder(at);
+      files += this.folder(at, this.underWorktrees(cwd) ? 'subagents' : 'agents');
     }
     return (this.current = this.windows(files));
   }
@@ -127,8 +127,19 @@ export class OmpSpend {
     return p === d || p.startsWith(d + path.sep);
   }
 
-  /** Reads the session files of one folder: its own agent's, and the sub-agents' inside it. */
-  private folder(dir: string): number {
+  /**
+   * Whether a session is a worker's: the coordinator runs each one in a worktree under the project's
+   * `.agent-office/worktrees/`, so its spend is the project's sub-agents', not its own agents'.
+   */
+  private underWorktrees(cwd: string): boolean {
+    return path.resolve(cwd).startsWith(path.join(path.resolve(this.dir), '.agent-office', 'worktrees') + path.sep);
+  }
+
+  /**
+   * Reads the session files of one folder: its own session's (`base`), the sub-agents OMP files
+   * inside it, and the advisor's.
+   */
+  private folder(dir: string, base: SpendAgent): number {
     let read = 0;
     let entries: { name: string; dir: boolean }[];
     try {
@@ -137,7 +148,7 @@ export class OmpSpend {
       return 0;
     }
     for (const entry of entries) {
-      if (!entry.dir && entry.name.endsWith('.jsonl')) read += this.follow(path.join(dir, entry.name), 'agents') ? 1 : 0;
+      if (!entry.dir && entry.name.endsWith('.jsonl')) read += this.follow(path.join(dir, entry.name), base) ? 1 : 0;
     }
     for (const entry of entries) {
       if (!entry.dir) continue;

@@ -22,7 +22,7 @@ function folder(root: string, cwd: string): string {
   return dir;
 }
 
-test("a project's spend counts its own folder and everything under it, agents, sub-agents and advisor apart", () => {
+test("a project's spend counts its own folder and everything under it, its own agents, the workers' sub-agents and the advisor apart", () => {
   const home = mkdtempSync(path.join(tmpdir(), 'spend-'));
   process.env.PI_CODING_AGENT_DIR = home;
   const project = path.join(home, 'work', 'shop');
@@ -54,8 +54,8 @@ test("a project's spend counts its own folder and everything under it, agents, s
   // Today: the project's own response, the sub-agent's, the advisor's and the worktree's — not `other`.
   assert.equal(state.today.tokens, 100 + 10 + 20 + 2 + 5 + 1 + 30 + 3);
   assert.equal(state.today.calls, 4);
-  assert.equal(state.today.byAgent.agents.calls, 2); // the project's own and the worktree's
-  assert.equal(state.today.byAgent.subagents.calls, 1);
+  assert.equal(state.today.byAgent.agents.calls, 1); // the project's own session
+  assert.equal(state.today.byAgent.subagents.calls, 2); // the worker's worktree session and its sub-agent
   assert.equal(state.today.byAgent.advisors.calls, 1);
   assert.equal(state.today.byProvider.deepseek.calls, 4);
   assert.equal(Math.round(state.today.cost * 1000) / 1000, 0.77);

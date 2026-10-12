@@ -35,7 +35,9 @@ export function serveFile(res: http.ServerResponse, file: string, cache: boolean
     'cache-control': cache ? 'public, max-age=31536000, immutable' : 'no-store',
     'x-content-type-options': 'nosniff',
     'x-frame-options': 'DENY',
-    'referrer-policy': 'no-referrer',
+    // Only the origin, and only to other sites: YouTube's own player refuses to start without a
+    // referrer (its error 153, "video player configuration error").
+    'referrer-policy': 'strict-origin-when-cross-origin',
   });
   createReadStream(file).pipe(res);
 }

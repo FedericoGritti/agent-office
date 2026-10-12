@@ -57,7 +57,7 @@ export function openJukebox(net: Net, openVolume: () => void) {
     return h(
       'div.jb-player',
       {},
-      h('iframe', { src, title: trackTitle(j), allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen', allowfullscreen: 'true', loading: 'lazy', referrerpolicy: 'no-referrer' }),
+      h('iframe', { src, title: trackTitle(j), allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen', allowfullscreen: 'true', loading: 'lazy', referrerpolicy: 'strict-origin-when-cross-origin' }),
       h('div.svc-meta', {}, h('a', { href: youtubeWatch(video, j.list), target: '_blank', rel: 'noreferrer noopener' }, video ? 'Watch on YouTube ↗' : 'The playlist on YouTube ↗')),
     );
   };

@@ -46,6 +46,8 @@ export const PLACEABLE_LABELS: Record<string, string> = {
   'board-services': '🪙 Token board',
   gong: '🎉 Merge gong',
   cabinet: '🕹️ Arcade cabinet',
+  tv: '📺 Lounge TV',
+  'machine-monitor': '🖥️ Machine monitor',
 };
 
 /** What an id is called: a plant goes by its number, `plant-3` reading "Plant 3". */
@@ -53,7 +55,9 @@ export function labelFor(id: string): string {
   const named = PLACEABLE_LABELS[id];
   if (named) return named;
   const plant = /^plant-(\d+)$/.exec(id);
-  return plant ? `🌿 Plant ${plant[1]}` : id;
+  if (plant) return `🌿 Plant ${plant[1]}`;
+  const rug = /^rug-(\d+)$/.exec(id);
+  return rug ? `🧶 Rug ${rug[1]}` : id;
 }
 
 let saved: Placements = {};

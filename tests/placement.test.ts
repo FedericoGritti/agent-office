@@ -62,5 +62,7 @@ test('a file written by hand is read only where it makes sense', () => {
 test('every piece has a name for the panel', () => {
   assert.equal(labelFor('jukebox'), '🎵 Jukebox');
   assert.equal(labelFor('plant-12'), '🌿 Plant 12');
+  assert.equal(labelFor('rug-2'), '🧶 Rug 2');
+  assert.equal(labelFor('tv'), '📺 Lounge TV');
   assert.equal(labelFor('something-else'), 'something-else');
 });

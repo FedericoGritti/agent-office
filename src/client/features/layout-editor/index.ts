@@ -10,12 +10,24 @@ import { aside, hintTitle, key } from '../../core/hint';
 import { store } from '../../state';
 import { toast } from '../../ui/dom';
 import { applyPlacements } from '../../world/office/placed';
+import { makeBanner } from './banner';
 import { Carrying } from './carry';
 
 export function installLayoutEditor(ctx: Ctx) {
+  const banner = makeBanner();
+
+  /** What the sign and the hint bar say: the mode, what you're carrying, and what the keys do now. */
+  function refresh(): void {
+    const held = carrying.carrying;
+    if (!carrying.on) banner.hide();
+    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)} — E puts it down · R turns it · Canc takes it away · Esc puts it back`);
+    else banner.set('🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish');
+    ctx.hint.invalidate();
+  }
+
   const carrying = new Carrying(ctx.office, ctx.camera, {
     save: (file: Placements) => ctx.net.send({ t: 'layout.set', placements: file }),
-    changed: () => ctx.hint.invalidate(),
+    changed: refresh,
   });
 
   // The floor's file comes with its view, and again whenever anyone saves: the furniture goes where it
@@ -83,7 +95,7 @@ export function installLayoutEditor(ctx: Ctx) {
         return;
       }
       carrying.toggle();
-      toast(carrying.on ? '🧰 Arranging the room: look at a piece and press E' : '🧰 The room is back to normal');
+      refresh();
     },
   });
 }

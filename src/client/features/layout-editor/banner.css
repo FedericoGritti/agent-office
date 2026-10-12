@@ -1,0 +1,23 @@
+/* The sign at the top of the screen while the room is being arranged. */
+.room-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  max-width: min(760px, 92vw);
+  padding: 7px 14px;
+  background: #ffd166;
+  color: #2b2d42;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  border: 3px solid #2b2d42;
+  border-radius: 999px;
+  box-shadow: 4px 4px 0 rgba(43, 45, 66, 0.35);
+  pointer-events: none;
+}
+.room-banner.hidden {
+  display: none;
+}

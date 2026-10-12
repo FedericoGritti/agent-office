@@ -34,6 +34,7 @@ export const rugs: Fixture = (site) => {
   ].forEach(([x, z], i) => {
     const rug = mesh(roundedBox(6.2, 0.02, 4.6, 0.6), toon(PALETTE.rugs[i]), x, 0.011, z, false);
     site.group.add(rug);
+    placed(rug, `rug-${i + 1}`, { x, z }, [], site);
   });
   return {};
 };
@@ -100,6 +101,7 @@ export const tv: Fixture<'tvScreen'> = (site) => {
   const it: Interactable = { kind: 'tv', x: TV.x - 4.5, z: TV.z, radius: 3.2 };
   site.interactables.push(it);
   tvGroup.userData.interact = it;
+  placed(tvGroup, 'tv', TV, [], site);
   site.wall('east', TV.z, TV.y, TV.width + 0.3, TV.height + 0.3);
   return { handle: { tvScreen } };
 };
@@ -116,6 +118,7 @@ export const machineMonitor: Fixture<'machineScreen'> = (site) => {
   monitor.position.set(MACHINE_MONITOR.x + 0.07, MACHINE_MONITOR.y, MACHINE_MONITOR.z);
   monitor.rotation.y = Math.PI / 2;
   site.group.add(monitor);
+  placed(monitor, 'machine-monitor', MACHINE_MONITOR, [], site);
   site.wall('west', MACHINE_MONITOR.z, MACHINE_MONITOR.y, MACHINE_MONITOR.width + 0.2, MACHINE_MONITOR.height + 0.2);
   return { handle: { machineScreen } };
 };
@@ -170,6 +173,9 @@ export const plants: Fixture<'plants'> = (site) => {
     const collider: Collider = { minX: x - r, maxX: x + r, minZ: z - r, maxZ: z + r, top: 0.5 * s };
     site.colliders.push(collider);
     if (plantByWing(spot)) site.inTheWay.push({ group: p, collider });
+    // The ones the back office's growth clears away are that system's business; the rest are the
+    // editor's, so a herb in its pot can be moved like anything else.
+    else placed(p, `plant-${i + 1}`, { x, z }, [collider], site);
   }
   return { handle: { plants: pots } };
 };

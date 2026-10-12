@@ -25,11 +25,9 @@ declare module '../types' {
   }
 }
 
-/** Rugs under each desk cluster. */
+/** Rugs under the desks (the north half of the room has the boards on it now, and bare boards). */
 export const rugs: Fixture = (site) => {
   [
-    [-10.5, -4],
-    [-1.5, -4],
     [-10.5, 4],
     [-1.5, 4],
   ].forEach(([x, z], i) => {

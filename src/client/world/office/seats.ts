@@ -225,11 +225,7 @@ export const beanbags: Fixture<'setBeanbags'> = (site) => {
   return { handle: { setBeanbags } };
 };
 
-/**
- * The coordinator's post, up in the boss's office (see STATIONS): a desk of the office's own make, with
- * the vestments of its herald — the robe of office, its chain and pin (the castle's herald wears the
- * same, see world/castle/people.ts) — hanging where its worker sits, so the clothes go with the seat.
- */
+/** The coordinator's post, up in the boss's office (see STATIONS): a desk of the office's own make. */
 export const stationDesks: Fixture = (site) => {
   for (const def of STATIONS) {
     const view = buildDesk(def, 0, site.looks.trim);
@@ -238,22 +234,6 @@ export const stationDesks: Fixture = (site) => {
     const y = def.y ?? 0;
     // Whoever works here is shown by the seat itself (see idleAgentsIn), so no vacancy sign.
     view.group.remove(view.vacancy);
-    const gold = toon('#d8b24a');
-    const robe = mesh(
-      new THREE.LatheGeometry(
-        [
-          [0.36, 0.02],
-          [0.3, 0.5],
-          [0.27, 0.95],
-        ].map(([r, yy]) => new THREE.Vector2(r, yy)),
-        20,
-      ),
-      toon('#1f4d3a'),
-    );
-    const chain = mesh(new THREE.TorusGeometry(0.24, 0.025, 6, 20), gold, 0, 0.98, 0.04);
-    chain.rotation.x = Math.PI / 2 - 0.35;
-    const pin = mesh(new THREE.BoxGeometry(0.1, 0.12, 0.03), gold, 0.1, 0.86, 0.27);
-    for (const part of [robe, chain, pin]) view.seatAnchor.add(part);
     // Its own floor: it stops a walker down in the meeting room where it stands high, and one up in the
     // office where it is a desk.
     const corners = [-1, 1].flatMap((side) =>

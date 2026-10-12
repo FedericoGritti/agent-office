@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { place, type Base, type Placed } from '../../../shared/placement';
+import type { WallId } from '../../../shared/decor';
 import type { Collider, Interactable } from '../types';
 
 /** The room a piece joins: the lists its colliders and its use-point go in (see Site in fixture.ts). */
@@ -17,7 +18,9 @@ export interface Room {
 /** One piece of furniture, as its builder declared it: what to move, and what moves with it. */
 export interface Piece {
   id: string;
-  base: Required<Base>;
+  base: Required<Pick<Base, 'x' | 'z' | 'rotY'>>;
+  /** The wall it hangs on, if it hangs on one: the editor slides it along that wall (see placement.ts). */
+  wall?: WallId;
   /** Every object that makes the piece up, moved together: its group, and anything the builder left beside it. */
   parts: THREE.Object3D[];
   /** Its footprint, in world coordinates, as built at the base. */
@@ -69,6 +72,7 @@ export function placed(
   const piece: Piece = {
     id,
     base: { x: base.x, z: base.z, rotY: base.rotY ?? 0 },
+    wall: base.wall,
     parts: list,
     colliders,
     interact,
@@ -100,18 +104,23 @@ function turn(part: THREE.Object3D, piece: Piece, dx: number, dz: number, drot: 
 
 /** A collider's box, turned about a piece's middle (an axis-aligned box round the turned one, which is
  *  exact at the quarter turns the editor works in and safe at any other). */
-function turnBox(box: Collider, piece: Piece, x: number, z: number, drot: number): Collider {
+function turnBox(box: Collider, piece: Piece, x: number, z: number, drot: number): void {
   const cx = (box.minX + box.maxX) / 2 - piece.at.x;
   const cz = (box.minZ + box.maxZ) / 2 - piece.at.z;
   const hx = (box.maxX - box.minX) / 2;
   const hz = (box.maxZ - box.minZ) / 2;
   const c = Math.abs(Math.cos(drot));
   const s = Math.abs(Math.sin(drot));
-  const ncx = piece.base.x + cx * Math.cos(drot) + cz * Math.sin(drot);
-  const ncz = piece.base.z + -cx * Math.sin(drot) + cz * Math.cos(drot);
+  const ncx = piece.at.x + cx * Math.cos(drot) + cz * Math.sin(drot);
+  const ncz = piece.at.z + -cx * Math.sin(drot) + cz * Math.cos(drot);
   const nhx = hx * c + hz * s;
   const nhz = hx * s + hz * c;
-  return { ...box, minX: ncx - nhx + x, maxX: ncx + nhx + x, minZ: ncz - nhz + z, maxZ: ncz + nhz + z };
+  // Written into the box itself, never a new one: the room's list of what's in the way holds this very
+  // object, so replacing it would leave the old shape standing where the piece used to be.
+  box.minX = ncx - nhx + x;
+  box.maxX = ncx + nhx + x;
+  box.minZ = ncz - nhz + z;
+  box.maxZ = ncz + nhz + z;
 }
 
 /**
@@ -129,9 +138,7 @@ export function applyPiece(piece: Piece, at: Placed, room?: Room): void {
     if (hiding) part.visible = !at.hidden;
   }
   if (dx || dz || drot) {
-    for (let i = 0; i < piece.colliders.length; i++) {
-      piece.colliders[i] = turnBox(piece.colliders[i], piece, dx, dz, drot);
-    }
+    for (const box of piece.colliders) turnBox(box, piece, dx, dz, drot);
     if (piece.interact) {
       const x = piece.interact.x - piece.at.x;
       const z = (piece.interact.z ?? 0) - piece.at.z;

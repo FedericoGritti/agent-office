@@ -4,8 +4,9 @@
 // deleted one isn't in the room at all. Nothing here touches the DOM or the scene: it's the file and
 // the arithmetic, and the tests in tests/placement.test.ts pin it.
 
-import { DESKS, STATIONS } from './layout.js';
+import { BEANBAGS, DESKS, SEATING, STATIONS } from './layout.js';
 import type { DeskDef } from './layout.js';
+import type { WallId } from './decor.js';
 
 /** What the editor saves for one piece: only what differs from the base in layout.ts. */
 export interface Placement {
@@ -34,6 +35,18 @@ export interface Base {
   x: number;
   z: number;
   rotY?: number;
+  /** The wall it hangs on, if it hangs on one: the editor keeps it there as you move it. */
+  wall?: WallId;
+}
+
+/**
+ * Where a piece goes while you carry it: a thing hung on a wall slides along that wall and keeps its
+ * distance from it, so a board stays on the wall it was hung on instead of floating out in the room.
+ */
+export function onWall(wall: WallId | undefined, base: { x: number; z: number }, x: number, z: number): { x: number; z: number } {
+  if (wall === 'north' || wall === 'south') return { x, z: base.z };
+  if (wall === 'east' || wall === 'west') return { x: base.x, z };
+  return { x, z };
 }
 
 /** What each piece is called on the panel. A piece without an entry goes by its id. */
@@ -54,6 +67,10 @@ export const PLACEABLE_LABELS: Record<string, string> = {
   kitchen: '☕ Kitchen counter',
   'lounge-table': '🛋️ Coffee table',
   'lounge-rug': '🟪 Lounge rug',
+  couch: '🛋️ Couch',
+  'meeting-table': '🪵 Meeting table',
+  'loft-couch': '🛋️ Loft couch',
+  'loft-rug': '🧶 Loft rug',
   ashtray: '🚬 Ashtray',
   'smoke-sign': '🚬 Smoke break sign',
   'boss-desk': "🪑 The boss's desk",
@@ -71,18 +88,27 @@ export function labelFor(id: string): string {
   if (plant) return `🌿 Plant ${plant[1]}`;
   const rug = /^rug-(\d+)$/.exec(id);
   if (rug) return `🧶 Rug ${rug[1]}`;
+  const cushion = /^(?:lounge-)?beanbag-(\d+)$/.exec(id);
+  if (cushion) return `🪀 Cushion ${cushion[1]}`;
   const desk = /^desk-(\d+)$/.exec(id);
   return desk ? `🪑 Desk ${desk[1]}` : id;
 }
 
 let saved: Placements = {};
 
+/** A seat the editor can move along with its furniture: the office hires by these, so they move as one. */
+type MovableSeat = Pick<DeskDef, 'id' | 'x' | 'z' | 'rotY'>;
+
+/** The couches, the lounge's and the loft's: seats whose furniture is one piece, moved together. */
+const COUCHES: readonly MovableSeat[] = SEATING.filter((s) => s.id === 'couch' || s.id === 'loft-couch');
+
 /**
  * The seats whose furniture the editor can move: a desk moved in the room is the *seat* moved too, or
- * the office would hire into where the desk used to be and walk through where it is now. Their places
- * are what the room was built with, kept here so a move can be undone all the way.
+ * the office would hire into where the desk used to be and walk through where it is now. Same for a
+ * beanbag, a pouf, a couch. Their places are what the room was built with, kept here so a move can be
+ * undone all the way.
  */
-const MOVABLE_SEATS: readonly DeskDef[] = [...DESKS, ...STATIONS];
+const MOVABLE_SEATS: readonly MovableSeat[] = [...DESKS, ...STATIONS, ...BEANBAGS, ...COUCHES];
 const SEAT_BASE = new Map(MOVABLE_SEATS.map((s) => [s.id, { x: s.x, z: s.z, rotY: s.rotY }]));
 
 /** Puts the seats where the file says, and the rest back where layout.ts has them. */

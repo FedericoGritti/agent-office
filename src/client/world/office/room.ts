@@ -77,10 +77,11 @@ export const boards: Fixture<'boardMeshes'> = (site) => {
     const it: Interactable = { kind: key, x: b.x + nx * 1.6, z: b.z + nz * 1.6, radius: 2.4 };
     site.interactables.push(it);
     bg.userData.interact = it;
-    // The board and its label travel together when the editor moves it.
-    placed([bg, label], `board-${key}`, { x: b.x, z: b.z, rotY: b.rotY }, [], site);
-    // The board and its label above it, up to the ceiling.
+    // The board is hung on a wall, and it stays on that wall: the editor slides it along it (see onWall).
     const wall = wallFacing(b.rotY);
+    // The board and its label travel together when the editor moves it.
+    placed([bg, label], `board-${key}`, { x: b.x, z: b.z, rotY: b.rotY, wall }, [], site);
+    // The board and its label above it, up to the ceiling.
     const bottom = b.y - (b.height + 0.3) / 2;
     site.wall(wall, wall === 'north' || wall === 'south' ? b.x : b.z, (bottom + WALL_HEIGHT) / 2, b.width + 0.3, WALL_HEIGHT - bottom);
   }
@@ -101,7 +102,8 @@ export const tv: Fixture<'tvScreen'> = (site) => {
   const it: Interactable = { kind: 'tv', x: TV.x - 4.5, z: TV.z, radius: 3.2 };
   site.interactables.push(it);
   tvGroup.userData.interact = it;
-  placed(tvGroup, 'tv', TV, [], site);
+  // Hung on the east wall: the editor slides it along the wall rather than out into the room.
+  placed(tvGroup, 'tv', { ...TV, wall: 'east' }, [], site);
   site.wall('east', TV.z, TV.y, TV.width + 0.3, TV.height + 0.3);
   return { handle: { tvScreen } };
 };
@@ -118,7 +120,8 @@ export const machineMonitor: Fixture<'machineScreen'> = (site) => {
   monitor.position.set(MACHINE_MONITOR.x + 0.07, MACHINE_MONITOR.y, MACHINE_MONITOR.z);
   monitor.rotation.y = Math.PI / 2;
   site.group.add(monitor);
-  placed(monitor, 'machine-monitor', MACHINE_MONITOR, [], site);
+  // Hung on the west wall: the editor slides it along it, like the boards and the TV.
+  placed(monitor, 'machine-monitor', { ...MACHINE_MONITOR, wall: 'west' }, [], site);
   site.wall('west', MACHINE_MONITOR.z, MACHINE_MONITOR.y, MACHINE_MONITOR.width + 0.2, MACHINE_MONITOR.height + 0.2);
   return { handle: { machineScreen } };
 };
@@ -127,11 +130,15 @@ export const machineMonitor: Fixture<'machineScreen'> = (site) => {
 export const lounge: Fixture = (site) => {
   // The couch, its back to the room, turned from the model's +z to face the TV on the east wall (+x).
   const couch = loungeCouch();
-  couch.position.set(10.5, 0, 0);
-  couch.rotation.y = Math.PI / 2;
+  const couchBase = SEATING_BY_ID.get('couch')!;
+  couch.position.set(couchBase.x, 0, couchBase.z);
+  couch.rotation.y = couchBase.rotY;
   site.group.add(couch);
   // Its top on the seat cushions, so someone standing on the couch stands on them.
-  site.colliders.push({ minX: 10, maxX: 11, minZ: -2.2, maxZ: 2.2, top: 0.47 });
+  const couchCollider: Collider = { minX: 10, maxX: 11, minZ: -2.2, maxZ: 2.2, top: 0.47 };
+  site.colliders.push(couchCollider);
+  // One piece with the seat on it: where the couch goes, the place to sit goes (see MOVABLE_SEATS).
+  placed(couch, 'couch', { x: couchBase.x, z: couchBase.z, rotY: couchBase.rotY }, [couchCollider], site);
   seatable(couch, 'couch', 2.6, site.interactables);
 
   const table = coffeeTable();
@@ -153,11 +160,15 @@ export const lounge: Fixture = (site) => {
   ).entries()) {
     const id = `lounge-beanbag-${i + 1}`;
     const seat = pouf(color);
+    const rotY = SEATING_BY_ID.get(id)!.rotY;
     seat.position.set(x, 0, z);
-    seat.rotation.y = SEATING_BY_ID.get(id)!.rotY;
+    seat.rotation.y = rotY;
     site.group.add(seat);
     // Its top on the pouf's, the button in the middle of it.
-    site.colliders.push({ minX: x - 0.5, maxX: x + 0.5, minZ: z - 0.5, maxZ: z + 0.5, top: 0.42 });
+    const cushion: Collider = { minX: x - 0.5, maxX: x + 0.5, minZ: z - 0.5, maxZ: z + 0.5, top: 0.42 };
+    site.colliders.push(cushion);
+    // A cushion is the editor's like anything else, and the seat on it goes with it (see MOVABLE_SEATS).
+    placed(seat, id, { x, z, rotY }, [cushion], site);
     seatable(seat, id, 1.4, site.interactables);
   }
   return {};
@@ -175,10 +186,11 @@ export const plants: Fixture<'plants'> = (site) => {
     const r = 0.3 * s;
     const collider: Collider = { minX: x - r, maxX: x + r, minZ: z - r, maxZ: z + r, top: 0.5 * s };
     site.colliders.push(collider);
+    // Every pot is the editor's, so a herb in it can be moved like anything else — the ones the back
+    // office's growth clears away and builds over included: while they're away you can't see them to
+    // pick them up anyway (see the wing).
+    placed(p, `plant-${i + 1}`, { x, z }, [collider], site);
     if (plantByWing(spot)) site.inTheWay.push({ group: p, collider });
-    // The ones the back office's growth clears away are that system's business; the rest are the
-    // editor's, so a herb in its pot can be moved like anything else.
-    else placed(p, `plant-${i + 1}`, { x, z }, [collider], site);
   }
   return { handle: { plants: pots } };
 };

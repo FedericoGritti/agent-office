@@ -20,8 +20,11 @@ export function installLayoutEditor(ctx: Ctx) {
   function refresh(): void {
     const held = carrying.carrying;
     if (!carrying.on) banner.hide();
-    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)} — E puts it down · R turns it · Canc takes it away · Esc puts it back`);
-    else banner.set('🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish');
+    else if (held) {
+      // A thing hung on a wall turns nobody's way: it slides along its wall instead (see onWall).
+      const turn = held.wall ? 'it slides along its wall' : 'R turns it';
+      banner.set(`🛠️ Carrying ${labelFor(held.id)} — E puts it down · ${turn} · Canc takes it away · Esc puts it back`);
+    } else banner.set('🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish');
     ctx.hint.invalidate();
   }
 
@@ -69,8 +72,15 @@ export function installLayoutEditor(ctx: Ctx) {
     const held = carrying.carrying;
     el.replaceChildren(
       hintTitle(held ? `🧰 Carrying ${labelFor(held.id)}` : '🧰 Arranging the room'),
-      aside(held ? 'It follows your look; E puts it down' : 'Look at a piece and press E to pick it up'),
-      key('R', 'Quarter turn'),
+      aside(
+        held
+          ? held.wall
+            ? 'It follows your look along its wall; E puts it down'
+            : 'It follows your look; E puts it down'
+          : 'Look at a piece and press E to pick it up',
+      ),
+      // Nothing hung on a wall turns: it slides along the wall it hangs on (see onWall).
+      ...(held?.wall ? [] : [key('R', 'Quarter turn')]),
       key('Canc', 'Take it away'),
       key('Esc', held ? 'Put it back' : 'Stop'),
     );

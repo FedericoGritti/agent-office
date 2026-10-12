@@ -211,6 +211,8 @@ export const beanbags: Fixture<'setBeanbags'> = (site) => {
     const zs = [BEANBAG_BOX.minX, BEANBAG_BOX.maxX].flatMap((lx) => [BEANBAG_BOX.minZ, BEANBAG_BOX.maxZ].map((lz) => def.z - lx * s + lz * c));
     const collider = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs), top: BEANBAG_BOX.top };
     bags.set(def.id, { view, it, collider });
+    // A cushion is the editor's like anything else: it moves, and the seat on it moves with it.
+    placed(view.group, def.id, def, [collider], site);
   });
   const setBeanbags = (out: Set<string>) => {
     const appeared: Collider[] = [];

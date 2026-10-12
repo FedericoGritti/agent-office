@@ -1,12 +1,14 @@
-// A quarter turn turns a piece where it stands: its own middle stays put, and what the piece is made of
-// swings round it. It used to turn about the place the room was built with, which walked the whole
-// piece back towards its old spot every time you pressed R.
+// Moving a piece of furniture: the parts, the colliders and the use-point turn together about the
+// piece's own middle, and a thing hung on a wall stays on it. Both were wrong in ways you could see:
+// a quarter turn walked the piece back towards where the room built it, and a collider that was left
+// behind stood in the room as an invisible wall the piece had long left.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { setPlacements } from '../src/shared/placement.js';
+import { onWall, setPlacements } from '../src/shared/placement.js';
 import { applyPiece, clearPieces, placed, placedPieces } from '../src/client/world/office/placed.js';
+import type { Collider } from '../src/client/world/types.js';
 
 test('a quarter turn turns a piece on the spot, not about where it was built', () => {
   setPlacements(null);
@@ -29,4 +31,30 @@ test('a quarter turn turns a piece on the spot, not about where it was built', (
   assert.ok(Math.abs(plaque.position.x - 5) < 1e-9, `x ${plaque.position.x}`);
   assert.ok(Math.abs(plaque.position.z - -3) < 1e-9, `z ${plaque.position.z}`);
   assert.ok(Math.abs(plaque.rotation.y - Math.PI / 2) < 1e-9, `rot ${plaque.rotation.y}`);
+});
+
+test('a piece takes its colliders with it when it moves', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  group.position.set(4, 0, -3);
+  // A box round the piece's middle, the way every builder writes one: the whiteboard's, a desk's.
+  const box: Collider = { minX: 3, maxX: 5, minZ: -3.5, maxZ: -2.5, top: 1.2 };
+  placed(group, 'test-box', { x: 4, z: -3, rotY: Math.PI }, [box]);
+  applyPiece(placedPieces()[0], { x: 6, z: -1, rotY: Math.PI, hidden: false });
+
+  assert.deepEqual([group.position.x, group.position.z], [6, -1]);
+  // The box goes with it: left where it was, it's a wall you walk into and can't see.
+  assert.deepEqual([(box.minX + box.maxX) / 2, (box.minZ + box.maxZ) / 2], [6, -1]);
+  assert.deepEqual([box.maxX - box.minX, box.maxZ - box.minZ], [2, 1]);
+});
+
+test('a thing hung on a wall slides along it and keeps its distance', () => {
+  const base = { x: -9.84, z: -4 };
+  assert.deepEqual(onWall('north', base, -7.25, 2), { x: -7.25, z: -4 });
+  assert.deepEqual(onWall('south', base, -7.25, 2), { x: -7.25, z: -4 });
+  assert.deepEqual(onWall('east', base, 9, -1.5), { x: -9.84, z: -1.5 });
+  assert.deepEqual(onWall('west', base, 9, -1.5), { x: -9.84, z: -1.5 });
+  // Nothing hung on a wall goes wherever you carry it.
+  assert.deepEqual(onWall(undefined, base, 5, 5), { x: 5, z: 5 });
 });

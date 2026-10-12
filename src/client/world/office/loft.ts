@@ -153,11 +153,15 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   couch.add(mesh(roundedBox(0.2, 0.45, 0.5, 0.1), toon('#ffd166'), 0.2, 0.75, 0.4));
   couch.position.set(maxX - 0.65, floorY, cz);
   group.add(couch);
-  colliders.push({ minX: maxX - 1.15, maxX, minZ: cz - 1.2, maxZ: cz + 1.2, bottom: floorY, top: floorY + 0.55 });
+  const couchCollider: Collider = { minX: maxX - 1.15, maxX, minZ: cz - 1.2, maxZ: cz + 1.2, bottom: floorY, top: floorY + 0.55 };
+  colliders.push(couchCollider);
+  // One piece with the seat on it, up here on its own floor (see MOVABLE_SEATS).
+  placed(couch, 'loft-couch', { x: maxX - 0.65, z: cz }, [couchCollider], { colliders, interactables });
   seatable(couch, 'loft-couch', 1.8, interactables);
 
   const rug = mesh(roundedBox(4.6, 0.02, 3.2, 0.6), toon('#caffbf'), deskX - 0.3, floorY + 0.015, cz + 0.1, false);
   group.add(rug);
+  placed(rug, 'loft-rug', { x: deskX - 0.3, z: cz + 0.1 }, [], { colliders, interactables });
 
   const scope = new THREE.Group();
   for (let i = 0; i < 3; i++) {

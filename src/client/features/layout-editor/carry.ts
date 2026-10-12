@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { FLOOR } from '../../../shared/layout';
-import { change, placements, type Placed, type Placements } from '../../../shared/placement';
+import { change, onWall, placements, type Placed, type Placements } from '../../../shared/placement';
 import { applyPiece, pieceOf, placedPieces, type Piece, type Room } from '../../world/office/placed';
 import { textSprite } from '../../world/toon';
 
@@ -96,7 +96,9 @@ export class Carrying {
       if (!at) return;
       const x = this.snap(at.x, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN);
       const z = this.snap(at.z, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN);
-      this.place(this.held, { ...this.held.at, x, z, hidden: false }, false);
+      // A thing hung on a wall slides along it: it doesn't come out into the room (see onWall).
+      const on = onWall(this.held.wall, this.held.base, x, z);
+      this.place(this.held, { ...this.held.at, x: on.x, z: on.z, hidden: false }, false);
       return;
     }
     const piece = this.lookingAt();
@@ -121,6 +123,9 @@ export class Carrying {
     if (!piece) return false;
     this.held = piece;
     this.from = { ...piece.at };
+    // The floor it's carried over is the one it stands on: a couch up in the loft follows the loft's
+    // floor, not the ground floor's.
+    this.floor.constant = -piece.parts[0]!.getWorldPosition(new THREE.Vector3()).y;
     this.deps.changed();
     return true;
   }
@@ -136,10 +141,11 @@ export class Carrying {
     return true;
   }
 
-  /** A quarter turn to the right (`back` for the other way), while you carry it. */
+  /** A quarter turn to the right (`back` for the other way), while you carry it. A thing hung on a wall
+   *  faces into the room it hangs over, and stays that way. */
   turn(back = false): boolean {
     const piece = this.held;
-    if (!piece) return false;
+    if (!piece || piece.wall) return false;
     this.place(piece, { ...piece.at, rotY: piece.at.rotY + (back ? -1 : 1) * (Math.PI / 2) }, false);
     return true;
   }

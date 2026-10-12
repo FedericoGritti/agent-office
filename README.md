@@ -427,6 +427,11 @@ floors, same password, and the workers' terminals keep running — with the bran
 node ../agent-office-my-branch/bin/agent-office.js --home ~/agent-office --port 4600 --agent omp --no-open
 ```
 
+There is one office — the one in use, that home, that port, behind Tailscale Serve — and that is the
+one to restart on the branch's build: a change is seen there and nowhere else. A second office on
+another port is not a way to look at a change; it duplicates the building, and the office in use goes
+on serving the old page.
+
 Start it from a folder that is **already a floor** (the checkout the service runs in, say): the office
 takes the folder it's started in as a floor of its own, so started anywhere else that folder joins the
 building as a new floor. When you're done, stop it and start the service again to go back to `main`.

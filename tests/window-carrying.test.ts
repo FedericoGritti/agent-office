@@ -64,3 +64,41 @@ test('a window goes on to another wall when you look at that one', () => {
   assert.equal(windows.carrying?.u, -6);
   assert.match(windows.refused ?? '', /doorway/);
 });
+
+test('a window follows the look up and down a wall', () => {
+  setWindows(null);
+  const { windows, look } = make();
+  windows.toggle();
+  const stands = (w: Windows) => [w.carrying?.y0, w.carrying?.y1].map((y) => Math.round((y ?? -1) * 1000) / 1000);
+
+  // The lounge's west wall has room above it, so the window there can be lifted.
+  look(-8, 10, FLOOR.minX, 2.2, 10);
+  assert.equal(windows.looking?.id, 'window-west-4');
+  assert.ok(windows.pickUp());
+  assert.deepEqual(stands(windows), [1.1, 3.3], 'where the room built it, though the look is not on a step');
+
+  // Looking higher up the same wall lifts it in quarter-metre steps, keeping its height.
+  look(-8, 10, FLOOR.minX, 4.6, 10);
+  assert.deepEqual(stands(windows), [3.6, 5.8]);
+
+  // Looking above the ceiling leaves it under the ceiling, and below the floor on the floor.
+  look(-8, 10, FLOOR.minX, 9, 10);
+  assert.deepEqual(stands(windows), [4.6, 6.8]);
+  look(-8, 10, FLOOR.minX, -4, 10);
+  assert.deepEqual(stands(windows), [0, 2.2]);
+});
+
+test('a window still cannot be carried into another one, which says which', () => {
+  setWindows(null);
+  const { windows, look } = make();
+  windows.toggle();
+
+  // The room's own west windows have one of the high row straight above them: lifted, that is refused,
+  // and the window stays where it was.
+  look(-8, -3, FLOOR.minX, 2.2, -3);
+  assert.equal(windows.looking?.id, 'window-west-2');
+  assert.ok(windows.pickUp());
+  look(-8, -3, FLOOR.minX, 4.6, -3);
+  assert.deepEqual([windows.carrying?.y0, windows.carrying?.y1], [1.1, 3.3]);
+  assert.equal(windows.refused, 'West window 6 is there');
+});

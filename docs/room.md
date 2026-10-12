@@ -45,14 +45,16 @@ in the room at two metres, and turned on the spot.
 
 The windows are not pieces: each is a hole in an outside wall, cut where `src/shared/windows.ts` says
 (`src/client/world/office/shell.ts`). **F2** picks one out of the wall with **E** like furniture, but
-then it behaves differently: it slides along the wall you're looking at — or on to another one — with
-**N** putting in a new one and **Canc** taking one out for good, leaving a plain run of wall. The walls
-are not moved but built again round the list as it stands, and the building's outside with them.
+then it behaves differently: it follows your look — along the wall you're looking at, up and down it,
+or on to another wall — with **N** putting in a new one and **Canc** taking one out for good, leaving a
+plain run of wall. The walls are not moved but built again round the list as it stands, and the
+building's outside with them.
 
-A window keeps its width, its sill and its head, which is why a new one copies the size of the window
-nearest it at that height (the boss's office's row, or the meeting room's below it, not whichever is
-nearer along the wall). It can only go where a window can be: inside the ends of its wall, a pier clear
-of the other windows and of the doorways, and off the slab the boss's office stands on. And it is the
+A window keeps its width and its height, but not where it stands: it can be carried up and down a wall
+as well as along it, and it stops at the floor and at the ceiling. A new one copies the size of the
+window nearest it at that height (the boss's office's row, or the meeting room's below it, not whichever
+is nearer along the wall). It can only go where a window can be: inside the ends of its wall, clear of
+the other windows and of the doorways, and off the slab the boss's office stands on. And it is the
 building's windows, not the floor's: every floor is the same room and the tower outside carries them on
 every floor, so the list is kept in `.agent-office/windows.json`, one file for the office, beside the
 sky and the decorations.

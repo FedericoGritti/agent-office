@@ -125,7 +125,7 @@ export function installLayoutEditor(ctx: Ctx) {
     if (window) {
       el.replaceChildren(
         hintTitle(`🧰 Carrying ${windowLabel(window.id)}`),
-        aside(windows.refused ?? 'It slides along the wall you look at, or on to another one'),
+        aside(windows.refused ?? 'It follows your look: along the wall, up and down it, or on to another one'),
         key('Canc', 'Take it away'),
         key('Esc', 'Put it back'),
       );

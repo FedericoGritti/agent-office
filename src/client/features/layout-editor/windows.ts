@@ -1,6 +1,6 @@
 // Carrying a window about the office's outside walls: what you look at is outlined on the wall, E takes it
-// out of the wall, and while you have it, it slides along the wall you're looking at — or on to another
-// one — with E putting it back in (and saving it), Canc taking it away, Esc giving it back. N puts a new
+// out of the wall, and while you have it, it follows where you look — along the wall, up and down it, and
+// on to another wall — with E putting it back in (and saving it), Canc taking it away, Esc giving it back. N puts a new
 // window in the wall you're looking at and hands it to you. Nothing here draws a wall: the walls are built
 // again round the list as it stands (see world/office/shell.ts).
 
@@ -251,12 +251,18 @@ export class Windows {
     if (!held) return;
     const span = wallSpan(at.wall);
     if (!span) return;
+    // Along the wall it goes on the room's grid, and up it in quarter-metre steps from where it stands:
+    // the middle follows your look, and a window put down without having been moved stands exactly where
+    // it was (the room's own sills are not on the grid, and a wall of windows should stay in a row). Only
+    // its size is kept, and the floor and the ceiling are where it stops.
+    const height = held.y1 - held.y0;
+    const y0 = Math.min(WALL_HEIGHT - height, Math.max(0, held.y0 + Math.round((at.y - height / 2 - held.y0) / SNAP) * SNAP));
     const candidate: Opening = {
       wall: at.wall,
       u: snap(at.u, span.lo + held.width / 2, span.hi - held.width / 2),
       width: held.width,
-      y0: held.y0,
-      y1: held.y1,
+      y0,
+      y1: y0 + height,
     };
     const why = windowFits(candidate.wall, candidate, windows(), held.id);
     this.note = why;
@@ -285,11 +291,15 @@ export class Windows {
       if (Math.abs(d) < 1e-6) continue;
       const t = (face.at - (face.axis === 'x' ? origin.x : origin.z)) / d;
       if (t <= 0.05 || (best && t >= best.distance)) continue;
-      const y = origin.y + t * direction.y;
-      const along = face.axis === 'x' ? origin.z + t * direction.z : origin.x + t * direction.x;
+      // Clamped into the wall rather than dropped: looking above the ceiling, or past the end of the
+      // wall, still aims at that wall, and the window goes as far along it or up it as it can.
       const span = wallSpan(wall)!;
-      if (y < 0 || y > WALL_HEIGHT || along < span.lo || along > span.hi) continue;
-      best = { wall, u: along, y, distance: t };
+      best = {
+        wall,
+        u: Math.min(span.hi, Math.max(span.lo, face.axis === 'x' ? origin.z + t * direction.z : origin.x + t * direction.x)),
+        y: Math.min(WALL_HEIGHT, Math.max(0, origin.y + t * direction.y)),
+        distance: t,
+      };
     }
     return best;
   }

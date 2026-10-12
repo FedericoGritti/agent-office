@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { FIGURES, type FiguresBoard } from '../../../shared/layout';
-import { mesh, roundedBox, toon } from '../../world/toon';
+import { mesh, roundedBox, textPlane, toon } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
 
@@ -21,6 +21,8 @@ export interface FiguresStand {
   /** The face the feature draws the current figure on, and the texture to refresh after. */
   face: HTMLCanvasElement;
   texture: THREE.CanvasTexture;
+  /** The plate over the top edge: the feature writes the file name on it (see features/figures/index.ts). */
+  setLabel(text: string): void;
 }
 
 export function buildFigures(board: FiguresBoard): FiguresStand {
@@ -59,7 +61,25 @@ export function buildFigures(board: FiguresBoard): FiguresStand {
   const colliders: Collider[] = [{ minX: x - post - 0.1, maxX: x + post + 0.1, minZ: z - 0.42, maxZ: z + 0.42, top: bottom + height + 0.3 }];
   const interactable: Interactable = { kind: 'figures', x, z: z - 1.6, radius: 2.2 };
   group.userData.interact = interactable;
-  return { group, colliders, interactable, face, texture };
+
+  // A plate over the top edge, worn the way the whiteboard wears its own: the file name goes up there
+  // rather than across the picture. It is rebuilt only when the name changes.
+  let plaque: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | null = null;
+  const setLabel = (text: string) => {
+    if (plaque) {
+      group.remove(plaque);
+      plaque.geometry.dispose();
+      plaque.material.map?.dispose();
+      plaque.material.dispose();
+    }
+    plaque = textPlane(text, { bg: '#fffaf3', size: 48 });
+    plaque.scale.multiplyScalar(0.55);
+    plaque.position.set(0, bottom + height + 0.2, 0.05);
+    group.add(plaque);
+  };
+  setLabel('🖼️ Figures');
+
+  return { group, colliders, interactable, face, texture, setLabel };
 }
 
 declare module '../../world/types' {

@@ -1,4 +1,4 @@
-/** The figures boards: one picture from the project's `images/` folder each, its name along the bottom. */
+/** The figures boards: one picture from the project's `images/` folder each, its name on the plate above. */
 import type { ImageList } from '../../../shared/images';
 import type { Ctx } from '../../core/context';
 import { aside, hintTitle, key, onE } from '../../core/hint';
@@ -13,8 +13,8 @@ declare module '../../world/types' {
   }
 }
 
-/** The strip along the bottom of a face, in pixels at the 570 px reference height: the file name always has a home. */
-const CAPTION = 66;
+/** How much of a file name fits on the plate above a board. */
+const NAME = 34;
 const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
 
 /** One board's own state: which picture it is on, and what it says while that one arrives. */
@@ -23,9 +23,8 @@ interface Board {
   readonly g: CanvasRenderingContext2D;
   readonly width: number;
   readonly height: number;
-  /** It was laid out on a 900×570 face: this scales that drawing to the face it actually got. */
+  /** The face was laid out on a 900×570 canvas: this scales that drawing to the face it actually got. */
   readonly scale: number;
-  readonly strip: number;
   at: number;
   note: string;
 }
@@ -34,8 +33,7 @@ export function installFigures(ctx: Ctx) {
   const boards: Board[] = ctx.office.figures.map((stand) => {
     const g = stand.face.getContext('2d')!;
     const height = stand.face.height;
-    const scale = height / 570;
-    return { stand, g, width: stand.face.width, height, scale, strip: Math.round(CAPTION * scale), at: 0, note: 'Reading images/…' };
+    return { stand, g, width: stand.face.width, height, scale: height / 570, at: 0, note: 'Reading images/…' };
   });
   /** Which board something you aim at is: its own x says it, and each stand has its own. */
   const boardAt = new Map(boards.map((b) => [b.stand.interactable.x, b]));
@@ -45,45 +43,31 @@ export function installFigures(ctx: Ctx) {
   const unreadable = new Set<string>();
   let names: string[] = [];
 
-  /** The file name, and where in the folder it stands: always along the bottom of the face. */
-  function caption(b: Board, text: string) {
-    const { g, width: W, height: H, scale: S, strip } = b;
-    g.fillStyle = '#2b2d42';
-    g.fillRect(0, H - strip, W, strip);
-    g.fillStyle = '#f8f9fa';
-    g.font = `800 ${Math.round(34 * S)}px ${FONT}`;
-    g.textAlign = 'left';
-    g.textBaseline = 'middle';
-    g.fillText(clip(text, 52), Math.round(20 * S), H - strip / 2);
-    if (names.length) {
-      g.fillStyle = '#adb5bd';
-      g.textAlign = 'right';
-      g.fillText(`${b.at + 1}/${names.length}`, W - Math.round(20 * S), H - strip / 2);
-    }
+  /** The plate over the top edge says what the board is on: the file name, and where it is in the folder. */
+  function label(b: Board) {
+    const name = names[b.at];
+    b.stand.setLabel(name ? `🖼️ ${clip(name, NAME)} · ${b.at + 1}/${names.length}` : '🖼️ images/');
   }
 
   /** Draws whatever board `b` is on: its picture if it has landed, its name over white if it hasn't. */
   function draw(b: Board) {
-    const { g, width: W, height: H, scale: S, strip } = b;
+    const { g, width: W, height: H, scale: S } = b;
     g.fillStyle = '#ffffff';
     g.fillRect(0, 0, W, H);
     const name = names[b.at];
     const pic = name ? pictures.get(name) : undefined;
-    const boxH = H - strip;
-    const pad = Math.round(24 * S);
+    const pad = Math.round(16 * S);
     if (pic?.complete && pic.naturalWidth) {
-      const s = Math.min((W - pad) / pic.naturalWidth, (boxH - pad) / pic.naturalHeight);
+      const s = Math.min((W - pad) / pic.naturalWidth, (H - pad) / pic.naturalHeight);
       const w = pic.naturalWidth * s;
       const h = pic.naturalHeight * s;
-      g.drawImage(pic, (W - w) / 2, (boxH - h) / 2, w, h);
-      caption(b, name);
+      g.drawImage(pic, (W - w) / 2, (H - h) / 2, w, h);
     } else {
       g.fillStyle = '#6c757d';
       g.font = `900 ${Math.round(46 * S)}px ${FONT}`;
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.fillText(clip(name && unreadable.has(name) ? `${name} couldn't be read` : (name ?? b.note), 40), W / 2, boxH / 2);
-      if (name) caption(b, name);
+      g.fillText(clip(name && unreadable.has(name) ? `${name} couldn't be read` : (name ?? b.note), 40), W / 2, H / 2);
     }
     b.stand.texture.needsUpdate = true;
   }
@@ -107,6 +91,7 @@ export function installFigures(ctx: Ctx) {
       pic.src = `/api/images/file?floor=${encodeURIComponent(store.floor ?? '')}&path=${encodeURIComponent(name)}`;
       pictures.set(name, pic);
     }
+    label(b);
     draw(b);
   }
 
@@ -141,7 +126,7 @@ export function installFigures(ctx: Ctx) {
     pictures.clear();
     unreadable.clear();
     for (const b of boards) b.note = 'No pictures in images/ yet';
-    // Each board opens on a different picture, so the row isn't three of the same.
+    // Each board opens on a different picture, so the row isn't the same one three times.
     boards.forEach((b, i) => show(b, names.length ? i % names.length : 0));
     if (again) {
       again = false;

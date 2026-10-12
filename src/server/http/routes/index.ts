@@ -33,6 +33,7 @@ export const routes: readonly Route[] = [
   fileRoutes.termDrop,
   fileRoutes.changedFile,
   fileRoutes.docs,
+  fileRoutes.images,
   searchRoutes.search,
   serviceRoutes.forwards,
   githubRoutes.github,

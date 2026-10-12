@@ -4,7 +4,7 @@ import { mergeByMaterial, mesh, textPlane, toon } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
 
-// The bookshelf against the south wall: a tall wooden case, five shelves packed with books of every
+// The bookshelf beside the checklist board: a tall wooden case, five shelves packed with books of every
 // size and color (a few leaning over, a stack lying flat, a plant and a globe among them), and a
 // "Docs" sign along its top. E at it opens the project's Markdown to read (ui.ts).
 
@@ -110,16 +110,15 @@ export function buildBookshelf(): BookshelfModel {
   sign.position.set(0, H + 0.3, 0.02);
   group.add(sign);
 
-  // Built facing +z; it stands out on the floor turned to face the whiteboard (-z).
+  // Built facing +z; it stands against the north wall, facing into the room like the boards beside it.
   group.position.set(BOOKSHELF.x, 0, BOOKSHELF.z);
-  group.rotation.y = Math.PI;
   const collider: Collider = { minX: BOOKSHELF.x - W / 2 - 0.04, maxX: BOOKSHELF.x + W / 2 + 0.04, minZ: BOOKSHELF.z - D / 2 - 0.03, maxZ: BOOKSHELF.z + D / 2 + 0.03, top: H + 0.07 };
-  const interactable: Interactable = { kind: 'bookshelf', x: BOOKSHELF.x, z: BOOKSHELF.z - 1.2, radius: 1.6 };
+  const interactable: Interactable = { kind: 'bookshelf', x: BOOKSHELF.x, z: BOOKSHELF.z + 1.2, radius: 1.6 };
   group.userData.interact = interactable;
   return { group, collider, interactable };
 }
 
-/** The bookshelf of the project's docs, on the south wall between the middle window and the balcony doors. */
+/** The bookshelf of the project's docs, against the north wall beside the checklist board. */
 export const bookshelf: Fixture = (site) => {
   const built = buildBookshelf();
   void site;

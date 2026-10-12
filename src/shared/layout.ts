@@ -261,10 +261,11 @@ export const JUKEBOX = { x: -6, z: 1.8, y: 0.75, width: 1.3, depth: 0.72, height
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 
 /**
- * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): out on the open
- * floor in front of the whiteboard, turned to face it, so the two make a nook. `width` runs along x.
+ * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): against the north
+ * wall beside the checklist board, on the spot a potted plant used to stand, facing into the room (+z)
+ * like the boards next to it. `width` runs along x.
  */
-export const BOOKSHELF = { x: 5.4, z: 0, width: 1.7, depth: 0.42, height: 2.3 } as const;
+export const BOOKSHELF = { x: -17, z: FLOOR.minZ + 0.29, width: 1.7, depth: 0.42, height: 2.3 } as const;
 
 export const SPAWN = { x: 8, z: 7 } as const;
 
@@ -273,7 +274,6 @@ export const GONG = { x: 11.8, z: FLOOR.minZ + 0.75, width: 1.9, height: 2.45 } 
 
 /** Potted plants around the room: where each stands, and how big it is. */
 export const PLANTS: readonly (readonly [x: number, z: number, scale: number])[] = [
-  [-17.2, -12.2, 1.4],
   [17.2, -12.2, 1.5],
   [17.2, 12.2, 1.3],
   [-17.2, 8.5, 1.2],

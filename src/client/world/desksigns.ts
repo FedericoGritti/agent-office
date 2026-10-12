@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { DESKS, DESK_BY_ID, DESK_SIZE, WALL_HEIGHT, WING_DESKS, type DeskDef } from '../../shared/layout';
 import { signInk, type DeskLabel } from '../../shared/floorplan';
+import { addToPiece, removeFromPiece } from './office/placed';
 import type { Fixture } from './office/fixture';
 import { mergeByMaterial, mesh, roundedBox, toon } from './toon';
 
@@ -127,11 +128,14 @@ export function buildDeskSigns(): DeskSigns {
       root.add(rear);
     }
     group.add(root);
+    // The sign belongs to the desk's piece: when the editor moves the desk, its sign goes with it.
+    addToPiece(desk.id, root);
     return { root, key: keyOf(label, back), canvas, tex, label };
   };
 
   const keyOf = (label: DeskLabel, back: boolean) => `${label.text}|${label.color}|${back}`;
   const drop = (h: Hung) => {
+    removeFromPiece(h.root);
     h.root.removeFromParent();
     h.root.traverse((o) => {
       const m = o as THREE.Mesh;
@@ -168,7 +172,9 @@ export function buildDeskSigns(): DeskSigns {
       }
       for (const [id, label] of Object.entries(labels)) {
         const desk = DESK_BY_ID.get(id);
-        if (!desk) continue;
+        // A sign hangs on cords from the office's ceiling, so only a desk on the floor it belongs to
+        // can wear one: there is no such ceiling over a desk up in the loft.
+        if (!desk || desk.y) continue;
         let h = hung.get(id);
         if (!h) hung.set(id, (h = make(desk, label, twoSided(id, labels, built))));
         h.root.visible = built(desk);

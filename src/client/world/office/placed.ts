@@ -54,6 +54,23 @@ export function pieceOf(object: THREE.Object3D | null): Piece | undefined {
   return undefined;
 }
 
+/** Adds something built beside a piece to the piece itself: the sign over a desk is made with the
+ *  signs, and belongs to the desk, so a desk that moves takes its sign with it (see world/desksigns.ts). */
+export function addToPiece(id: string, part: THREE.Object3D): void {
+  const piece = pieces.find((p) => p.id === id);
+  if (!piece) return;
+  piece.parts.push(part);
+  byPart.set(part, piece);
+}
+
+/** Takes it off again, for one being built anew: a piece keeps no part nobody owns. */
+export function removeFromPiece(part: THREE.Object3D): void {
+  const piece = byPart.get(part);
+  if (!piece) return;
+  piece.parts.splice(piece.parts.indexOf(part), 1);
+  byPart.delete(part);
+}
+
 /**
  * Declares a piece of furniture (see features/jukebox/world.ts and the others): `parts` are moved
  * together — its group, plus anything the builder added to the room beside it (a sign, a plaque) — and

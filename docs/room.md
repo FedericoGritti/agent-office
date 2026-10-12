@@ -34,7 +34,7 @@ every piece, what stands in it, and — where something can't be moved — why n
 | `lamps` | five pendant lamps | ✘ each lights a halo of its own, and the light would stay behind |
 | `desks`, `stationDesks` | every desk a worker sits at, and the coordinator's | ✔ each: the seat moves with the desk |
 | `beanbags` | the cushions the overflow sits on, out in the room | ✔ each: the seat moves with the cushion |
-| `signs` | the signs over the desks | ✘ they belong to the desk they're over |
+| `signs` | the signs over the desks | ✘ on their own: each belongs to the desk it names, and travels with it |
 | `walls`, `shell`, `elevator`, `garageLift`, `wing`, `stack`, `tower`, `plug`, `clearOfStairs` | the room itself | ✘ |
 | `downstairs` (`cars`, `street`, `green`, `scenic`), `tee`, `hoop` | the street, the garage and the things out there | ✘ not this room |
 

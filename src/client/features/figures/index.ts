@@ -35,8 +35,9 @@ export function installFigures(ctx: Ctx) {
     const height = stand.face.height;
     return { stand, g, width: stand.face.width, height, scale: height / 570, at: 0, note: 'Reading images/…' };
   });
-  /** Which board something you aim at is: its own x says it, and each stand has its own. */
-  const boardAt = new Map(boards.map((b) => [b.stand.interactable.x, b]));
+  /** Which board something you aim at is: the point you aim at is the board's own, so it says which.
+   *  Keyed by that point, not by where it stands: moving a board moves the point with it. */
+  const boardAt = new Map(boards.map((b) => [b.stand.interactable, b]));
   /** The pictures asked for so far, by name: one fetch serves every board that shows it. */
   const pictures = new Map<string, HTMLImageElement>();
   /** The ones that wouldn't load: their boards say so rather than waiting forever. */
@@ -141,12 +142,12 @@ export function installFigures(ctx: Ctx) {
   ctx.interactions.define('figures', {
     reach: 6,
     hint: (it) => {
-      const b = boardAt.get(it.x);
+      const b = boardAt.get(it);
       const name = b ? names[b.at] : undefined;
       return { k: String(names.length && b ? b.at + 1 : 0), parts: [hintTitle('🖼️ Figures'), aside(clip(name ?? 'images/', 40)), key('E', names.length ? 'Next' : 'Look')] };
     },
     use: onE((it) => {
-      const b = boardAt.get(it.x);
+      const b = boardAt.get(it);
       if (b) next(b);
     }),
   });

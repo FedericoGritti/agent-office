@@ -6,10 +6,10 @@ import path from 'node:path';
 import { OmpSpend } from '../src/server/omp-spend.js';
 
 /** One OMP session file's lines: where it ran, then an assistant response that reports what it spent. */
-function lines(cwd: string, at: Date, input: number, output: number, cost: number): string {
+function lines(cwd: string, at: Date, input: number, output: number, cost: number, provider = 'deepseek'): string {
   const rows = [
     JSON.stringify({ type: 'session', id: 's1', cwd }),
-    JSON.stringify({ timestamp: at.toISOString(), message: { role: 'assistant', provider: 'deepseek', model: 'deepseek-v4-flash', usage: { input, output, cacheRead: 0, cacheWrite: 0, cost: { total: cost } } } }),
+    JSON.stringify({ timestamp: at.toISOString(), message: { role: 'assistant', provider, model: 'deepseek-v4-flash', usage: { input, output, cacheRead: 0, cacheWrite: 0, cost: { total: cost } } } }),
   ];
   // OMP writes one record per line, each with its newline: a line without one waits for the rest.
   return `${rows.join('\n')}\n`;
@@ -34,7 +34,7 @@ test("a project's spend counts its own folder and everything under it, agents, s
   // The project's own session: one response today, one before it.
   const own = folder(home, project);
   const ownFile = path.join(own, '2026-10-12T10-00-00-000Z_aaa.jsonl');
-  writeFileSync(ownFile, lines(project, today, 100, 10, 0.5) + lines(project, older, 50, 5, 0.25));
+  writeFileSync(ownFile, lines(project, today, 100, 10, 0.5) + lines(project, older, 50, 5, 0.25) + lines(project, today, 900, 900, 9.9, 'openai-codex'));
   // A sub-agent and the advisor, in the folder OMP files them in: inside that session's own folder.
   const inside = path.join(own, '2026-10-12T10-00-00-000Z_aaa');
   mkdirSync(inside, { recursive: true });
@@ -63,7 +63,9 @@ test("a project's spend counts its own folder and everything under it, agents, s
   assert.equal(state.total.calls, 5);
   assert.equal(state.total.tokens, 100 + 10 + 20 + 2 + 5 + 1 + 30 + 3 + 50 + 5);
 
-  // Reading again doesn't count anything twice.
+  // Reading again doesn't count anything twice, and an OMP run on a subscription (Codex on ChatGPT)
+  // isn't counted at all: its tokens have no per-token price to show beside a metered one's.
+  assert.deepEqual(Object.keys(state.total.byProvider), ['deepseek']);
   const again = spend.refresh();
   assert.deepEqual(again.total, state.total);
 

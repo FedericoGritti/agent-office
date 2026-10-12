@@ -125,7 +125,7 @@ export class SpendBoardTexture {
     g.fillStyle = MUTED;
     g.font = `700 21px ${HEAD}`;
     g.fillText(clip(buckets(state.total), 120), 30, H - 52);
-    g.fillText(clip('Il costo è l’equivalente API: una parte sta dentro un piano a prezzo fisso (ChatGPT), il resto è a consumo.', 132), 30, H - 20);
+    g.fillText(clip('Conta solo DeepSeek, a consumo: un abbonamento (ChatGPT) si paga a forfait e non entra nel conto. I dollari sono l’equivalente API.', 132), 30, H - 20);
     if (state.total.unpriced) {
       g.fillStyle = '#ffd166';
       g.textAlign = 'right';

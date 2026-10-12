@@ -45,7 +45,7 @@ export function openSpend(net: Net) {
     { role: 'dialog', 'aria-label': 'Tokens', style: 'width:min(820px,100%)' },
     h('header', {}, h('h2', {}, '🪙 Token'), when, refresh, close),
     body,
-    h('footer', {}, 'Il costo è l’equivalente API: una parte sta dentro un piano a prezzo fisso (ChatGPT), il resto è a consumo.'),
+    h('footer', {}, 'Conta solo DeepSeek, a consumo: un abbonamento (ChatGPT) si paga a forfait e non entra nel conto. I dollari sono l’equivalente API.'),
   );
 
   function render() {

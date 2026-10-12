@@ -17,6 +17,11 @@ const CHUNK = 4 * 1024 * 1024;
 const HEAD = 256 * 1024;
 /** The name OMP gives the advisor runtime's records inside a session's folder. */
 const ADVISOR = '__advisor';
+/**
+ * The providers whose spend the board counts. An OMP run on a subscription — Codex on a ChatGPT plan,
+ * say — isn't billed per token, so its tokens have no price worth showing beside a metered one's.
+ */
+const COUNTED = new Set(['deepseek']);
 
 /** Adds `n` into `into`, in place. */
 function add(into: SpendNumbers, n: SpendNumbers) {
@@ -196,6 +201,7 @@ export class OmpSpend {
   private count(f: Followed, line: string) {
     const r = recorded(line);
     if (!r) return;
+    if (!r.provider || !COUNTED.has(r.provider)) return;
     const n: SpendNumbers = {
       tokens: r.input + r.output + r.cacheRead + r.cacheWrite,
       input: r.input,

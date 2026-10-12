@@ -41,6 +41,22 @@ in the room at two metres, and turned on the spot.
 | `walls`, `shell`, `elevator`, `garageLift`, `wing`, `stack`, `tower`, `plug`, `clearOfStairs` | the room itself | ✘ |
 | `downstairs` (`cars`, `street`, `green`, `scenic`), `tee`, `hoop` | the street, the garage and the things out there | ✘ not this room |
 
+## The windows
+
+The windows are not pieces: each is a hole in an outside wall, cut where `src/shared/windows.ts` says
+(`src/client/world/office/shell.ts`). **F2** picks one out of the wall with **E** like furniture, but
+then it behaves differently: it slides along the wall you're looking at — or on to another one — with
+**N** putting in a new one and **Canc** taking one out for good, leaving a plain run of wall. The walls
+are not moved but built again round the list as it stands, and the building's outside with them.
+
+A window keeps its width, its sill and its head, which is why a new one copies the size of the window
+nearest it at that height (the boss's office's row, or the meeting room's below it, not whichever is
+nearer along the wall). It can only go where a window can be: inside the ends of its wall, a pier clear
+of the other windows and of the doorways, and off the slab the boss's office stands on. And it is the
+building's windows, not the floor's: every floor is the same room and the tower outside carries them on
+every floor, so the list is kept in `.agent-office/windows.json`, one file for the office, beside the
+sky and the decorations.
+
 ## Why one and not the other
 
 A piece is pickable when its builder said so, with `placed(...)` (see

@@ -333,3 +333,52 @@ export function mergeByColor(root: THREE.Object3D): THREE.Group {
   }
   return out;
 }
+
+/** A rectangle on a flat shape, in the two axes that shape is built in. */
+export interface Rect {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+/**
+ * `r` less the `holes` in it, as a few rectangles: rows of the grid the holes' edges make, stacked where
+ * they line up. What it's for is a flat thing with holes in it — the office's walls (a window can stand
+ * over another one there), the floors the ladders and poles go through — where walking the holes along
+ * one axis would leave the second one walled over.
+ */
+export function cutRect(r: Rect, holes: Rect[]): Rect[] {
+  const hs = holes
+    .map((h) => ({ minX: Math.max(r.minX, h.minX), maxX: Math.min(r.maxX, h.maxX), minZ: Math.max(r.minZ, h.minZ), maxZ: Math.min(r.maxZ, h.maxZ) }))
+    .filter((h) => h.maxX > h.minX && h.maxZ > h.minZ);
+  const edges = (lo: number, hi: number, more: number[]) => [...new Set([lo, hi, ...more])].sort((a, b) => a - b);
+  const xs = edges(r.minX, r.maxX, hs.flatMap((h) => [h.minX, h.maxX]));
+  const zs = edges(r.minZ, r.maxZ, hs.flatMap((h) => [h.minZ, h.maxZ]));
+  const out: Rect[] = [];
+  for (let j = 0; j < zs.length - 1; j++) {
+    const zm = (zs[j] + zs[j + 1]) / 2;
+    let run: Rect | null = null;
+    for (let i = 0; i < xs.length - 1; i++) {
+      const xm = (xs[i] + xs[i + 1]) / 2;
+      if (hs.some((h) => xm > h.minX && xm < h.maxX && zm > h.minZ && zm < h.maxZ)) {
+        if (run) out.push(run);
+        run = null;
+      } else if (run) run.maxX = xs[i + 1];
+      else run = { minX: xs[i], maxX: xs[i + 1], minZ: zs[j], maxZ: zs[j + 1] };
+    }
+    if (run) out.push(run);
+  }
+  // Rows with the same span, one on top of the other, become one.
+  for (let i = 0; i < out.length; i++) {
+    for (let j = i + 1; j < out.length; j++) {
+      const a = out[i];
+      const b = out[j];
+      if (a.minX === b.minX && a.maxX === b.maxX && a.maxZ === b.minZ) {
+        a.maxZ = b.maxZ;
+        out.splice(j--, 1);
+      }
+    }
+  }
+  return out;
+}

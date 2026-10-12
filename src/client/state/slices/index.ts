@@ -35,6 +35,7 @@ import { theme } from './theme';
 import { upgrade } from './upgrade';
 import { usage } from './usage';
 import { whiteboard } from './whiteboard';
+import { windows } from './windows';
 
 export const SLICES: readonly Slice[] = [
   presence,
@@ -67,4 +68,5 @@ export const SLICES: readonly Slice[] = [
   signins,
   coordinator,
   spend,
+  windows,
 ];

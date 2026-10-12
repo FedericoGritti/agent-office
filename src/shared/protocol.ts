@@ -17,6 +17,7 @@ import type { SettingsClientMsg, SettingsServerMsg } from './protocol/settings.j
 import type { SpendClientMsg, SpendServerMsg } from './protocol/spend.js';
 import type { BallClientMsg, CabinetClientMsg, CarClientMsg, DecorClientMsg, DogClientMsg, JukeboxClientMsg, ToysServerMsg, WhiteboardClientMsg } from './protocol/toys.js';
 import type { LayoutClientMsg, LayoutServerMsg } from './protocol/layout.js';
+import type { WindowsClientMsg, WindowsServerMsg } from './protocol/windows.js';
 import type { UsageClientMsg, UsageServerMsg } from './protocol/usage.js';
 import type { WorkerClientMsg, WorkerServerMsg } from './protocol/workers.js';
 
@@ -34,6 +35,7 @@ export * from './protocol/rooftop.js';
 export * from './protocol/settings.js';
 export * from './protocol/spend.js';
 export * from './protocol/toys.js';
+export * from './protocol/windows.js';
 export * from './protocol/usage.js';
 export * from './protocol/workers.js';
 
@@ -56,6 +58,7 @@ export type ClientMsg =
   | DecorClientMsg
   | JukeboxClientMsg
   | LayoutClientMsg
+  | WindowsClientMsg
   | CabinetClientMsg
   | WhiteboardClientMsg
   | BallClientMsg
@@ -78,4 +81,5 @@ export type ServerMsg =
   | UsageServerMsg
   | ToysServerMsg
   | LayoutServerMsg
+  | WindowsServerMsg
   | SpendServerMsg;

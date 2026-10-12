@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { BALCONY_DOOR, EXIT_DOOR, FLOOR, WALL_HEIGHT, WALL_T, WINDOWS, WING, type Opening, type Side } from '../../../shared/layout';
+import { BALCONY_DOOR, EXIT_DOOR, FLOOR, WALL_HEIGHT, WALL_T, WING, type Opening, type Side } from '../../../shared/layout';
+import { windows } from '../../../shared/windows';
 import type { NightParts } from '../outside';
-import { mergeByMaterial, mesh, textPlane, toon } from '../toon';
+import { cutRect, mergeByMaterial, mesh, textPlane, toon } from '../toon';
 import type { Collider } from '../types';
 import type { Fixture } from './fixture';
 import { GLASS, PALETTE, box, glassPane, onWall, type Looks } from './materials';
@@ -229,25 +230,27 @@ export function buildWalls(group: THREE.Group, colliders: Collider[], openings: 
     };
     const block = (u0: number, u1: number, bottom?: number) =>
       colliders.push(alongX ? { minX: u0, maxX: u1, minZ: w.at - T / 2, maxZ: w.at + T / 2, top: 99, bottom } : { minX: w.at - T / 2, maxX: w.at + T / 2, minZ: u0, maxZ: u1, top: 99, bottom });
-    const holes = openings.filter((o) => o.wall === w.side).sort((a, b) => a.u - b.u);
+    const holes = openings.filter((o) => o.wall === w.side);
     for (const [a, b, top] of w.spans) {
-      let u = a;
+      const inTheSpan = holes.filter((o) => o.u - o.width / 2 >= a && o.u + o.width / 2 <= b);
+      // The wall as the span less its holes, cut out of the whole rectangle: a window can stand over
+      // another one (see cutRect), where walking the holes along the wall would wall the second over.
+      for (const r of cutRect(
+        { minX: a, maxX: b, minZ: 0, maxZ: top },
+        inTheSpan.map((o) => ({ minX: o.u - o.width / 2, maxX: o.u + o.width / 2, minZ: o.y0, maxZ: o.y1 })),
+      )) {
+        piece(r.minX, r.maxX, r.minZ, r.maxZ);
+      }
+      // Baseboard and collider run between the doors: a window doesn't break the floor.
       let floorU = a;
-      for (const o of holes) {
+      for (const o of [...inTheSpan].sort((x, y) => x.u - y.u)) {
+        if (o.y0 > 0) continue;
         const h0 = o.u - o.width / 2;
         const h1 = o.u + o.width / 2;
-        if (h0 < a || h1 > b) continue;
-        piece(u, h0, 0, top);
-        piece(h0, h1, 0, o.y0);
-        piece(h0, h1, o.y1, top);
-        u = h1;
-        if (o.y0 > 0) continue;
-        // A door: walk through it, under the wall above.
         run(floorU, h0);
         block(h0, h1, o.y1);
         floorU = h1;
       }
-      piece(u, b, 0, top);
       run(floorU, b);
     }
   }
@@ -312,25 +315,88 @@ export function wallRun(into: THREE.Group, cols: Collider[], axis: 'x' | 'z', at
   cols.push(axis === 'x' ? { minX: u0, maxX: u1, minZ: at - T / 2, maxZ: at + T / 2, top: 99 } : { minX: at - T / 2, maxX: at + T / 2, minZ: u0, maxZ: u1, top: 99 });
 }
 
-/** Outside walls, with real windows you see out of and a door out, and the glass doors out to the balcony. */
-export const walls: Fixture = (site) => {
-  const night = site.get('night');
-  const openings = [...WINDOWS, EXIT_DOOR, BALCONY_DOOR];
-  buildWalls(site.group, site.colliders, openings, site.looks);
-  const glazing = new THREE.Group();
-  for (const o of WINDOWS) {
-    glazing.add(windowIn(o));
-    site.wall(o.wall, o.u, (o.y0 + o.y1) / 2 - 0.03, o.width + 0.2, o.y1 - o.y0 + 0.12);
-    site.group.add(wetPane(o, night.wetGlass));
+/** The office's outside walls and the windows in them: what the editor builds again when one moves. */
+export interface Shell {
+  /** A window moved, was added or taken out: the walls are built again round the list as it stands. */
+  rebuild(): void;
+}
+
+declare module '../types' {
+  interface OfficeHandles {
+    shell: Shell;
   }
-  site.group.add(mergeByMaterial(glazing));
+}
+
+/**
+ * The outside walls, and the windows in them: a window is a hole, so this is built again from the
+ * current list whenever one moves, is added or taken out (see Shell.rebuild and shared/windows). The
+ * balcony's glass doors are not part of that: they stand in the wall they always did.
+ */
+export const walls: Fixture<'shell'> = (site) => {
+  const night = site.get('night');
+  const group = new THREE.Group();
+  const cols: Collider[] = [];
+  /** What this fixture has put in the room, to take out again: its colliders, and the walls it marked taken. */
+  let mine: Collider[] = [];
+  let marks: (() => void)[] = [];
+
+  /** The walls round the windows as they stand, and the windows themselves, into `group`. */
+  const build = (): void => {
+    const list = windows();
+    buildWalls(group, cols, [...list, EXIT_DOOR, BALCONY_DOOR], site.looks);
+    const glazing = new THREE.Group();
+    for (const o of list) {
+      glazing.add(windowIn(o));
+      marks.push(site.wall(o.wall, o.u, (o.y0 + o.y1) / 2 - 0.03, o.width + 0.2, o.y1 - o.y0 + 0.12));
+      group.add(wetPane(o, night.wetGlass));
+    }
+    group.add(mergeByMaterial(glazing));
+  };
+
+  /** Puts what this build made in the room's own lists, and takes the last build's out of them. */
+  const sync = (): void => {
+    for (const c of mine) {
+      const i = site.colliders.indexOf(c);
+      if (i >= 0) site.colliders.splice(i, 1);
+    }
+    site.colliders.push(...cols);
+    mine = [...cols];
+    cols.length = 0;
+  };
+
+  build();
+  sync();
+  site.group.add(group);
+
   // Out the glass doors on the south wall: the balcony.
   const slider = balconyDoor();
   site.group.add(slider.group);
   site.doors.push(slider.door);
   site.wall(BALCONY_DOOR.wall, BALCONY_DOOR.u, (BALCONY_DOOR.y1 + 0.1) / 2, BALCONY_DOOR.width + 0.2, BALCONY_DOOR.y1 + 0.1);
-  return {};
+
+  return {
+    handle: {
+      shell: {
+        rebuild() {
+          for (const unmark of marks) unmark();
+          marks = [];
+          takeAway(group);
+          build();
+          sync();
+        },
+      },
+    },
+  };
 };
+
+/** Takes the walls' meshes away, disposing their geometry: the materials are shared and cached (see toon). */
+function takeAway(group: THREE.Group): void {
+  group.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (m.isMesh) m.geometry.dispose();
+  });
+  group.clear();
+}
 
 /** Upstairs there's no way out on the west side: the doorway is wall like the rest of it. */
 export const plug: Fixture = (site) => {

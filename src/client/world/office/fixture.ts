@@ -17,9 +17,11 @@ export interface Site {
   readonly interactables: Interactable[];
   /**
    * Marks a stretch of wall `w` wide and `h` high, centered `u` along it and `y` up, as taken (a board,
-   * a window, a door), so pictures don't hang over it (see Office.fixtures).
+   * a window, a door), so pictures don't hang over it (see Office.fixtures). Hands back what it called
+   * the wall, for a builder that builds its part again and has to take its own marks away (see the
+   * windows in world/office/shell.ts).
    */
-  wall(wall: WallId, u: number, y: number, w: number, h: number): void;
+  wall(wall: WallId, u: number, y: number, w: number, h: number): () => void;
   /** What each floor paints its own way (see Office.setLook). */
   readonly looks: Looks;
   /** The floor's planks, which the back office's floor is laid with too. */

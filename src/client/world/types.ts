@@ -104,6 +104,11 @@ export interface Office extends OfficeHandles {
    * the building's outside.
    */
   setLevel(index: number, count: number, wings?: readonly number[]): void;
+  /**
+   * The windows in the outside walls changed (see shared/windows): the walls are built again round them,
+   * and so is the building's outside above and below, which carries the same windows.
+   */
+  windowsChanged(): void;
   /** Animates the office; doors open for anyone in `people` who comes up to them. */
   update(t: number, dt: number, people: Iterable<{ x: number; y: number; z: number }>): void;
 }

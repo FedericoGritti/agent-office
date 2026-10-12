@@ -4,6 +4,7 @@ import type { Look } from '../avatar.js';
 import type { BarGame } from '../bargames.js';
 import type { EmoteId } from '../emotes.js';
 import type { DrinkId } from '../rooftop.js';
+import type { WindowPlacements } from '../windows.js';
 import type { Me } from './accounts.js';
 import type { FloorInfo, FloorView, ProjectsDirState } from './floors.js';
 import type { LeaveOnMergeState, MachineState, MapState, NotifyState, PromptsState, SkyState, ThemeState, UpgradeState } from './settings.js';
@@ -130,6 +131,8 @@ export type PresenceServerMsg =
       sky: SkyState;
       /** Halloween or Christmas decorations, all over the building, or none. */
       theme: ThemeState;
+      /** The windows in the office's outside walls: the same on every floor (see shared/windows). */
+      windows: WindowPlacements;
       /** What the building looks like inside. */
       map: MapState;
       /** The office's prompts and the worker everyone starts on. */

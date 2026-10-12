@@ -30,6 +30,8 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
   let pointer: THREE.Vector2 | null = null;
   /** The checklist board's arrow under the aim (the crosshair, or the mouse), if any. */
   let aimedArrow: 'up' | 'down' | null = null;
+  /** Whether the spend board's refresh button is under the aim. */
+  let aimedRefresh = false;
 
   function pickTarget(): Interactable | null {
     // Nearly everything you can use is upstairs; down on the street you're under it all, but for the
@@ -137,6 +139,17 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
     return true;
   }
 
+  /** Whether an aim lands on the spend board's refresh button. */
+  function refreshUnder(aim: { it: Interactable; hit: THREE.Intersection } | null): boolean {
+    if (aim?.it.kind !== 'services' || aim.hit.object !== ctx.world().boardMeshes.services || !aim.hit.uv) return false;
+    return parts.boards.spendTex.refreshAt(aim.hit.uv);
+  }
+
+  /** Reads the project's session records again: what the spend board's button does. */
+  function refreshSpend(): void {
+    ctx.net.send({ t: 'spend.refresh' });
+  }
+
   canvas.addEventListener('pointermove', (e) => {
     const r = canvas.getBoundingClientRect();
     (pointer ??= new THREE.Vector2()).set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
@@ -148,6 +161,7 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
     const firstPerson = player.view === 'first';
     aimedNote = null;
     aimedArrow = null;
+    aimedRefresh = false;
     if (modalOpen() || parts.telescope.active || ctx.activities.busy()) target = null;
     else if (firstPerson) {
       const aim = aimedAt(CROSSHAIR);
@@ -155,19 +169,22 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
       if (aim?.near) {
         aimedNote = noteUnder(aim);
         aimedArrow = arrowUnder(aim);
+        aimedRefresh = refreshUnder(aim);
       }
     } else {
       target = throneTarget() ?? seating.mySeat() ?? pickTarget();
-      // By the issues board, the mouse points at the note you'd take, or an arrow you'd click.
-      if (target?.kind === 'issues' && pointer) {
+      // By a board, the mouse points at the note you'd take, an arrow you'd click, or its button.
+      if (pointer && (target?.kind === 'issues' || target?.kind === 'services')) {
         const aim = aimedAt(pointer, 2.5);
         if (aim?.near) {
           aimedNote = noteUnder(aim);
           aimedArrow = arrowUnder(aim);
+          aimedRefresh = refreshUnder(aim);
         }
       }
     }
     parts.boards.checklistTex.hover(aimedArrow);
+    parts.boards.spendTex.hover(aimedRefresh);
     parts.boards.issuesTex.lift(aimedNote?.number ?? null);
     parts.hintbar.renderHint();
     parts.hintbar.renderCrosshair();
@@ -193,7 +210,13 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
     }
     if (player.view === 'first') {
       const pointed = aimedAt(CROSSHAIR);
-      if (pointed?.near && scrollBoard(arrowUnder(pointed))) return;
+      if (pointed?.near) {
+        if (scrollBoard(arrowUnder(pointed))) return;
+        if (refreshUnder(pointed)) {
+          refreshSpend();
+          return;
+        }
+      }
       // Reach out even at nothing, like poking the air.
       reach();
       if (target) interact(target, 'E');
@@ -205,8 +228,12 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
       toast('Walk closer to that first');
       return;
     }
-    // An arrow on the checklist board moves it; anything else on a board opens it.
+    // A board's own controls: an arrow moves the checklist, the button reads the spend again.
     if (scrollBoard(arrowUnder(aim))) return;
+    if (refreshUnder(aim)) {
+      refreshSpend();
+      return;
+    }
     use(aim.it, 'E', noteUnder(aim));
   };
 

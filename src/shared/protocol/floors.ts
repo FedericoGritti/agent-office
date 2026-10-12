@@ -15,6 +15,7 @@ import type { MeetingState } from './meetings.js';
 import type { PeerInfo } from './presence.js';
 import type { QueueState } from './queue.js';
 import type { ServicesState } from './settings.js';
+import type { SpendState } from './spend.js';
 import type { JailState, WorkerInfo } from './workers.js';
 
 export interface ProjectInfo {
@@ -123,6 +124,8 @@ export interface FloorView {
   /** The signs over this floor's desks, and how far its back office is built out. */
   plan: FloorPlan;
   services: ServicesState;
+  /** What the floor's project has spent in OMP, off OMP's own session records (see shared/protocol/spend.ts). */
+  spend: SpendState;
   /** The floor's dog; null in a building with no floors yet. */
   dog: DogState | null;
   /** What the lounge jukebox is playing. */

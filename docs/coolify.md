@@ -67,7 +67,7 @@ They leave it running, open http://localhost:4600 and sign in. Their keys log in
 
 ```bash
 deploy/coolify.sh open                 # tunnel + open the office in your browser
-deploy/coolify.sh service 5173         # open a worker's web server from the 🌐 Services board
+deploy/coolify.sh service 5173         # open a worker's web server from the 🌐 Services window
 deploy/coolify.sh invite <gh-user>     # let a teammate tunnel in (or: invite <name> <key.pub>)
 deploy/coolify.sh uninvite <name>      # remove their keys and drop open tunnels
 deploy/coolify.sh team                 # who's invited

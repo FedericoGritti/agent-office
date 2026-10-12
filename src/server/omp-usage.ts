@@ -63,18 +63,22 @@ function usd(v: unknown): number | undefined {
 
 /** What one assistant record reports, when it reports it. */
 interface Recorded {
-  input: number;
+  /** Output as OMP writes it, reasoning included. */
   output: number;
   reasoning: number;
+  input: number;
   cacheRead: number;
   cacheWrite: number;
   /** Undefined when the record came without a usable price. */
   cost: number | undefined;
   model: string | undefined;
+  provider: string | undefined;
+  /** The record's own time, ms since epoch, when it carries one. */
+  timestamp: number | undefined;
 }
 
 /** The numbers one line of an OMP session reports, when it is an assistant response that reports them. */
-function recorded(line: string): Recorded | undefined {
+export function recorded(line: string): Recorded | undefined {
   if (!line.includes('"usage"')) return undefined;
   let row: unknown;
   try {
@@ -92,14 +96,18 @@ function recorded(line: string): Recorded | undefined {
   if (reasoning > output) return undefined; // malformed: never invent tokens
   const cost = field(usage, 'cost');
   const model = field(message, 'model');
+  const provider = field(message, 'provider');
+  const at = Date.parse(String(field(row, 'timestamp')));
   return {
     input: tokens(field(usage, 'input')),
-    output: output - reasoning,
+    output,
     reasoning,
     cacheRead: tokens(field(usage, 'cacheRead')),
     cacheWrite: tokens(field(usage, 'cacheWrite')),
     cost: cost && typeof cost === 'object' ? usd(field(cost, 'total')) : undefined,
     model: typeof model === 'string' && model ? model : undefined,
+    provider: typeof provider === 'string' && provider ? provider : undefined,
+    timestamp: Number.isFinite(at) ? at : undefined,
   };
 }
 
@@ -194,7 +202,7 @@ export class OmpUsageReader {
     if (!r) return;
     const s = this.spent;
     s.input += r.input;
-    s.output += r.output;
+    s.output += r.output - r.reasoning;
     s.reasoning += r.reasoning;
     s.cacheRead += r.cacheRead;
     s.cacheWrite += r.cacheWrite;

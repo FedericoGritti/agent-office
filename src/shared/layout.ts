@@ -241,7 +241,7 @@ export const BOARDS = {
   queue: { x: -3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🕓 Timeline' },
   pulls: { x: 3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🎯 Phase' },
   // East wall, north of the lounge TV.
-  services: { x: FLOOR.maxX - 0.08, y: 2.1, z: -8.2, rotY: -Math.PI / 2, width: 6, height: 3, label: '🌐 Services' },
+  services: { x: FLOOR.maxX - 0.08, y: 2.1, z: -8.2, rotY: -Math.PI / 2, width: 6, height: 3, label: '🪙 Token' },
 } as const;
 
 /** The big TV on the east wall that shows whoever is screen sharing. */

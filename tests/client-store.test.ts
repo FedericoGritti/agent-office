@@ -26,6 +26,16 @@ const peer = (id: string, extra: object = {}) => ({ id, name: id, color: '#fff',
 const worker = (id: string, deskId: string, extra: object = {}) => ({ id, deskId, name: id, color: '#fff', kind: 'agent', status: 'working', createdAt: 1, ...extra });
 const el = (id: string, version: number) => ({ id, version, versionNonce: 1 });
 
+/** A counter set with nothing counted, and a spend window made of them. */
+const ZERO_SPEND = { tokens: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, calls: 0, unpriced: 0 };
+const emptySpend = (project: string | null = null) => ({
+  project,
+  day: '',
+  today: { ...ZERO_SPEND, byAgent: { agents: ZERO_SPEND, subagents: ZERO_SPEND, advisors: ZERO_SPEND }, byProvider: {} },
+  total: { ...ZERO_SPEND, byAgent: { agents: ZERO_SPEND, subagents: ZERO_SPEND, advisors: ZERO_SPEND }, byProvider: {} },
+  at: 0,
+});
+
 /** Everything on a floor, as `welcome` and `floor.enter` bring it. */
 function floorView(floor: string) {
   return {
@@ -39,6 +49,7 @@ function floorView(floor: string) {
     decor: [],
     plan: { labels: {}, wing: 1 },
     services: { items: [], port: 4600 },
+    spend: emptySpend(floor),
     dog: { name: 'Rex', coat: 0, breed: 'lab', path: [[0, 0]], speed: 1, elapsed: 100 },
     jukebox: { on: true, track: 'lofi', startedAt: 5000, elapsed: 300 },
     cabinet: { player: null, scores: [], frame: null },
@@ -75,10 +86,10 @@ const welcome = () =>
   });
 
 /** What a floor you arrive on fires, in order. */
-const FLOOR_TOPICS = ['floor', 'project', 'workers', 'issues', 'pulls', 'queue', 'meeting', 'decor', 'floorPlan', 'services', 'dog', 'jukebox', 'whiteboard', 'drawing', 'cabinet', 'cabinetFrame', 'ball', 'cars', 'jail', 'coordinator'];
+const FLOOR_TOPICS = ['floor', 'project', 'workers', 'issues', 'pulls', 'queue', 'meeting', 'decor', 'floorPlan', 'services', 'dog', 'jukebox', 'whiteboard', 'drawing', 'cabinet', 'cabinetFrame', 'ball', 'cars', 'jail', 'coordinator', 'spend'];
 
 /** Every topic, to listen for them all. */
-const TOPICS = ['peers', 'workers', 'issues', 'pulls', 'chat', 'project', 'screens', 'team', 'upgrade', 'services', 'decor', 'floorPlan', 'usage', 'limits', 'queue', 'me', 'accounts', 'signins', 'notify', 'machine', 'floors', 'floor', 'projectsDir', 'folders', 'dog', 'jukebox', 'sky', 'theme', 'map', 'leaveOnMerge', 'whiteboard', 'drawing', 'cabinet', 'cabinetFrame', 'meeting', 'prompts', 'ball', 'cars', 'jail', 'coordinator'] as const;
+const TOPICS = ['peers', 'workers', 'issues', 'pulls', 'chat', 'project', 'screens', 'team', 'upgrade', 'services', 'decor', 'floorPlan', 'usage', 'limits', 'queue', 'me', 'accounts', 'signins', 'notify', 'machine', 'floors', 'floor', 'projectsDir', 'folders', 'dog', 'jukebox', 'sky', 'theme', 'map', 'leaveOnMerge', 'whiteboard', 'drawing', 'cabinet', 'cabinetFrame', 'meeting', 'prompts', 'ball', 'cars', 'jail', 'coordinator', 'spend'] as const;
 
 /** Every message the store takes in (and one it doesn't), and the topics it fires, in the order it has always fired them. */
 const RUN: [ServerMsg, string[]][] = [
@@ -226,7 +237,7 @@ test('what the browser remembers keeps its keys and shapes', () => {
 
 test("the store's keys are its state, as window.__office shows them", () => {
   // As the office had them before its store was split into slices: methods and the slices aren't among them.
-  assert.deepEqual(Object.keys(store).sort(), ['accounts', 'ball', 'cabinet', 'cabinetFrame', 'cars', 'carsAt', 'chat', 'clock', 'coordinator', 'decor', 'dog', 'dogStart', 'drawing', 'floor', 'floorPlan', 'floors', 'folders', 'ice', 'invites', 'issues', 'jail', 'jukebox', 'leaveOnMerge', 'limits', 'machine', 'map', 'me', 'meeting', 'notify', 'peers', 'profile', 'project', 'projectsDir', 'prompts', 'pulls', 'queue', 'screens', 'services', 'signins', 'sky', 'subs', 'team', 'theme', 'upgrade', 'usage', 'whiteboard', 'workers', 'you']);
+  assert.deepEqual(Object.keys(store).sort(), ['accounts', 'ball', 'cabinet', 'cabinetFrame', 'cars', 'carsAt', 'chat', 'clock', 'coordinator', 'decor', 'dog', 'dogStart', 'drawing', 'floor', 'floorPlan', 'floors', 'folders', 'ice', 'invites', 'issues', 'jail', 'jukebox', 'leaveOnMerge', 'limits', 'machine', 'map', 'me', 'meeting', 'notify', 'peers', 'profile', 'project', 'projectsDir', 'prompts', 'pulls', 'queue', 'screens', 'services', 'signins', 'sky', 'spend', 'subs', 'team', 'theme', 'upgrade', 'usage', 'whiteboard', 'workers', 'you']);
 });
 
 test('a new store starts every field where it always has', async () => {
@@ -252,6 +263,7 @@ test('a new store starts every field where it always has', async () => {
       cars: parked(), carsAt: [], jail: { prisoners: [], bones: 0 },
       team: null, accounts: null, signins: null,
       coordinator: { phase: null, goal: null, chapters: [], cards: [], summary: { inFlight: '', planned: '', ready: '', resume: '' }, timeline: [], row: 0, at: 0 },
+      spend: emptySpend(null),
     },
   );
 });

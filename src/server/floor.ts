@@ -13,6 +13,7 @@ import type { GhAs } from './signins.js';
 import { TaskQueue } from './queue.js';
 import { Changes } from './changes.js';
 import { Coordinator } from './coordinator.js';
+import { OmpSpend } from './omp-spend.js';
 import { Decor } from './decor.js';
 import { FloorPlanStore } from './floorplan.js';
 import { Docs } from './docs.js';
@@ -119,6 +120,8 @@ export class Floor {
   readonly changes: Changes;
   /** The coordinator board: the phase plan its checkout's `plans/` folder holds. */
   readonly coordinator: Coordinator;
+  /** What the project has spent in OMP, read off OMP's own session records (see omp-spend.ts). */
+  readonly spend: OmpSpend;
   readonly decor: Decor;
   /** The signs over its desks, and how far its back office is built out. */
   readonly plan: FloorPlanStore;
@@ -312,6 +315,9 @@ export class Floor {
     this.jukebox = new Jukebox(dataDir);
     this.whiteboard = new Whiteboard(dataDir);
     this.coordinator = new Coordinator(def.dir, dataDir, (state) => ctx.emit(this, { t: 'coordinator', state }));
+    this.spend = new OmpSpend(def.dir, def.name);
+    // The first read walks the project's session records: off the startup path, and only once.
+    setImmediate(() => this.spend.refresh());
     this.ready = this.workers.start();
 
     void this.github.refresh();

@@ -105,7 +105,7 @@ export const CASTLE: MapConfig = {
     issues: { x: -WALL_X, y: 3.5, z: -15, rotY: Math.PI / 2, width: 4.4, height: 2.6, label: '📋 The checklist' },
     queue: { x: -WALL_X, y: 3.5, z: -3, rotY: Math.PI / 2, width: 4.4, height: 2.6, label: '🕓 The day' },
     pulls: { x: WALL_X, y: 3.5, z: -15, rotY: -Math.PI / 2, width: 4.4, height: 2.6, label: '🎯 The quest' },
-    services: { x: WALL_X, y: 3.5, z: -3, rotY: -Math.PI / 2, width: 4.4, height: 2.6, label: '🌐 Services' },
+    services: { x: WALL_X, y: 3.5, z: -3, rotY: -Math.PI / 2, width: 4.4, height: 2.6, label: '🪙 Token' },
   },
   props,
   agents: { outfit: 'peasant', ageMinutes: 30 },

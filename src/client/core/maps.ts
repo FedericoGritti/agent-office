@@ -88,7 +88,7 @@ export function installMaps(ctx: Ctx, core: CoreState, parts: MapsParts) {
     views.syncJail();
     // The boards name seats the way this map does.
     boards.renderPullsBoard();
-    boards.renderServicesBoard();
+    boards.renderSpendBoard();
     boards.renderQueueBoard();
     if (store.floor && !core.upTop && !core.trip) {
       parts.place.placeInCar();

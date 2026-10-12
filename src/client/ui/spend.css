@@ -1,0 +1,81 @@
+/* The spend board's window: what the floor's project has spent in OMP, read off OMP's own records. */
+.spend-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.spend-when {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+  color: var(--muted);
+}
+.spend-pane {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+.spend-pane > h4 {
+  margin: 6px 0;
+}
+.spend-total {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.spend-total b {
+  font-size: 22px;
+}
+.spend-total small {
+  color: var(--muted);
+  font-weight: 700;
+}
+.spend-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0;
+}
+.spend-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding-bottom: 3px;
+}
+.spend-row.provider .spend-label {
+  font-style: italic;
+}
+.spend-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+.spend-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+.spend-cost {
+  min-width: 72px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--muted);
+}
+.spend-buckets {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+.spend-empty {
+  margin: 4px 0;
+  color: var(--muted);
+  font-weight: 700;
+}

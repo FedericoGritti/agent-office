@@ -91,7 +91,7 @@ export const STATION: MapConfig = {
     issues: { x: -WALL_X, y: 3.3, z: BOARDS_Z[0], rotY: Math.PI / 2, width: 4.4, height: 2.6, label: '📋 Checklist' },
     queue: { x: -WALL_X, y: 3.3, z: BOARDS_Z[1], rotY: Math.PI / 2, width: 4.4, height: 2.6, label: '🕓 Timeline' },
     pulls: { x: WALL_X, y: 3.3, z: BOARDS_Z[0], rotY: -Math.PI / 2, width: 4.4, height: 2.6, label: '🎯 Mission phase' },
-    services: { x: WALL_X, y: 3.3, z: BOARDS_Z[1], rotY: -Math.PI / 2, width: 4.4, height: 2.6, label: '🌐 Subsystems' },
+    services: { x: WALL_X, y: 3.3, z: BOARDS_Z[1], rotY: -Math.PI / 2, width: 4.4, height: 2.6, label: '🪙 Token' },
   },
   props,
   agents: { outfit: 'none', ageMinutes: 0 },

@@ -1,6 +1,6 @@
 /**
  * The boards on the walls: the coordinator's three (the checklist, the day's timeline and the phase,
- * see features/boards/coordinator.ts and ui/coordinator.ts), the services board, the machine monitor
+ * see features/boards/coordinator.ts and ui/coordinator.ts), the spend board, the machine monitor
  * and the meeting room's two. The GitHub boards and the task queue stay in the code (see
  * docs/features.md) but nothing shows them on the wall any more. What E does at each is defined with it.
  */
@@ -12,11 +12,12 @@ import { store, type Topic } from '../../state';
 import { openCoordinator, type CoordinatorFocus } from '../../ui/coordinator';
 import type { BoardActions } from '../../ui/github/prompts';
 import { inProgress } from '../../ui/github/progress';
-import { openServices } from '../../ui/services';
-import { BoardTexture, QueueBoardTexture, ServicesBoardTexture } from './world';
+import { openSpend } from '../../ui/spend';
+import { BoardTexture, QueueBoardTexture } from './world';
 import { CoordinatorBoardTexture } from './coordinator';
 import { MachineTexture } from './machine';
 import { MeetingBoardTexture, MeetingSignTexture } from './meeting';
+import { SpendBoardTexture } from './spend';
 import type { World } from '../../world/world';
 
 // The kinds of thing you can use that this defines (see InteractKinds in world/types.ts).
@@ -95,9 +96,11 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   mountBoard(office.boardMeshes.queue, timelineTex.texture, () => timelineTex.render(store.coordinator), ['coordinator']);
   mountBoard(office.boardMeshes.pulls, summaryTex.texture, () => summaryTex.render(store.coordinator), ['coordinator']);
 
-  const servicesTex = new ServicesBoardTexture();
-  const renderServicesBoard = () => servicesTex.render(store.services.items, store.workers);
-  mountBoard(office.boardMeshes.services, servicesTex.texture, renderServicesBoard, ['services', 'workers']);
+  // The spend board, where the services board hung: the numbers are read on demand (its button), so
+  // nothing mounts it but the 'spend' topic.
+  const spendTex = new SpendBoardTexture();
+  const renderSpendBoard = () => spendTex.render(store.spend);
+  mountBoard(office.boardMeshes.services, spendTex.texture, renderSpendBoard, ['spend']);
 
   const openCoord = (focus: CoordinatorFocus) => onE(() => openCoordinator(ctx.net, focus));
   ctx.interactions.define('issues', {
@@ -112,8 +115,8 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   });
   ctx.interactions.define('services', {
     reach: 9,
-    hint: () => boardHint('🌐 Services board'),
-    use: onE(() => openServices()),
+    hint: () => boardHint('🪙 Token'),
+    use: onE(() => openSpend(ctx.net)),
   });
   ctx.interactions.define('queue', {
     reach: 9,
@@ -136,10 +139,10 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
     showOn(w.boardMeshes.issues, checklistTex.texture);
     showOn(w.boardMeshes.queue, timelineTex.texture);
     showOn(w.boardMeshes.pulls, summaryTex.texture);
-    showOn(w.boardMeshes.services, servicesTex.texture);
+    showOn(w.boardMeshes.services, spendTex.texture);
     if (w.meetingBoard) showOn(w.meetingBoard, meetingBoardTex.texture);
     if (w.meetingSign) showOn(w.meetingSign, meetingSignTex.texture);
   }
 
-  return { issuesTex, checklistTex, renderPullsBoard, renderServicesBoard, renderQueueBoard, dressBoards, cardMoved };
+  return { issuesTex, checklistTex, spendTex, renderPullsBoard, renderSpendBoard, renderQueueBoard, dressBoards, cardMoved };
 }

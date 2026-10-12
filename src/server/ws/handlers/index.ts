@@ -18,6 +18,7 @@ import { presenceHandlers } from './presence.js';
 import { queueHandlers, queueView } from './queue.js';
 import { rooftopHandlers } from './rooftop.js';
 import { servicesView, settingsHandlers } from './settings.js';
+import { spendHandlers, spendView } from './spend.js';
 import { signinsHandlers } from './signins.js';
 import { teamHandlers } from './team.js';
 import { usageHandlers } from './usage.js';
@@ -44,6 +45,7 @@ export const handlers: HandlerMap<ClientMsg> = {
   ...queueHandlers,
   ...rooftopHandlers,
   ...settingsHandlers,
+  ...spendHandlers,
   ...signinsHandlers,
   ...teamHandlers,
   ...usageHandlers,
@@ -68,6 +70,7 @@ export const views: ViewPieces = {
   decor: decorView,
   plan: planView,
   services: servicesView,
+  spend: spendView,
   dog: dogView,
   ball: ballView,
   cars: carsView,

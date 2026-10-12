@@ -1,0 +1,91 @@
+/* The panel that moves the room: a list of what's in it, out of the way in the corner. */
+.layout-editor {
+  position: fixed;
+  top: 70px;
+  left: 16px;
+  width: 430px;
+  max-height: calc(100vh - 110px);
+  overflow: auto;
+  padding: 12px 14px;
+  background: var(--panel, #fffaf3);
+  border: 3px solid var(--ink, #2b2d42);
+  border-radius: 14px;
+  box-shadow: 6px 6px 0 rgba(43, 45, 66, 0.35);
+}
+.layout-editor header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.layout-editor .le-status {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+.layout-editor .le-help {
+  margin: 8px 0 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0.8;
+}
+.layout-editor .le-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.layout-editor .le-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 8px;
+}
+.layout-editor .le-row.gone {
+  opacity: 0.45;
+}
+.layout-editor .le-row:hover {
+  background: rgba(43, 45, 66, 0.07);
+}
+.layout-editor .le-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  font: inherit;
+  font-weight: 700;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.layout-editor .le-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+.layout-editor .le-field {
+  width: 58px;
+  padding: 3px 4px;
+  font: inherit;
+  font-size: 12px;
+  border: 2px solid var(--ink, #2b2d42);
+  border-radius: 6px;
+}
+.layout-editor .le-btn {
+  padding: 2px 7px;
+  font-size: 13px;
+}
+.layout-editor .le-gone:hover {
+  border-color: var(--bad, #ef476f);
+  color: var(--bad, #ef476f);
+}
+.layout-editor footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}

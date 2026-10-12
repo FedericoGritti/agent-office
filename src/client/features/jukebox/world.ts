@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { JUKEBOX } from '../../../shared/layout';
+import { placed } from '../../world/office/placed';
 import { mesh, roundedBox, textSprite, toon, toonUnique } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
@@ -140,5 +141,6 @@ declare module '../../world/types' {
 /** The jukebox, against the north wall beside the bookshelf of the project's docs. */
 export const jukebox: Fixture<'jukebox'> = (site) => {
   const built = buildJukebox();
+  placed(built.group, 'jukebox', JUKEBOX, [built.collider], site);
   return { group: built.group, colliders: [built.collider], interactables: [built.interactable], handle: { jukebox: built } };
 };

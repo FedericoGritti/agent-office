@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BOARDS, LOFT, MACHINE_MONITOR, PLANTS, SEATING_BY_ID, STAIRS, STREET_Y, TV, WALL_HEIGHT, plantByWing } from '../../../shared/layout';
+import { placed } from './placed';
 import { wallFacing } from '../../../shared/decor';
 import type { NightParts } from '../outside';
 import { mesh, roundedBox, textPlane, toon, toonUnique } from '../toon';
@@ -75,6 +76,8 @@ export const boards: Fixture<'boardMeshes'> = (site) => {
     const it: Interactable = { kind: key, x: b.x + nx * 1.6, z: b.z + nz * 1.6, radius: 2.4 };
     site.interactables.push(it);
     bg.userData.interact = it;
+    // The board and its label travel together when the editor moves it.
+    placed([bg, label], `board-${key}`, { x: b.x, z: b.z, rotY: b.rotY }, [], site);
     // The board and its label above it, up to the ceiling.
     const wall = wallFacing(b.rotY);
     const bottom = b.y - (b.height + 0.3) / 2;

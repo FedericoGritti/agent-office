@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GONG } from '../../../shared/layout';
+import { placed } from '../../world/office/placed';
 import { mesh, roundedBox, textPlane, toon, toonUnique } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
@@ -155,6 +156,7 @@ declare module '../../world/types' {
 /** The gong, just past the elevator from the PR board. */
 export const gong: Fixture<'gong'> = (site) => {
   const built = buildGong();
+  placed(built.group, 'gong', GONG, built.colliders, site);
   site.wall('north', GONG.x, (GONG.height + 0.3) / 2, GONG.width + 1.2, GONG.height + 0.3);
   return { group: built.group, colliders: built.colliders, interactables: [built.interactable], update: (_t, dt) => built.update(dt), handle: { gong: built } };
 };

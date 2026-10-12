@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FIGURES, type FiguresBoard } from '../../../shared/layout';
+import { placed } from '../../world/office/placed';
 import { mesh, roundedBox, textPlane, toon } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
@@ -90,9 +91,10 @@ declare module '../../world/types' {
 }
 
 /** The figures boards: the row of them in the middle aisle among the desks (see FIGURES). */
-export const figures: Fixture<'figures'> = () => {
+export const figures: Fixture<'figures'> = (site) => {
   const stands = FIGURES.map(buildFigures);
   const group = new THREE.Group();
   for (const s of stands) group.add(s.group);
+  stands.forEach((s, i) => placed(s.group, `figures-${i + 1}`, { ...FIGURES[i], rotY: Math.PI }, s.colliders, site));
   return { group, colliders: stands.flatMap((s) => s.colliders), interactables: stands.map((s) => s.interactable), handle: { figures: stands } };
 };

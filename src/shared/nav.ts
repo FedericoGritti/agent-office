@@ -278,7 +278,13 @@ export class NavGrid {
     const ways = [-1, 1].map((side) => {
       // Beside the chair and back from the desk into the aisle, off the bean bag and round behind it, or
       // out from behind the kiosk and round its front, into the room.
-      const [down, back] = seat.beanbag
+      // Up in the boss's office there's no walking out of the room: it comes down the stairs and is on
+      // the floor, at the foot of them, from where anyone else's way home does.
+      const stairsFoot: Pt = [STAIRS.fromX - 0.6, (STAIRS.minZ + STAIRS.maxZ) / 2];
+      const upstairs = (seat.y ?? 0) > 0;
+      const [down, back] = upstairs
+        ? [[seat.x, seat.z], stairsFoot]
+        : seat.beanbag
         ? [deskPoint(seat, side * 1.05, 0.1), deskPoint(seat, side * 1.05, 1.25)]
         : seat.station && !seat.y
           ? [deskPoint(seat, side * 0.95, KIOSK.stand), deskPoint(seat, side * 0.95, -1)]

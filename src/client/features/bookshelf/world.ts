@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BOOKSHELF } from '../../../shared/layout';
+import { placed } from '../../world/office/placed';
 import { mergeByMaterial, mesh, textPlane, toon } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
@@ -121,6 +122,6 @@ export function buildBookshelf(): BookshelfModel {
 /** The bookshelf of the project's docs, against the north wall beside the checklist board. */
 export const bookshelf: Fixture = (site) => {
   const built = buildBookshelf();
-  void site;
+  placed(built.group, 'bookshelf', BOOKSHELF, [built.collider], site);
   return { group: built.group, colliders: [built.collider], interactables: [built.interactable] };
 };

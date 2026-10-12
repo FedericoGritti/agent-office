@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CABINET, FLOOR } from '../../../shared/layout';
+import { placed } from '../../world/office/placed';
 import { mesh, roundedBox, toon } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
@@ -155,6 +156,7 @@ declare module '../../world/types' {
 /** The arcade cabinet, in the lounge's corner against the east wall. */
 export const cabinet: Fixture<'cabinet'> = (site) => {
   const built = buildCabinet();
+  placed(built.group, 'cabinet', { ...CABINET, rotY: -Math.PI / 2 }, [built.collider], site);
   site.wall('east', CABINET.z, CABINET.height / 2, CABINET.width + 0.1, CABINET.height);
   return { group: built.group, colliders: [built.collider], interactables: [built.interactable], handle: { cabinet: built } };
 };

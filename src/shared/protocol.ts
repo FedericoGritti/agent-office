@@ -16,10 +16,12 @@ import type { RooftopClientMsg, RooftopServerMsg } from './protocol/rooftop.js';
 import type { SettingsClientMsg, SettingsServerMsg } from './protocol/settings.js';
 import type { SpendClientMsg, SpendServerMsg } from './protocol/spend.js';
 import type { BallClientMsg, CabinetClientMsg, CarClientMsg, DecorClientMsg, DogClientMsg, JukeboxClientMsg, ToysServerMsg, WhiteboardClientMsg } from './protocol/toys.js';
+import type { LayoutClientMsg, LayoutServerMsg } from './protocol/layout.js';
 import type { UsageClientMsg, UsageServerMsg } from './protocol/usage.js';
 import type { WorkerClientMsg, WorkerServerMsg } from './protocol/workers.js';
 
 export * from './protocol/accounts.js';
+export * from './protocol/layout.js';
 export * from './protocol/agents.js';
 export * from './protocol/changes.js';
 export * from './protocol/coordinator.js';
@@ -53,6 +55,7 @@ export type ClientMsg =
   | UsageClientMsg
   | DecorClientMsg
   | JukeboxClientMsg
+  | LayoutClientMsg
   | CabinetClientMsg
   | WhiteboardClientMsg
   | BallClientMsg
@@ -74,4 +77,5 @@ export type ServerMsg =
   | SettingsServerMsg
   | UsageServerMsg
   | ToysServerMsg
+  | LayoutServerMsg
   | SpendServerMsg;

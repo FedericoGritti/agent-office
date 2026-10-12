@@ -23,6 +23,7 @@ import { Court } from './court.js';
 import { Jail } from './jail.js';
 import { Garage } from './garage.js';
 import { Jukebox } from './jukebox.js';
+import { Layout } from './layout.js';
 import { Whiteboard } from './whiteboard.js';
 import { MeetingRoom } from './meetings.js';
 import { Worktrees, type WorktreeCleanup } from './worktrees.js';
@@ -127,6 +128,8 @@ export class Floor {
   /** The signs over its desks, and how far its back office is built out. */
   readonly plan: FloorPlanStore;
   readonly jukebox: Jukebox;
+  /** Where this floor's furniture stands, as the editor has left it. */
+  readonly layout: Layout;
   /** The whiteboard everyone on the floor draws on together. */
   readonly whiteboard: Whiteboard;
   /** The meeting room, where workers work through a question together (see meetings.ts). */
@@ -317,6 +320,7 @@ export class Floor {
 
     this.decor = new Decor(dataDir);
     this.jukebox = new Jukebox(dataDir);
+    this.layout = new Layout(dataDir);
     this.whiteboard = new Whiteboard(dataDir);
     this.coordinator = new Coordinator(def.dir, dataDir, (state) => ctx.emit(this, { t: 'coordinator', state }));
     this.spend = new OmpSpend(def.dir, def.name);

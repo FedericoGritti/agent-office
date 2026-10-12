@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WHITEBOARD } from '../../../shared/layout';
+import { placed } from '../../world/office/placed';
 import { mesh, roundedBox, textPlane, toon } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
@@ -130,7 +131,8 @@ declare module '../../world/types' {
 }
 
 /** The whiteboard, out on the floor between the desks and the lounge. */
-export const whiteboard: Fixture<'whiteboard'> = () => {
+export const whiteboard: Fixture<'whiteboard'> = (site) => {
   const built = buildWhiteboard();
+  placed(built.group, 'whiteboard', { ...WHITEBOARD, rotY: Math.PI }, built.colliders, site);
   return { group: built.group, colliders: built.colliders, interactables: [built.interactable], handle: { whiteboard: built } };
 };

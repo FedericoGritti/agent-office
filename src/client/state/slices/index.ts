@@ -19,6 +19,7 @@ import { dog } from './dog';
 import { floorPlan } from './floor-plan';
 import { jail } from './jail';
 import { jukebox } from './jukebox';
+import { layout } from './layout';
 import { leaveOnMerge } from './leave-on-merge';
 import { machine } from './machine';
 import { map } from './map';
@@ -55,6 +56,7 @@ export const SLICES: readonly Slice[] = [
   services,
   dog,
   jukebox,
+  layout,
   whiteboard,
   cabinet,
   ball,

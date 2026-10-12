@@ -143,7 +143,7 @@ export type StationKind = 'coordinator';
  * room, so at rotY PI the worker stands on the wall side of it. Nobody hires it from the desks or
  * the queue.
  */
-export const STATIONS: DeskDef[] = [{ id: 'station-coordinator', station: 'coordinator', x: -7.8, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Coordinator' }];
+export const STATIONS: DeskDef[] = [{ id: 'station-coordinator', station: 'coordinator', x: -14.35, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Coordinator' }];
 /** A board agent's kiosk: its top, and how far behind its middle (toward the wall) the agent stands. */
 export const KIOSK = { width: 0.8, depth: 0.5, height: 0.55, stand: 0.55 } as const;
 /** The coordinator's name and its color, the same whenever it's hired. */
@@ -234,11 +234,13 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
 
 /** Wall boards. `rotY` is the way the board faces (0 = +z, like the north-wall boards). */
 export const BOARDS = {
-  // Side by side along the north wall: the coordinator's checklist, its timeline and the phase it is
-  // on, with the coordinator's kiosk in the middle (see STATIONS).
-  issues: { x: -11.7, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Checklist' },
-  queue: { x: -3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🕓 Timeline' },
-  pulls: { x: 3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🎯 Phase' },
+  // Side by side along the north wall, evenly spaced: from the west corner the jukebox, the shelf of
+  // the project's docs, then the coordinator's checklist, its timeline and the phase it is on — three
+  // metres of wall between one and the next, and three either end. The kiosk stands before the jukebox
+  // (see STATIONS), so he faces the room over the row he keeps.
+  issues: { x: -3, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Checklist' },
+  queue: { x: 6, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🕓 Timeline' },
+  pulls: { x: 15, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🎯 Phase' },
   // East wall, north of the lounge TV.
   services: { x: FLOOR.maxX - 0.08, y: 2.1, z: -8.2, rotY: -Math.PI / 2, width: 6, height: 3, label: '🪙 Token' },
 } as const;
@@ -255,7 +257,7 @@ export const MACHINE_MONITOR = { x: FLOOR.minX, y: 2.2, z: -6, width: 2.3, heigh
  * The jukebox: against the north wall west of the bookshelf of the project's docs, in the corner the
  * room's west wall makes, facing into the room (+z) like the boards beside it. `y` is its speaker.
  */
-export const JUKEBOX = { x: -17.25, z: FLOOR.minZ + 0.44, y: 0.75, width: 1.3, depth: 0.72, height: 1.85 } as const;
+export const JUKEBOX = { x: -14.35, z: FLOOR.minZ + 0.44, y: 0.75, width: 1.3, depth: 0.72, height: 1.85 } as const;
 /** The arcade cabinet, against the east wall between the jukebox and the loft, facing into the room. `width` runs along the wall. */
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 
@@ -264,7 +266,7 @@ export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, 
  * wall beside the checklist board, on the spot a potted plant used to stand, with the jukebox in the
  * corner to its west, all of them facing into the room (+z). `width` runs along x.
  */
-export const BOOKSHELF = { x: -15.6, z: FLOOR.minZ + 0.29, width: 1.7, depth: 0.42, height: 2.3 } as const;
+export const BOOKSHELF = { x: -9.85, z: FLOOR.minZ + 0.29, width: 1.7, depth: 0.42, height: 2.3 } as const;
 
 export const SPAWN = { x: 8, z: 7 } as const;
 

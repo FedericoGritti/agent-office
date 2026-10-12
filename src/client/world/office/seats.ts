@@ -165,8 +165,9 @@ export function buildBeanbag(def: DeskDef, index: number): DeskView {
 const KIOSK_SIGN: Record<StationKind, string> = { coordinator: '🧑‍💼 Ask me' };
 
 /**
- * A board agent's kiosk: a little counter in its color with a sign on the front, and the agent standing
- * behind it. Its `vacancy` is where the agent waits before anyone has asked it anything (main.ts puts
+ * A board agent's kiosk: a little counter in its color with a sign on the front, the agent standing
+ * behind it in the robe of its office (the castle's herald wears the same, in the castle's colors —
+ * see world/castle/people.ts). Its `vacancy` is where the agent waits before anyone has asked it anything (main.ts puts
  * one there), in the same spot and pose as the one who gets hired.
  */
 export function buildKiosk(def: DeskDef): DeskView {
@@ -185,6 +186,34 @@ export function buildKiosk(def: DeskDef): DeskView {
   sign.position.set(0, height * 0.55, -(depth - 0.12) / 2 - 0.012);
   sign.rotation.y = Math.PI;
   group.add(sign);
+
+  // The herald's robe of office, worn in the kiosk's own way: whoever stands on this station has it on,
+  // so the office's coordinator reads as the office's figure rather than as one more desk.
+  const herald = new THREE.Group();
+  herald.position.set(0, -0.077 * 1.1, KIOSK.stand);
+  herald.rotation.y = Math.PI;
+  herald.scale.setScalar(1.1);
+  const cloth = toon('#1f4d3a');
+  const gold = toon('#d8b24a');
+  herald.add(
+    mesh(
+      new THREE.LatheGeometry(
+        [
+          [0.36, 0.02],
+          [0.3, 0.5],
+          [0.27, 0.95],
+        ].map(([r, yy]) => new THREE.Vector2(r, yy)),
+        20,
+      ),
+      cloth,
+    ),
+  );
+  // Its chain, and the pin of the office.
+  const chain = mesh(new THREE.TorusGeometry(0.24, 0.025, 6, 20), gold, 0, 0.98, 0.04);
+  chain.rotation.x = Math.PI / 2 - 0.35;
+  herald.add(chain);
+  herald.add(mesh(new THREE.BoxGeometry(0.1, 0.12, 0.03), gold, 0.1, 0.86, 0.27));
+  group.add(herald);
 
   // No laptop: its lid would hide the agent's face from whoever walks up, and its screen would face
   // the wall. The agent's terminal is a key press away (E).

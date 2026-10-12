@@ -44,6 +44,7 @@ import { installDog } from './features/dog';
 import { installEmotes } from './features/emotes';
 import { installGolf } from './features/golf';
 import { installGong } from './features/gong';
+import { installFigures } from './features/figures';
 import { installGallery, installHanging } from './features/hanging';
 import { installHerald } from './features/herald';
 import { installHud } from './features/hud';
@@ -97,6 +98,7 @@ installSky(ctx);
 parts.boards = installBoards(ctx, { aimedNote: () => parts.pointer.aimedNote(), pickUp: (it) => parts.cards.pickUp(it), boardActions: () => parts.actions.boardActions(), showQueue: () => parts.waiting.showQueue() });
 parts.gallery = installGallery(ctx);
 installWhiteboard(ctx);
+installFigures(ctx);
 // Onto whatever you're walking on: the office's floor and furniture, or the roof's.
 parts.confetti = new Confetti((x, z, y) => groundAt(ctx.player.colliders, x, z, y, false));
 ctx.scene.add(parts.confetti.mesh);

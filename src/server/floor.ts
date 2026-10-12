@@ -17,6 +17,7 @@ import { OmpSpend } from './omp-spend.js';
 import { Decor } from './decor.js';
 import { FloorPlanStore } from './floorplan.js';
 import { Docs } from './docs.js';
+import { Images } from './images.js';
 import { Dog } from './dog.js';
 import { Court } from './court.js';
 import { Jail } from './jail.js';
@@ -132,6 +133,8 @@ export class Floor {
   readonly meetings: MeetingRoom;
   /** The bookshelf: the project's Markdown files (see docs.ts). */
   readonly docs: Docs;
+  /** The project's figures: the images/ folder at its root (see images.ts). */
+  readonly images: Images;
   /** Settles once the workers whose terminals outlived the last office are picked back up, and the rest woken. */
   readonly ready: Promise<void>;
   readonly dog: Dog;
@@ -160,6 +163,7 @@ export class Floor {
     excludeFromGit(def.dir);
     this.project = projectInfo(def.dir, def.name, ctx.agentCmd, ctx.agentArgs);
     this.docs = new Docs(def.dir);
+    this.images = new Images(def.dir);
     // Before the workers and the dog: the back office's desks are only there once it's built.
     this.plan = new FloorPlanStore(dataDir);
     this.jail = new Jail(dataDir);

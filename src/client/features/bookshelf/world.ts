@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BOOKSHELF, FLOOR } from '../../../shared/layout';
+import { BOOKSHELF } from '../../../shared/layout';
 import { mergeByMaterial, mesh, textPlane, toon } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
@@ -110,10 +110,10 @@ export function buildBookshelf(): BookshelfModel {
   sign.position.set(0, H + 0.3, 0.02);
   group.add(sign);
 
-  // Built facing +z; it stands against the south wall facing into the room (-z).
+  // Built facing +z; it stands out on the floor turned to face the whiteboard (-z).
   group.position.set(BOOKSHELF.x, 0, BOOKSHELF.z);
   group.rotation.y = Math.PI;
-  const collider: Collider = { minX: BOOKSHELF.x - W / 2 - 0.04, maxX: BOOKSHELF.x + W / 2 + 0.04, minZ: BOOKSHELF.z - D / 2 - 0.03, maxZ: FLOOR.maxZ, top: H + 0.07 };
+  const collider: Collider = { minX: BOOKSHELF.x - W / 2 - 0.04, maxX: BOOKSHELF.x + W / 2 + 0.04, minZ: BOOKSHELF.z - D / 2 - 0.03, maxZ: BOOKSHELF.z + D / 2 + 0.03, top: H + 0.07 };
   const interactable: Interactable = { kind: 'bookshelf', x: BOOKSHELF.x, z: BOOKSHELF.z - 1.2, radius: 1.6 };
   group.userData.interact = interactable;
   return { group, collider, interactable };
@@ -122,6 +122,6 @@ export function buildBookshelf(): BookshelfModel {
 /** The bookshelf of the project's docs, on the south wall between the middle window and the balcony doors. */
 export const bookshelf: Fixture = (site) => {
   const built = buildBookshelf();
-  site.wall('south', BOOKSHELF.x, (BOOKSHELF.height + 0.55) / 2, BOOKSHELF.width + 0.2, BOOKSHELF.height + 0.55);
+  void site;
   return { group: built.group, colliders: [built.collider], interactables: [built.interactable] };
 };

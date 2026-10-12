@@ -139,4 +139,32 @@ export const fileRoutes = {
       return send(res, 404, { error: 'Not found' });
     },
   },
+  images: {
+    method: 'GET',
+    prefix: '/api/images',
+    auth: 'session',
+    async handle(ctx, { res, url, path: p }) {
+      const floor = floorParam(ctx, url);
+      // The gallery: the project's figures, by name, and the bytes of one (see images.ts).
+      if (!floor) return send(res, 404, { error: 'No such floor' });
+      if (p === '/api/images') return send(res, 200, await floor.images.list());
+      const file = str(url.searchParams.get('path'), 4096);
+      if (!file) return send(res, 400, { error: 'Bad request' });
+      if (p === '/api/images/file') {
+        const r = await floor.images.picture(file);
+        if ('error' in r) return send(res, r.status, { error: r.error });
+        res.writeHead(200, {
+          'content-type': r.type,
+          'content-length': String(r.body.length),
+          'cache-control': 'no-store',
+          'x-content-type-options': 'nosniff',
+          'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+          'cross-origin-resource-policy': 'same-origin',
+        });
+        res.end(r.body);
+        return;
+      }
+      return send(res, 404, { error: 'Not found' });
+    },
+  },
 } satisfies Record<string, Route>;

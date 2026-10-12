@@ -88,10 +88,46 @@ export function filterDocs(files: DocFile[], query: string): Hit[] {
   return hits.sort((a, b) => b.score - a.score || a.doc.path.length - b.doc.path.length || a.doc.path.localeCompare(b.doc.path));
 }
 
-/** The project's own docs first (its README before the rest), then each folder's, in path order. */
+/** The project's docs in reading order: its README first, then everything by path. */
 function shelfOrder(files: DocFile[]): DocFile[] {
   const rank = (p: string) => (p.includes('/') ? 2 : /^readme\./i.test(p) ? 0 : 1);
   return [...files].sort((a, b) => rank(a.path) - rank(b.path) || a.path.localeCompare(b.path));
+}
+
+/** The project's docs as a tree: folders (and their subfolders), and the Markdown in each. */
+export interface DocNode {
+  name: string;
+  path: string;
+  dirs: DocNode[];
+  files: DocFile[];
+}
+
+/** Builds that tree from the project's docs, in path order: what the shelf shows, file-manager style. */
+export function docTree(files: DocFile[]): DocNode {
+  const root: DocNode = { name: '', path: '', dirs: [], files: [] };
+  const dirs = new Map<string, DocNode>([['', root]]);
+  const dirOf = (p: string): DocNode => {
+    const known = dirs.get(p);
+    if (known) return known;
+    const cut = p.lastIndexOf('/');
+    const parent = dirOf(cut < 0 ? '' : p.slice(0, cut));
+    const node: DocNode = { name: p.slice(cut + 1), path: p, dirs: [], files: [] };
+    parent.dirs.push(node);
+    dirs.set(p, node);
+    return node;
+  };
+  for (const f of files) {
+    const cut = f.path.lastIndexOf('/');
+    if (cut < 0) root.files.push(f);
+    else dirOf(f.path.slice(0, cut)).files.push(f);
+  }
+  const sort = (n: DocNode) => {
+    n.dirs.sort((a, b) => a.name.localeCompare(b.name));
+    n.files.sort((a, b) => a.path.localeCompare(b.path));
+    n.dirs.forEach(sort);
+  };
+  sort(root);
+  return root;
 }
 
 /** `text` with the letters at `at` marked. */
@@ -199,32 +235,72 @@ export function openBookshelf(deps: ShelfDeps) {
 
   const modal = openModal(el, { doing: '📚 at the bookshelf', reading: true });
 
-  const renderList = () => {
-    count.textContent = !files.length ? '' : filter.value.trim() ? `${shown.length} of ${files.length} docs` : `${files.length} doc${files.length === 1 ? '' : 's'}`;
-    list.replaceChildren(
-      ...shown.map((hit, i) => {
-        const { doc } = hit;
-        const title = doc.title ?? nameOf(doc.path);
-        const li = h(
-          'li.bs-item',
-          { role: 'option', 'aria-selected': String(i === sel), class: `${i === sel ? 'sel' : ''} ${doc.path === current ? 'open' : ''}`, title: doc.path },
-          h('div.bs-title', {}, ...(doc.title ? marked(title, hit.title) : marked(title, new Set([...hit.path].map((p) => p - (doc.path.length - title.length)))))),
-          h('div.bs-path', {}, ...marked(doc.path, hit.path)),
-        );
-        li.addEventListener('mousedown', (e) => e.preventDefault());
-        li.addEventListener('click', () => {
-          sel = i;
-          void openDoc(doc.path);
-        });
-        return li;
-      }),
+  /** The folders left open in the tree (see renderList). */
+  const openDirs = new Set<string>();
+
+  /** One Markdown file, indented under its folder. */
+  const fileRow = (hit: Hit, i: number, depth: number) => {
+    const { doc } = hit;
+    const title = doc.title ?? nameOf(doc.path);
+    const li = h(
+      'li.bs-item',
+      { role: 'option', 'aria-selected': String(i === sel), class: `${i === sel ? 'sel' : ''} ${doc.path === current ? 'open' : ''}`, title: doc.path, style: `padding-left:${8 + depth * 14}px` },
+      h('div.bs-title', {}, ...(doc.title ? marked(title, hit.title) : marked(title, new Set([...hit.path].map((p) => p - (doc.path.length - title.length)))))),
+      h('div.bs-path', {}, ...marked(doc.path, hit.path)),
     );
-    if (!files.length) list.append(h('li.bs-none', {}, 'No Markdown files in this project yet.'));
-    else if (!shown.length) list.append(h('li.bs-none', {}, 'No doc matches that.'));
+    li.addEventListener('mousedown', (e) => e.preventDefault());
+    li.addEventListener('click', () => {
+      sel = i;
+      void openDoc(doc.path);
+    });
+    return li;
+  };
+
+  /** One folder: its name, a caret, and its docs under it once it's open. */
+  const dirRow = (node: DocNode, depth: number) => {
+    const isOpen = openDirs.has(node.path);
+    const li = h('li.bs-dir', { class: isOpen ? 'open' : '', style: `padding-left:${8 + depth * 14}px`, title: node.path }, h('span.bs-caret', {}, isOpen ? '▾' : '▸'), h('span.bs-dirname', {}, node.name));
+    li.addEventListener('mousedown', (e) => e.preventDefault());
+    li.addEventListener('click', () => {
+      if (isOpen) openDirs.delete(node.path);
+      else openDirs.add(node.path);
+      renderList();
+    });
+    return li;
+  };
+
+  const renderList = () => {
+    const query = filter.value.trim();
+    const rows: HTMLElement[] = [];
+    const order: Hit[] = [];
+    if (query) {
+      // A search flattens the shelf: what matches, best first.
+      for (const hit of filterDocs(files, query)) {
+        rows.push(fileRow(hit, order.length, 0));
+        order.push(hit);
+      }
+    } else {
+      // Otherwise the shelf reads like a file manager: folders first, then what's in them.
+      const walk = (node: DocNode, depth: number) => {
+        for (const dir of node.dirs) {
+          rows.push(dirRow(dir, depth));
+          if (openDirs.has(dir.path)) walk(dir, depth + 1);
+        }
+        for (const doc of node.files) {
+          const hit: Hit = { doc, score: 0, title: new Set(), path: new Set() };
+          rows.push(fileRow(hit, order.length, depth));
+          order.push(hit);
+        }
+      };
+      walk(docTree(files), 0);
+    }
+    shown = order;
+    if (sel >= shown.length) sel = 0;
+    count.textContent = !files.length ? '' : query ? `${shown.length} of ${files.length} docs` : `${files.length} doc${files.length === 1 ? '' : 's'}`;
+    list.replaceChildren(...(files.length && shown.length ? rows : [h('li.bs-none', {}, files.length ? 'No doc matches that.' : 'No Markdown files in this project yet.')]));
   };
 
   const refilter = () => {
-    shown = filterDocs(files, filter.value);
     sel = 0;
     renderList();
     list.scrollTop = 0;
@@ -232,9 +308,14 @@ export function openBookshelf(deps: ShelfDeps) {
 
   const move = (by: number) => {
     if (!shown.length) return;
+    const rows = list.querySelectorAll('.bs-item');
+    rows[sel]?.classList.remove('sel');
+    rows[sel]?.setAttribute('aria-selected', 'false');
     sel = (sel + by + shown.length) % shown.length;
-    renderList();
-    list.children[sel]?.scrollIntoView({ block: 'nearest' });
+    const now = rows[sel];
+    now?.classList.add('sel');
+    now?.setAttribute('aria-selected', 'true');
+    now?.scrollIntoView({ block: 'nearest' });
   };
 
   filter.addEventListener('input', refilter);

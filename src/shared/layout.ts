@@ -258,11 +258,10 @@ export const JUKEBOX = { x: FLOOR.maxX - 0.42, y: 0.75, z: 5.4, width: 1.3, dept
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 
 /**
- * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): against the
- * south wall between the middle window and the balcony doors, facing into the room (-z). `width`
- * runs along the wall.
+ * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): out on the open
+ * floor in front of the whiteboard, turned to face it, so the two make a nook. `width` runs along x.
  */
-export const BOOKSHELF = { x: -6.5, z: FLOOR.maxZ - 0.21, width: 1.7, depth: 0.42, height: 2.3 } as const;
+export const BOOKSHELF = { x: 5.4, z: -2.4, width: 1.7, depth: 0.42, height: 2.3 } as const;
 
 export const SPAWN = { x: 8, z: 7 } as const;
 
@@ -276,7 +275,6 @@ export const PLANTS: readonly (readonly [x: number, z: number, scale: number])[]
   [17.2, 12.2, 1.3],
   [-17.2, 8.5, 1.2],
   [14.2, -12.2, 1.1],
-  [-6, 0, 1],
   [3.5, 0, 0.9],
   [8.5, 5, 1.1],
 ];
@@ -297,6 +295,13 @@ export function plantsAt(level: number): readonly (readonly [x: number, z: numbe
  * edge is `bottom` above the floor.
  */
 export const WHITEBOARD = { x: 5.4, z: -5.4, width: 4, height: 2.2, bottom: 0.5 } as const;
+
+/**
+ * The figures board: a rolling stand in the middle of the desks, where the potted plant used to
+ * stand, facing into the room (+z). It shows one picture from the project's `images/` folder at a
+ * time, its file name along the bottom, and a click (or E) moves to the next (see features/gallery/).
+ */
+export const FIGURES = { x: -6, z: 0, width: 3, height: 1.9, bottom: 0.5 } as const;
 
 /**
  * The bottom floor of the building is its second storey: the street, and the open garage under the

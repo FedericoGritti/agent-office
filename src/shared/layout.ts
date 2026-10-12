@@ -293,18 +293,32 @@ export function plantsAt(level: number): readonly (readonly [x: number, z: numbe
 }
 
 /**
- * The whiteboard on wheels everyone draws on together, out on the open floor between the desks and
- * the lounge, facing into the room (+z). `width` and `height` are its writing surface, whose bottom
- * edge is `bottom` above the floor.
+ * The whiteboard on wheels everyone draws on together: at the east end of the row of figures boards in
+ * the middle aisle, facing the desks the same way they do (-z). `width` and `height` are its writing
+ * surface, whose bottom edge is `bottom` above the floor.
  */
-export const WHITEBOARD = { x: 5.4, z: -5.4, width: 4, height: 2.2, bottom: 0.5 } as const;
+export const WHITEBOARD = { x: -2, z: 0, width: 4, height: 2.2, bottom: 0.5 } as const;
+
+/** One figures board: where its stand stands, and how big its face is. */
+export interface FiguresBoard {
+  x: number;
+  z: number;
+  width: number;
+  height: number;
+  /** How far the face's bottom edge is off the floor. */
+  bottom: number;
+}
 
 /**
- * The figures board: a rolling stand in the middle of the desks, where the potted plant used to
- * stand, facing into the room (+z). It shows one picture from the project's `images/` folder at a
- * time, its file name along the bottom, and a click (or E) moves to the next (see features/gallery/).
+ * The figures boards: rolling stands side by side in the middle aisle among the desks, with the
+ * whiteboard closing the row on the east, all of them facing the desks' north side (-z). Each shows one
+ * picture from the project's `images/` folder at a time, its file name along the bottom, and a click (or
+ * E) moves that board on to its next one (see features/figures/).
  */
-export const FIGURES = { x: -6, z: 0, width: 3, height: 1.9, bottom: 0.5 } as const;
+export const FIGURES: readonly FiguresBoard[] = [
+  { x: -9.5, z: 0, width: 3, height: 1.9, bottom: 0.5 },
+  { x: -6, z: 0, width: 3, height: 1.9, bottom: 0.5 },
+];
 
 /**
  * The bottom floor of the building is its second storey: the street, and the open garage under the

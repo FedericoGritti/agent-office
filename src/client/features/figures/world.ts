@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FIGURES } from '../../../shared/layout';
+import { FIGURES, type FiguresBoard } from '../../../shared/layout';
 import { mesh, roundedBox, toon } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
@@ -23,8 +23,8 @@ export interface FiguresStand {
   texture: THREE.CanvasTexture;
 }
 
-export function buildFigures(): FiguresStand {
-  const { x, z, width, height, bottom } = FIGURES;
+export function buildFigures(board: FiguresBoard): FiguresStand {
+  const { x, z, width, height, bottom } = board;
   const group = new THREE.Group();
   group.position.set(x, 0, z);
   // Turned to face into the room the way the desks are: the face (and the picture on it) looks -z.
@@ -64,13 +64,15 @@ export function buildFigures(): FiguresStand {
 
 declare module '../../world/types' {
   interface OfficeHandles {
-    /** The stand that shows the project's figures, one at a time. */
-    figures: FiguresStand;
+    /** The stands that show the project's figures, one picture each. */
+    figures: FiguresStand[];
   }
 }
 
-/** The figures board, in the middle of the desks, where the potted plant used to stand. */
+/** The figures boards: the row of them in the middle aisle among the desks (see FIGURES). */
 export const figures: Fixture<'figures'> = () => {
-  const built = buildFigures();
-  return { group: built.group, colliders: built.colliders, interactables: [built.interactable], handle: { figures: built } };
+  const stands = FIGURES.map(buildFigures);
+  const group = new THREE.Group();
+  for (const s of stands) group.add(s.group);
+  return { group, colliders: stands.flatMap((s) => s.colliders), interactables: stands.map((s) => s.interactable), handle: { figures: stands } };
 };

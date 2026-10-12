@@ -30,6 +30,8 @@ export function buildWhiteboard(): WhiteboardStand {
   const { x, z, width, height, bottom } = WHITEBOARD;
   const group = new THREE.Group();
   group.position.set(x, 0, z);
+  // Built facing +z; it stands in the row of boards in the middle aisle, facing the desks' north side.
+  group.rotation.y = Math.PI;
   const alu = toon(ALU);
   const ink = toon(INK);
   const mid = bottom + height / 2;
@@ -85,7 +87,7 @@ export function buildWhiteboard(): WhiteboardStand {
   group.add(plaque);
 
   const colliders: Collider[] = [{ minX: x - post - 0.1, maxX: x + post + 0.1, minZ: z - 0.48, maxZ: z + 0.48, top: bottom + height + 0.35 }];
-  const interactable: Interactable = { kind: 'whiteboard', x, z: z + 1.7, radius: 2.3 };
+  const interactable: Interactable = { kind: 'whiteboard', x, z: z - 1.7, radius: 2.3 };
   group.userData.interact = interactable;
 
   const show = (drawing: HTMLCanvasElement | null) => {

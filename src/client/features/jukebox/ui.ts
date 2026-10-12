@@ -17,7 +17,7 @@ function ago(at: number): string {
 
 /** The jukebox: what's on, the tunes to pick from, skip and stop, a box for a stream or a YouTube link,
  *  and what the floor has played before, newest first. */
-export function openJukebox(net: Net, openVolume: () => void) {
+export function openJukebox(net: Net, openVolume: () => void, showPlayer: () => void) {
   const close = h('button.btn.close', { 'aria-label': 'Close' }, '✕');
   const now = h('div.jb-now');
   const list = h('ul.svc-list');
@@ -48,17 +48,15 @@ export function openJukebox(net: Net, openVolume: () => void) {
 
   const button = (label: string, title: string, send: () => void, primary = false) => h(primary ? 'button.btn.primary' : 'button.btn', { type: 'button', title, onclick: send }, label);
 
-  /** The player for a YouTube video: visible, the way YouTube's own terms want it, and it starts itself
-   *  once the browser has seen you click anywhere on the page. */
-  const player = (j: typeof store.jukebox) => {
+  /** Where a YouTube link plays: the jukebox's own player, out on your screen, so it carries on while you
+   *  walk the floor. The window only points at it — two players would play twice. */
+  const wherePlays = (j: typeof store.jukebox) => {
     if (!j.on || j.track !== YOUTUBE) return '';
-    const video = j.video ?? '';
-    const src = `${youtubeEmbed(video, j.list)}${j.list ? '&' : '?'}autoplay=1&rel=0`;
     return h(
-      'div.jb-player',
+      'div.jb-where',
       {},
-      h('iframe', { src, title: trackTitle(j), allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen', allowfullscreen: 'true', loading: 'lazy', referrerpolicy: 'strict-origin-when-cross-origin' }),
-      h('div.svc-meta', {}, h('a', { href: youtubeWatch(video, j.list), target: '_blank', rel: 'noreferrer noopener' }, video ? 'Watch on YouTube ↗' : 'The playlist on YouTube ↗')),
+      h('div.svc-meta', {}, 'It plays in the jukebox’s player, on your screen, so it carries on while you walk the floor.'),
+      button('▶️ Show the player', 'Bring the jukebox’s player back', () => showPlayer()),
     );
   };
 
@@ -107,7 +105,7 @@ export function openJukebox(net: Net, openVolume: () => void) {
       j.on ? button('⏭️ Skip', 'On to the next tune', () => net.send({ t: 'jukebox.skip' })) : button('▶️ Play', `Put ${trackTitle(j)} back on`, () => net.send({ t: 'jukebox.play' }), true),
       j.on ? button('⏹️ Stop', 'Turn the jukebox off', () => net.send({ t: 'jukebox.stop' })) : '',
     );
-    screen.replaceChildren(player(j));
+    screen.replaceChildren(wherePlays(j));
     list.replaceChildren(
       ...JUKEBOX_TUNES.map((t) => {
         const playing = j.on && j.track === t.id;

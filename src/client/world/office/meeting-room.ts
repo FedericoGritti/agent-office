@@ -5,7 +5,7 @@ import type { NightParts } from '../outside';
 import { mesh, roundedBox, textPlane, toon } from '../toon';
 import type { Collider, DeskView, Interactable } from '../types';
 import type { Fixture } from './fixture';
-import { PALETTE, box, glassPane } from './materials';
+import { PALETTE, box } from './materials';
 import { wallBoard } from './props';
 import { chair } from './seats';
 import type { Door } from './shell';
@@ -38,9 +38,9 @@ function buildMeetingSeat(def: DeskDef, index: number): DeskView {
 }
 
 /**
- * The meeting room under the loft: glass walls from the loft's posts round to the outside walls, a
- * sliding glass door facing the lounge, a long table with its chairs (MEETING_SEATS), a board on the
- * back wall for the meeting's output and a sign by the door for how it's going.
+ * The meeting room under the loft: wall frames from the loft's posts round to the outside walls, open
+ * between them, a sliding door facing the lounge, a long table with its chairs (MEETING_SEATS), a board
+ * on the back wall for the meeting's output and a sign by the door for how it's going.
  */
 export function buildMeetingRoom(group: THREE.Group, colliders: Collider[], interactables: Interactable[], desks: Map<string, DeskView>, doors: Door[], night: NightParts): { board: THREE.Mesh; sign: THREE.Mesh } {
   const R = MEETING_ROOM;
@@ -49,20 +49,11 @@ export function buildMeetingRoom(group: THREE.Group, colliders: Collider[], inte
   const frameMat = toon('#ffffff');
   const walls = new THREE.Group();
   const bar = (w: number, h: number, d: number, x: number, y: number, z: number) => walls.add(mesh(box(w, h, d), frameMat, x, y, z, false));
-  /** A run of glass along x (north wall) or z (west wall), from a to b, in panes about `pane` wide. */
+  /** A run of wall along x (north wall) or z (west wall), from a to b: open, in bays about `pane` wide,
+   *  with the frame of what was glazed standing in it. */
   const run = (axis: 'x' | 'z', a: number, b: number, at: number, pane = 2.2) => {
     const len = b - a;
     const n = Math.max(1, Math.round(len / pane));
-    for (let i = 0; i < n; i++) {
-      const g = glassPane(len / n, H);
-      const u = a + (i + 0.5) * (len / n);
-      if (axis === 'x') g.position.set(u, H / 2, at);
-      else {
-        g.position.set(at, H / 2, u);
-        g.rotation.y = Math.PI / 2;
-      }
-      walls.add(g);
-    }
     for (let i = 0; i <= n; i++) {
       const u = a + i * (len / n);
       if (axis === 'x') bar(0.08, H, T + 0.04, u, H / 2, at);
@@ -81,7 +72,7 @@ export function buildMeetingRoom(group: THREE.Group, colliders: Collider[], inte
   bar(R.door.x1 - R.door.x0, 0.1, T + 0.06, (R.door.x0 + R.door.x1) / 2, 2.3, R.minZ);
   group.add(walls);
 
-  // The door: two glass leaves that slide apart over the glass on either side when someone comes up.
+  // The door: two open leaves that slide apart over the wall on either side when someone comes up.
   const dx = (R.door.x0 + R.door.x1) / 2;
   const half = (R.door.x1 - R.door.x0) / 2;
   const alu = toon('#aab4be');
@@ -91,9 +82,6 @@ export function buildMeetingRoom(group: THREE.Group, colliders: Collider[], inte
     const h = 2.25;
     for (const y of [0.04, h - 0.04]) leaf.add(mesh(box(half, 0.07, 0.04), alu, 0, y, 0, false));
     for (const x of [-half / 2 + 0.03, half / 2 - 0.03]) leaf.add(mesh(box(0.06, h, 0.04), alu, x, h / 2, 0, false));
-    const pane = glassPane(half - 0.12, h - 0.14);
-    pane.position.y = h / 2;
-    leaf.add(pane);
     leaf.add(mesh(box(0.03, 0.4, 0.07), toon(PALETTE.ink), -side * (half / 2 - 0.1), 1.05, 0, false));
     const x0 = dx + (side * half) / 2;
     leaf.position.set(x0, 0, R.minZ - T / 2 - 0.04);

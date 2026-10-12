@@ -4,13 +4,13 @@ import { LOFT, STAIRS, WALL_T } from '../../../shared/layout';
 import { mesh, roundedBox, textPlane, toon } from '../toon';
 import type { Collider, Interactable } from '../types';
 import type { Fixture } from './fixture';
-import { PALETTE, box, floorTexture, glassPane, type Looks } from './materials';
+import { PALETTE, box, floorTexture, type Looks } from './materials';
 import { floorPlant, pendant, plant } from './props';
 import { chair, seatable } from './seats';
 
 /**
- * The upstairs office: a loft on posts in the south-east corner, with glass on the two sides that
- * face the desks, reached by stairs along the south wall.
+ * The upstairs office: a loft on posts in the south-east corner, with the two sides that face the desks
+ * left open (nothing but the frame of what was glazed), reached by stairs along the south wall.
  */
 export function buildLoft(group: THREE.Group, colliders: Collider[], interactables: Interactable[], looks: Looks): THREE.Mesh {
   const { minX, maxX, minZ, maxZ, y: floorY, height } = LOFT;
@@ -54,23 +54,16 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   group.add(mesh(box(w, 0.25, 0.04), trimMat, cx, floorY + 0.125, maxZ - 0.02, false));
   group.add(mesh(box(0.04, 0.25, d), trimMat, maxX - 0.02, floorY + 0.125, cz, false));
 
-  // Floor-to-ceiling glass on the north and west sides, so you can look down on everyone working.
+  // The two sides that face the desks are open all the way up: you look down on everyone working with
+  // nothing in between. Only the frame of that glass wall is left, so the wall still shows where it is.
   const doorZ = STAIRS.minZ;
-  const pane = (len: number, px: number, pz: number, rotY: number) => {
-    const g = glassPane(len, height);
-    g.position.set(px, floorY + height / 2, pz);
-    g.rotation.y = rotY;
-    group.add(g);
-  };
   const bar = (bw: number, bh: number, bd: number, x: number, y: number, z: number) => group.add(mesh(box(bw, bh, bd), frameMat, x, y, z, false));
   const northZ = minZ + T / 2;
   const westX = minX + T / 2;
-  for (let i = 0; i < 6; i++) pane(w / 6, minX + (i + 0.5) * (w / 6), northZ, 0);
   for (let i = 0; i <= 6; i++) bar(0.1, height, T + 0.04, minX + i * (w / 6), floorY + height / 2, northZ);
   bar(w, 0.12, T + 0.06, cx, floorY + 0.06, northZ);
   bar(w, 0.12, T + 0.06, cx, roofY - 0.06, northZ);
   const westLen = doorZ - minZ;
-  for (let i = 0; i < 2; i++) pane(westLen / 2, westX, minZ + (i + 0.5) * (westLen / 2), Math.PI / 2);
   for (let i = 0; i <= 2; i++) bar(T + 0.04, height, 0.1, westX, floorY + height / 2, minZ + i * (westLen / 2));
   bar(T + 0.06, 0.12, westLen, westX, floorY + 0.06, minZ + westLen / 2);
   bar(T + 0.06, 0.12, westLen, westX, roofY - 0.06, minZ + westLen / 2);

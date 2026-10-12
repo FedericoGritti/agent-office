@@ -72,22 +72,26 @@ export function placed(
     parts: list,
     colliders,
     interact,
-    at: place(id, base),
+    // Where the piece stands *now*: as the room built it. What the file says is a target, applied by
+    // the caller (and by the office, when the floor's file arrives): a move needs a real starting
+    // point, or a piece with a saved place would be "moved" from where it is to where it is.
+    at: { x: base.x, z: base.z, rotY: base.rotY ?? 0, hidden: false },
   };
   pieces.push(piece);
   for (const part of list) byPart.set(part, piece);
   // Straight away, so a piece the file took out never joins the room's colliders or what you can use.
-  if (room) applyPiece(piece, piece.at, room);
+  if (room) applyPiece(piece, place(id, base), room);
 }
 
-/** Where a piece's middle is, and how far round it is turned, from a placement. */
+/** Turns a part about the piece's middle — where it stands now, not where it was built, so a quarter
+ *  turn turns it on the spot and the piece's own middle doesn't travel. */
 function turn(part: THREE.Object3D, piece: Piece, dx: number, dz: number, drot: number): void {
-  const px = part.position.x - piece.base.x;
-  const pz = part.position.z - piece.base.z;
+  const px = part.position.x - piece.at.x;
+  const pz = part.position.z - piece.at.z;
   if (drot) {
     const c = Math.cos(drot);
     const s = Math.sin(drot);
-    part.position.set(piece.base.x + px * c + pz * s, part.position.y, piece.base.z + -px * s + pz * c);
+    part.position.set(piece.at.x + px * c + pz * s, part.position.y, piece.at.z + -px * s + pz * c);
     part.rotation.y += drot;
   }
   part.position.x += dx;
@@ -97,8 +101,8 @@ function turn(part: THREE.Object3D, piece: Piece, dx: number, dz: number, drot: 
 /** A collider's box, turned about a piece's middle (an axis-aligned box round the turned one, which is
  *  exact at the quarter turns the editor works in and safe at any other). */
 function turnBox(box: Collider, piece: Piece, x: number, z: number, drot: number): Collider {
-  const cx = (box.minX + box.maxX) / 2 - piece.base.x;
-  const cz = (box.minZ + box.maxZ) / 2 - piece.base.z;
+  const cx = (box.minX + box.maxX) / 2 - piece.at.x;
+  const cz = (box.minZ + box.maxZ) / 2 - piece.at.z;
   const hx = (box.maxX - box.minX) / 2;
   const hz = (box.maxZ - box.minZ) / 2;
   const c = Math.abs(Math.cos(drot));

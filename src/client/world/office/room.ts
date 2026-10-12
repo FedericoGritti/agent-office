@@ -137,9 +137,12 @@ export const lounge: Fixture = (site) => {
   const table = coffeeTable();
   table.position.set(13, 0, 0);
   site.group.add(table);
-  site.colliders.push({ minX: 12.2, maxX: 13.8, minZ: -0.8, maxZ: 0.8, top: 0.46 });
+  const tableCollider: Collider = { minX: 12.2, maxX: 13.8, minZ: -0.8, maxZ: 0.8, top: 0.46 };
+  site.colliders.push(tableCollider);
+  placed(table, 'lounge-table', { x: 13, z: 0 }, [tableCollider], site);
   const rug = mesh(roundedBox(7, 0.02, 7, 1.2), toon('#ffc6ff'), 13.4, 0.011, 0, false);
   site.group.add(rug);
+  placed(rug, 'lounge-rug', { x: 13.4, z: 0 }, [], site);
 
   // A pouf either side of the lounge (the seats still called beanbags), turned to the TV like whoever sits on it.
   for (const [i, [color, x, z]] of (

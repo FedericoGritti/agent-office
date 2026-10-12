@@ -1,3 +1,4 @@
+import { placed } from './office/placed';
 import * as THREE from 'three';
 import { model, paintModel, palette } from './models';
 import { toon } from './toon';
@@ -55,6 +56,8 @@ export function buildKitchen(): Kitchen {
 /** The kitchen corner: the counter, the coffee machine and the fridge. */
 export const kitchen: Fixture = (site) => {
   const built = buildKitchen();
+  // The whole corner is one model, so it moves as one: the counter, the machine and the fridge.
+  placed(built.group, 'kitchen', { x: -14.5, z: 12.2, rotY: Math.PI }, built.colliders, site);
   // Counter, coffee machine and fridge, in front of the south wall.
   site.wall('south', -14.5, 0.55, 5.1, 1.1);
   site.wall('south', -15.7, 0.9, 0.6, 1.8);

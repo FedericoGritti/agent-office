@@ -146,9 +146,12 @@ export function applyPiece(piece: Piece, at: Placed, room?: Room): void {
  *  returns. */
 function setIn<T>(list: T[], items: readonly T[], inside: boolean): void {
   for (const item of items) {
-    const at = list.indexOf(item);
-    if (inside && at < 0) list.push(item);
-    else if (!inside && at >= 0) list.splice(at, 1);
+    if (inside) {
+      if (list.indexOf(item) < 0) list.push(item);
+      continue;
+    }
+    // Every copy: a collider left behind is an invisible wall.
+    for (let at = list.indexOf(item); at >= 0; at = list.indexOf(item)) list.splice(at, 1);
   }
 }
 

@@ -1,3 +1,4 @@
+import { placed } from './placed';
 import * as THREE from 'three';
 import { ASHTRAY, BALCONY, EXIT_STAIRS, SLAB, STREET_Y } from '../../../shared/layout';
 import { bulb, type NightParts } from '../outside';
@@ -154,15 +155,18 @@ export function buildBalcony(group: THREE.Group, colliders: Collider[], interact
   }
   tray.position.set(ASHTRAY.x, 0, ASHTRAY.z);
   group.add(tray);
-  colliders.push({ minX: ASHTRAY.x - 0.2, maxX: ASHTRAY.x + 0.2, minZ: ASHTRAY.z - 0.2, maxZ: ASHTRAY.z + 0.2, top: 1 });
+  const trayCollider: Collider = { minX: ASHTRAY.x - 0.2, maxX: ASHTRAY.x + 0.2, minZ: ASHTRAY.z - 0.2, maxZ: ASHTRAY.z + 0.2, top: 1 };
+  colliders.push(trayCollider);
   const it: Interactable = { kind: 'smoke', x: ASHTRAY.x, z: ASHTRAY.z, radius: 1.8 };
   interactables.push(it);
   tray.userData.interact = it;
+  placed(tray, 'ashtray', { x: ASHTRAY.x, z: ASHTRAY.z }, [trayCollider], { colliders, interactables });
 
   const sign = textPlane('🚬 Smoke break', { bg: '#2b2d42', color: '#fffaf3', size: 56, border: '#fffaf3' });
   sign.scale.multiplyScalar(0.8);
   sign.position.set(-6.5, 2.2, minZ + 0.02);
   group.add(sign);
+  placed(sign, 'smoke-sign', { x: -6.5, z: minZ + 0.02 }, [], { colliders, interactables });
 }
 
 /** The smoking balcony, out the glass doors on the south wall. */

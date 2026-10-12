@@ -283,7 +283,7 @@ export class NavGrid {
       const stairsFoot: Pt = [STAIRS.fromX - 0.6, (STAIRS.minZ + STAIRS.maxZ) / 2];
       const upstairs = (seat.y ?? 0) > 0;
       const [down, back] = upstairs
-        ? [[seat.x, seat.z], stairsFoot]
+        ? [[seat.x, seat.z] as Pt, stairsFoot]
         : seat.beanbag
         ? [deskPoint(seat, side * 1.05, 0.1), deskPoint(seat, side * 1.05, 1.25)]
         : seat.station && !seat.y

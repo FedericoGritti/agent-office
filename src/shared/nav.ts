@@ -88,6 +88,8 @@ function obstacles(wing: number): Obstacles {
   }
   // The board agents' kiosks, and the agent standing behind each one.
   for (const k of STATIONS) {
+    // Up in the boss's office it stands over the meeting room: an obstacle up there, none down here.
+    if (k.y) continue;
     const corners = [deskPoint(k, -KIOSK.width / 2, -KIOSK.depth / 2), deskPoint(k, KIOSK.width / 2, -KIOSK.depth / 2), deskPoint(k, -KIOSK.width / 2, KIOSK.stand + 0.35), deskPoint(k, KIOSK.width / 2, KIOSK.stand + 0.35)];
     const xs = corners.map(([x]) => x);
     const zs = corners.map(([, z]) => z);
@@ -278,7 +280,7 @@ export class NavGrid {
       // out from behind the kiosk and round its front, into the room.
       const [down, back] = seat.beanbag
         ? [deskPoint(seat, side * 1.05, 0.1), deskPoint(seat, side * 1.05, 1.25)]
-        : seat.station
+        : seat.station && !seat.y
           ? [deskPoint(seat, side * 0.95, KIOSK.stand), deskPoint(seat, side * 0.95, -1)]
           : seat.wing
             ? // In the back office the chair has its back to a wall or the next row: out to the side of it instead.

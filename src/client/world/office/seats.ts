@@ -7,7 +7,7 @@ import type { Fixture } from './fixture';
 import { PALETTE, box } from './materials';
 import { deskBooks, deskMug, plant } from './props';
 
-// Where people sit: the seats you use (see SEATING), and the desks, bean bags and board agents' kiosks
+// Where people sit: the seats you use (see SEATING), the desks, the bean bags, and the post the
 // that workers sit (or stand) at, with the "+" over a free one.
 
 /** Makes `obj` somewhere to sit (see SEATING): walk up to it, or look at it, and press E. */
@@ -41,7 +41,7 @@ export function chair(color: string): THREE.Group {
  */
 export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material): DeskView {
   const group = new THREE.Group();
-  group.position.set(def.x, 0, def.z);
+  group.position.set(def.x, def.y ?? 0, def.z);
   group.rotation.y = def.rotY;
   const { width, depth, height } = DESK_SIZE;
   group.add(mesh(roundedBox(width - 0.06, 0.08, depth - 0.04, 0.08), toon(PALETTE.desk), 0, height - 0.04, 0));
@@ -162,84 +162,6 @@ export function buildBeanbag(def: DeskDef, index: number): DeskView {
   return { def, group, laptopAnchor, seatAnchor, stage, chair: bag, vacancy, vacancyY };
 }
 
-const KIOSK_SIGN: Record<StationKind, string> = { coordinator: '🧑‍💼 Ask me' };
-
-/**
- * A board agent's kiosk: a little counter in its color with a sign on the front, the agent standing
- * behind it in the robe of its office (the castle's herald wears the same, in the castle's colors —
- * see world/castle/people.ts). Its `vacancy` is where the agent waits before anyone has asked it anything (main.ts puts
- * one there), in the same spot and pose as the one who gets hired.
- */
-export function buildKiosk(def: DeskDef): DeskView {
-  const kind = def.station!;
-  const group = new THREE.Group();
-  group.position.set(def.x, 0, def.z);
-  group.rotation.y = def.rotY;
-  const { width, depth, height } = KIOSK;
-  const color = toon(STATION_AGENT[kind].color);
-  // Narrower at the foot, like a lectern, with a lip round the top.
-  group.add(mesh(roundedBox(width - 0.16, height - 0.1, depth - 0.12, 0.06), color, 0, (height - 0.1) / 2 + 0.04, 0));
-  group.add(mesh(roundedBox(width - 0.02, 0.06, depth + 0.02, 0.05), toon(PALETTE.ink), 0, 0.03, 0));
-  group.add(mesh(roundedBox(width, 0.06, depth, 0.05), toon(PALETTE.desk), 0, height - 0.03, 0));
-  const sign = textPlane(KIOSK_SIGN[kind], { bg: '#fffaf3', size: 56 });
-  sign.scale.multiplyScalar(0.62);
-  sign.position.set(0, height * 0.55, -(depth - 0.12) / 2 - 0.012);
-  sign.rotation.y = Math.PI;
-  group.add(sign);
-
-  // The herald's robe of office, worn in the kiosk's own way: whoever stands on this station has it on,
-  // so the office's coordinator reads as the office's figure rather than as one more desk.
-  const herald = new THREE.Group();
-  herald.position.set(0, -0.077 * 1.1, KIOSK.stand);
-  herald.rotation.y = Math.PI;
-  herald.scale.setScalar(1.1);
-  const cloth = toon('#1f4d3a');
-  const gold = toon('#d8b24a');
-  herald.add(
-    mesh(
-      new THREE.LatheGeometry(
-        [
-          [0.36, 0.02],
-          [0.3, 0.5],
-          [0.27, 0.95],
-        ].map(([r, yy]) => new THREE.Vector2(r, yy)),
-        20,
-      ),
-      cloth,
-    ),
-  );
-  // Its chain, and the pin of the office.
-  const chain = mesh(new THREE.TorusGeometry(0.24, 0.025, 6, 20), gold, 0, 0.98, 0.04);
-  chain.rotation.x = Math.PI / 2 - 0.35;
-  herald.add(chain);
-  herald.add(mesh(new THREE.BoxGeometry(0.1, 0.12, 0.03), gold, 0.1, 0.86, 0.27));
-  group.add(herald);
-
-  // No laptop: its lid would hide the agent's face from whoever walks up, and its screen would face
-  // the wall. The agent's terminal is a key press away (E).
-  const laptopAnchor = new THREE.Object3D();
-  laptopAnchor.visible = false;
-  group.add(laptopAnchor);
-
-  // On its feet behind the kiosk, facing it and the room beyond.
-  const stand = new THREE.Object3D();
-  stand.position.set(0, -0.07 * 1.1, KIOSK.stand);
-  stand.rotation.y = Math.PI;
-  stand.scale.setScalar(1.1);
-  const seatAnchor = stand.clone();
-  group.add(seatAnchor);
-  const vacancy = new THREE.Group();
-  vacancy.add(stand);
-  group.add(vacancy);
-  // Up on the counter, facing the room.
-  const stage = new THREE.Object3D();
-  stage.position.set(0, height - 0.1, 0);
-  stage.rotation.y = Math.PI;
-  group.add(stage);
-
-  return { def, group, laptopAnchor, seatAnchor, stage, chair: new THREE.Group(), vacancy, vacancyY: 0 };
-}
-
 declare module '../types' {
   interface OfficeHandles {
     /**
@@ -303,25 +225,48 @@ export const beanbags: Fixture<'setBeanbags'> = (site) => {
   return { handle: { setBeanbags } };
 };
 
-/** The board agents' kiosks, each just west of its board. */
-export const kiosks: Fixture = (site) => {
+/**
+ * The coordinator's post, up in the boss's office (see STATIONS): a desk of the office's own make, with
+ * the vestments of its herald — the robe of office, its chain and pin (the castle's herald wears the
+ * same, see world/castle/people.ts) — hanging where its worker sits, so the clothes go with the seat.
+ */
+export const stationDesks: Fixture = (site) => {
   for (const def of STATIONS) {
-    const view = buildKiosk(def);
+    const view = buildDesk(def, 0, site.looks.trim);
     site.group.add(view.group);
     site.desks.set(def.id, view);
-    // The kiosk and the agent behind it, back to the wall (they all stand by the north wall) so
-    // nobody squeezes in behind, and up over the agent's head so nobody hops on it.
-    const corners = [-1, 1].flatMap((t) => [-KIOSK.depth / 2, KIOSK.stand + 0.35].map((sz) => deskPoint(def, (t * KIOSK.width) / 2, sz)));
+    const y = def.y ?? 0;
+    // Whoever works here is shown by the seat itself (see idleAgentsIn), so no vacancy sign.
+    view.group.remove(view.vacancy);
+    const gold = toon('#d8b24a');
+    const robe = mesh(
+      new THREE.LatheGeometry(
+        [
+          [0.36, 0.02],
+          [0.3, 0.5],
+          [0.27, 0.95],
+        ].map(([r, yy]) => new THREE.Vector2(r, yy)),
+        20,
+      ),
+      toon('#1f4d3a'),
+    );
+    const chain = mesh(new THREE.TorusGeometry(0.24, 0.025, 6, 20), gold, 0, 0.98, 0.04);
+    chain.rotation.x = Math.PI / 2 - 0.35;
+    const pin = mesh(new THREE.BoxGeometry(0.1, 0.12, 0.03), gold, 0.1, 0.86, 0.27);
+    for (const part of [robe, chain, pin]) view.seatAnchor.add(part);
+    // Its own floor: it stops a walker down in the meeting room where it stands high, and one up in the
+    // office where it is a desk.
+    const corners = [-1, 1].flatMap((side) =>
+      [-1, 1].map((end) => deskPoint(def, (side * DESK_SIZE.width) / 2, (end * DESK_SIZE.depth) / 2)),
+    );
     const xs = corners.map(([x]) => x);
     const zs = corners.map(([, z]) => z);
-    site.colliders.push({ minX: Math.min(...xs), maxX: Math.max(...xs), minZ: FLOOR.minZ, maxZ: Math.max(...zs), top: 1.5, fence: true });
-    // Walk up to its front.
+    site.colliders.push({ minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs), bottom: y, top: y + 1.5 });
+    // Walk up to the far side of the desk.
     const [fx, fz] = deskPoint(def, 0, -1);
-    const it: Interactable = { kind: 'station', deskId: def.id, x: fx, z: fz, radius: 1.3 };
+    const it: Interactable = { kind: 'station', deskId: def.id, x: fx, y, z: fz, radius: 1.3 };
     site.interactables.push(it);
     view.group.userData.interact = it;
-    // The agent, its name tag and the card over its head, up against the wall.
-    site.wall('north', def.x, 1.45, 1.4, 2.9);
   }
   return {};
 };

@@ -15,8 +15,10 @@ export interface DeskDef {
   label: string;
   /** A bean bag on the floor instead of a desk; the worker sits on it at (x, z), facing -z at rotY 0. */
   beanbag?: boolean;
-  /** A board agent's kiosk instead of a desk (see STATIONS): the worker stands behind it. */
+  /** A board agent's post instead of an ordinary desk (see STATIONS). */
   station?: StationKind;
+  /** The floor it stands on, if not this one's: the boss's office is up at LOFT.y. */
+  y?: number;
   /** A chair at the meeting room's table (see MEETING_SEATS): only a meeting seats a worker here. */
   room?: boolean;
   /** A desk in the back office (see WING): there once the floor is built out this many rows. */
@@ -137,13 +139,6 @@ export const SEATS: DeskDef[] = [...DESKS, ...WING_DESKS, ...BEANBAGS];
 /** The board with an agent standing by: the coordinator's board. */
 export type StationKind = 'coordinator';
 
-/**
- * The coordinator: a worker standing behind a little kiosk out in the room, a step and a half before the jukebox in the west corner (see
- * BOARDS), there for anyone to prompt about the phase plan. (x, z) is the kiosk. It faces into the
- * room, so at rotY PI the worker stands on the wall side of it. Nobody hires it from the desks or
- * the queue.
- */
-export const STATIONS: DeskDef[] = [{ id: 'station-coordinator', station: 'coordinator', x: -16.63, z: FLOOR.minZ + 2.3, rotY: -Math.PI / 2, label: 'Coordinator' }];
 /** A board agent's kiosk: its top, and how far behind its middle (toward the wall) the agent stands. */
 export const KIOSK = { width: 0.8, depth: 0.5, height: 0.55, stand: 0.55 } as const;
 /** The coordinator's name and its color, the same whenever it's hired. */
@@ -156,6 +151,15 @@ export const LOFT = { minX: 9, maxX: FLOOR.maxX, minZ: 8, maxZ: FLOOR.maxZ, y: 3
 /** Its stairs climb east along the south wall and arrive at the loft's west door. */
 export const STAIRS = { fromX: 3, toX: LOFT.minX, minZ: 11.2, maxZ: FLOOR.maxZ, steps: 15 } as const;
 
+/**
+ * The coordinator: a worker at its own desk up in the boss's office (see LOFT), for anyone to prompt
+ * about the phase plan. The loft was a room nobody used; now the plan is kept up there, looking down
+ * over the boards it drives (x, z is the desk, `y` the floor it stands on). Nobody hires it from the
+ * desks or the queue.
+ */
+export const STATIONS: DeskDef[] = [
+  { id: 'station-coordinator', station: 'coordinator', x: 10.9, y: LOFT.y, z: 9.7, rotY: -Math.PI / 2, label: 'Coordinator' },
+];
 /**
  * The meeting room: glass walls round the space under the boss office, from the loft's posts to the
  * outside walls, with a long table in the middle. Workers called to a meeting sit round it (see
@@ -237,8 +241,8 @@ export const BOARDS = {
   // Side by side along the west half of the north wall, evenly spaced: from the corner the jukebox, the
   // shelf of the project's docs, then the coordinator's checklist, its timeline and the phase it is on.
   // The row stops short of the elevator (which is the wall's middle-east), and the gap between one and
-  // the next is the same as at either end. The kiosk stands before the jukebox (see STATIONS), facing
-  // the room over the row he keeps.
+  // the next is the same as at either end. The coordinator drives them from up in the boss's office
+  // (see STATIONS), and the floor he keeps is in front of him.
   issues: { x: -9.84, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Checklist' },
   queue: { x: -3.12, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🕓 Timeline' },
   pulls: { x: 3.6, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🎯 Phase' },

@@ -25,7 +25,7 @@ import { plug, walls, type Door } from './shell';
 import { balcony } from './balcony';
 import { downstairs } from './ground';
 import { wing } from './wing';
-import { beanbags, desks, kiosks } from './seats';
+import { beanbags, desks, stationDesks } from './seats';
 import { meetingRoom } from './meeting-room';
 import { loft } from './loft';
 import type { Fixture, Gives, Site } from './fixture';
@@ -51,7 +51,7 @@ function floorPlan() {
     tower,
     desks,
     beanbags,
-    kiosks,
+    stationDesks,
     boards,
     // The lounge: the TV, the couch and its table and poufs, and the jukebox and the arcade in the corner.
     tv,

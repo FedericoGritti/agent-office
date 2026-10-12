@@ -10,7 +10,7 @@ export const STATION_INFO: Record<StationKind, { icon: string; offer: string; do
   coordinator: { icon: '🧑‍💼', offer: 'Ask me about the plan', does: 'I keep the phase board and drive it', example: 'What is left in this phase?' },
 };
 
-/** A board agent waiting by its board before anyone has asked it anything (see buildKiosk), and where. */
+/** A board agent waiting by its board before anyone has asked it anything (see stationDesks), and where. */
 export interface IdleAgent {
   model: Worker;
   view: DeskView;
@@ -26,7 +26,7 @@ export function idleAgentsIn(w: World): IdleAgent[] {
     model.setTask({ name: STATION_INFO[kind].offer, summary: STATION_INFO[kind].does });
     model.setOutfit(w.plan.agents.outfit === 'peasant' ? 'peasant' : null);
     const view = w.desks.get(def.id)!;
-    view.vacancy.children[0].add(model.root);
+    view.seatAnchor.add(model.root);
     noOutline(model.root);
     return { model, view };
   });

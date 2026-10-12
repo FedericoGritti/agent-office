@@ -303,8 +303,9 @@ export function installWorkerViews(ctx: Ctx, core: CoreState, parts: WorkerViews
       const d = v.model.root.getWorldPosition(workerPos).distanceTo(player.pos);
       v.model.held = d < (v.model.held ? HOLD_LEAVE : HOLD_NEAR);
       v.model.update(dt, t);
-      // A board agent's kiosk has no laptop to paint (see buildKiosk).
-      if (!desk.station) v.laptop.update(dt, store.screens.get(id), Math.hypot(desk.x - camPos.x, desk.z - camPos.z));
+      // The screen it paints is the desk's: on the maps downstairs, where the agent stands at a lectern,
+      // the anchor is hidden and the laptop goes with it.
+      v.laptop.update(dt, store.screens.get(id), Math.hypot(desk.x - camPos.x, desk.z - camPos.z));
     }
     for (const a of parts.worlds.idleAgents()) if (a.view.vacancy.visible) a.model.update(dt, t);
     departures.update(dt, t);

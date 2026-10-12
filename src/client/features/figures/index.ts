@@ -105,9 +105,15 @@ export function installFigures(ctx: Ctx) {
   let reading = false;
   /** A read asked for while one was in flight: it runs again once that one's done. */
   let again = false;
+  /** The folder as the boards last read it: unchanged means there is nothing to show anew. */
+  let stamp = '';
 
-  /** The folder again: a floor change means another project's figures. */
-  async function read() {
+  /**
+   * The folder, if it changed: a figure added, taken away, or written again under the same name
+   * reaches the boards on its own. `force` reads whatever the stamp says, for a floor change, which
+   * means another project's figures.
+   */
+  async function read(force = false) {
     // Nothing to read until the welcome says which floor (and so which project) you're on.
     if (!store.floor) return;
     if (reading) {
@@ -115,29 +121,39 @@ export function installFigures(ctx: Ctx) {
       return;
     }
     reading = true;
+    let list: ImageList | null = null;
     try {
       const r = await fetch(`/api/images?floor=${encodeURIComponent(store.floor)}`, { credentials: 'same-origin' });
       if (!r.ok) throw new Error(String(r.status));
-      names = ((await r.json()) as ImageList).files;
+      list = (await r.json()) as ImageList;
     } catch {
-      names = [];
+      // It couldn't be read: leave the boards on what they have rather than blanking them.
+      list = null;
     } finally {
       reading = false;
     }
+    if (again) {
+      again = false;
+      void read(force);
+      return;
+    }
+    if (!list || (!force && list.stamp === stamp)) return;
+    stamp = list.stamp;
+    names = list.files;
     pictures.clear();
     unreadable.clear();
     for (const b of boards) b.note = 'No pictures in images/ yet';
-    // Each board opens on a different picture, so the row isn't the same one three times.
-    boards.forEach((b, i) => show(b, names.length ? i % names.length : 0));
-    if (again) {
-      again = false;
-      void read();
-    }
+    // Arriving on a floor the boards open on different pictures, so the row isn't the same one three
+    // times over; when a figure changed under them they stay where they were looking, since what they
+    // were looking at is often the one that changed.
+    boards.forEach((b, i) => show(b, names.length ? Math.min(force ? i : b.at, names.length - 1) : 0));
   }
 
   drawAll();
-  void read();
-  store.on('floor', () => void read());
+  void read(true);
+  store.on('floor', () => void read(true));
+  // The folder is looked at again on its own, at the cadence the office's other lists use (ui/services).
+  setInterval(() => void read(), 30_000);
 
   ctx.interactions.define('figures', {
     reach: 6,

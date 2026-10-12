@@ -7,4 +7,10 @@ export interface ImageList {
   files: string[];
   /** There were more than the office lists. */
   more: boolean;
+  /**
+   * Says when the folder changed: a figure added, taken away or written again under the same name
+   * all move it. The boards re-read when it does (see features/figures), which is how a figure
+   * written again shows its new self.
+   */
+  stamp: string;
 }

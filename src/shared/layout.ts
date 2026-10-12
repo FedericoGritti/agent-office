@@ -138,12 +138,12 @@ export const SEATS: DeskDef[] = [...DESKS, ...WING_DESKS, ...BEANBAGS];
 export type StationKind = 'coordinator';
 
 /**
- * The coordinator: a worker standing behind a little kiosk in the middle of the north wall (see
+ * The coordinator: a worker standing behind a little kiosk out in the room, a step and a half before the jukebox in the west corner (see
  * BOARDS), there for anyone to prompt about the phase plan. (x, z) is the kiosk. It faces into the
  * room, so at rotY PI the worker stands on the wall side of it. Nobody hires it from the desks or
  * the queue.
  */
-export const STATIONS: DeskDef[] = [{ id: 'station-coordinator', station: 'coordinator', x: -16.63, z: FLOOR.minZ + 1.3, rotY: -Math.PI / 2, label: 'Coordinator' }];
+export const STATIONS: DeskDef[] = [{ id: 'station-coordinator', station: 'coordinator', x: -16.63, z: FLOOR.minZ + 2.3, rotY: -Math.PI / 2, label: 'Coordinator' }];
 /** A board agent's kiosk: its top, and how far behind its middle (toward the wall) the agent stands. */
 export const KIOSK = { width: 0.8, depth: 0.5, height: 0.55, stand: 0.55 } as const;
 /** The coordinator's name and its color, the same whenever it's hired. */

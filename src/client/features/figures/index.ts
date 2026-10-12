@@ -12,7 +12,7 @@ declare module '../../world/types' {
   }
 }
 
-/** The strip along the bottom of the face, in pixels: the file name always has a home. */
+/** The strip along the bottom of the face, in pixels at the 570 px reference height: the file name always has a home. */
 const CAPTION = 66;
 const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
 
@@ -21,6 +21,9 @@ export function installFigures(ctx: Ctx) {
   const g = face.getContext('2d')!;
   const W = face.width;
   const H = face.height;
+  // The whole drawing below was laid out on a 900×570 face: it scales from the face it is given.
+  const S = H / 570;
+  const strip = Math.round(CAPTION * S);
   let names: string[] = [];
   let at = 0;
   let note = 'Reading images/…';
@@ -30,16 +33,16 @@ export function installFigures(ctx: Ctx) {
   /** The file name, and where in the folder it stands: always along the bottom of the face. */
   function caption(text: string) {
     g.fillStyle = '#2b2d42';
-    g.fillRect(0, H - CAPTION, W, CAPTION);
+    g.fillRect(0, H - strip, W, strip);
     g.fillStyle = '#f8f9fa';
-    g.font = `800 34px ${FONT}`;
+    g.font = `800 ${Math.round(34 * S)}px ${FONT}`;
     g.textAlign = 'left';
     g.textBaseline = 'middle';
-    g.fillText(clip(text, 52), 20, H - CAPTION / 2);
+    g.fillText(clip(text, 52), Math.round(20 * S), H - strip / 2);
     if (names.length) {
       g.fillStyle = '#adb5bd';
       g.textAlign = 'right';
-      g.fillText(`${at + 1}/${names.length}`, W - 20, H - CAPTION / 2);
+      g.fillText(`${at + 1}/${names.length}`, W - Math.round(20 * S), H - strip / 2);
     }
   }
 
@@ -48,16 +51,17 @@ export function installFigures(ctx: Ctx) {
     g.fillRect(0, 0, W, H);
     const name = names[at];
     const pic = name ? pictures.get(name) : undefined;
-    const boxH = H - CAPTION;
+    const boxH = H - strip;
+    const pad = Math.round(24 * S);
     if (pic?.complete && pic.naturalWidth) {
-      const s = Math.min((W - 24) / pic.naturalWidth, (boxH - 24) / pic.naturalHeight);
+      const s = Math.min((W - pad) / pic.naturalWidth, (boxH - pad) / pic.naturalHeight);
       const w = pic.naturalWidth * s;
       const h = pic.naturalHeight * s;
       g.drawImage(pic, (W - w) / 2, (boxH - h) / 2, w, h);
       caption(name);
     } else {
       g.fillStyle = '#6c757d';
-      g.font = `900 46px ${FONT}`;
+      g.font = `900 ${Math.round(46 * S)}px ${FONT}`;
       g.textAlign = 'center';
       g.textBaseline = 'middle';
       g.fillText(clip(name ?? note, 40), W / 2, boxH / 2);

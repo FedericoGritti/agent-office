@@ -66,12 +66,12 @@ function obstacles(wing: number): Obstacles {
   rects.push([GONG.x - GONG.width / 2 - 0.12, GONG.x + GONG.width / 2 + 0.3, GONG.z - 0.3, GONG.z + 0.3]);
   // The whiteboard on its wheels, as features/whiteboard/world.ts puts it.
   rects.push([WHITEBOARD.x - WHITEBOARD.width / 2 - 0.2, WHITEBOARD.x + WHITEBOARD.width / 2 + 0.2, WHITEBOARD.z - 0.48, WHITEBOARD.z + 0.48]);
-  // The jukebox, against the east wall.
-  rects.push([JUKEBOX.x - JUKEBOX.depth / 2 - 0.05, FLOOR.maxX, JUKEBOX.z - JUKEBOX.width / 2 - 0.05, JUKEBOX.z + JUKEBOX.width / 2 + 0.05]);
+  // The jukebox, standing free behind the figures board.
+  rects.push([JUKEBOX.x - JUKEBOX.width / 2 - 0.05, JUKEBOX.x + JUKEBOX.width / 2 + 0.05, JUKEBOX.z - JUKEBOX.depth / 2 - 0.05, JUKEBOX.z + JUKEBOX.depth / 2 + 0.05]);
   // The arcade cabinet next to it, as features/cabinet/world.ts puts it (its control panel sticks out a little).
   rects.push([CABINET.x - 0.45, FLOOR.maxX, CABINET.z - CABINET.width / 2 - 0.02, CABINET.z + CABINET.width / 2 + 0.02]);
-  // The bookshelf against the south wall, as features/bookshelf/world.ts puts it.
-  rects.push([BOOKSHELF.x - BOOKSHELF.width / 2 - 0.04, BOOKSHELF.x + BOOKSHELF.width / 2 + 0.04, BOOKSHELF.z - BOOKSHELF.depth / 2 - 0.03, FLOOR.maxZ]);
+  // The bookshelf against the north wall, beside the checklist board.
+  rects.push([BOOKSHELF.x - BOOKSHELF.width / 2 - 0.04, BOOKSHELF.x + BOOKSHELF.width / 2 + 0.04, FLOOR.minZ, BOOKSHELF.z + BOOKSHELF.depth / 2 + 0.03]);
   // The ladder up the west wall, and the fire poles: a hole with a railing round it, or a landing mat.
   // Which spot has which changes floor by floor, so the dog keeps off both.
   rects.push([FLOOR.minX, FLOOR.minX + 0.3, LADDER.z - LADDER.width / 2 - 0.05, LADDER.z + LADDER.width / 2 + 0.05]);

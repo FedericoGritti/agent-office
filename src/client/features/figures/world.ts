@@ -11,7 +11,7 @@ import type { Fixture } from '../../world/office/fixture';
 const ALU = '#aab4be';
 const RUBBER = '#3a3a3a';
 /** The face's canvas, in pixels per meter. */
-const PX = 300;
+const PX = 700;
 
 export interface FiguresStand {
   group: THREE.Group;
@@ -43,7 +43,7 @@ export function buildFigures(): FiguresStand {
   face.height = Math.round(height * PX);
   const texture = new THREE.CanvasTexture(face);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
+  texture.anisotropy = 16;
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: texture, toneMapped: false }));
   plane.position.set(0, mid, 0.04);
   group.add(plane);

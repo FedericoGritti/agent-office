@@ -252,8 +252,11 @@ export const TV = { x: FLOOR.maxX - 0.1, y: 2.2, z: 0, width: 6.4, height: 3.6 }
  * workers it runs of the most it takes.
  */
 export const MACHINE_MONITOR = { x: FLOOR.minX, y: 2.2, z: -6, width: 2.3, height: 1.3 } as const;
-/** The lounge jukebox, against the east wall south of the TV, facing into the room. `y` is its speaker. */
-export const JUKEBOX = { x: FLOOR.maxX - 0.42, y: 0.75, z: 5.4, width: 1.3, depth: 0.72, height: 1.85 } as const;
+/**
+ * The lounge jukebox: out on the floor just behind the figures board, standing free and facing into
+ * the room (+z). `y` is its speaker.
+ */
+export const JUKEBOX = { x: -6, z: 1.8, y: 0.75, width: 1.3, depth: 0.72, height: 1.85 } as const;
 /** The arcade cabinet, against the east wall between the jukebox and the loft, facing into the room. `width` runs along the wall. */
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 

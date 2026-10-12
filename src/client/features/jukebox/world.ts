@@ -70,11 +70,10 @@ export function buildJukebox(): JukeboxView {
     return s;
   });
 
-  // Built facing +z; it stands against the east wall facing into the room (-x).
+  // Built facing +z; it stands free behind the figures board, facing into the room.
   group.position.set(JUKEBOX.x, 0, JUKEBOX.z);
-  group.rotation.y = -Math.PI / 2;
-  const collider: Collider = { minX: JUKEBOX.x - D / 2 - 0.05, maxX: JUKEBOX.x + D / 2, minZ: JUKEBOX.z - r - 0.05, maxZ: JUKEBOX.z + r + 0.05, top: H };
-  const interactable: Interactable = { kind: 'jukebox', x: JUKEBOX.x - 1.3, z: JUKEBOX.z, radius: 1.6 };
+  const collider: Collider = { minX: JUKEBOX.x - W / 2 - 0.05, maxX: JUKEBOX.x + W / 2 + 0.05, minZ: JUKEBOX.z - D / 2 - 0.05, maxZ: JUKEBOX.z + D / 2 + 0.05, top: H };
+  const interactable: Interactable = { kind: 'jukebox', x: JUKEBOX.x, z: JUKEBOX.z + 1.3, radius: 1.6 };
   group.userData.interact = interactable;
 
   let on = false;
@@ -141,6 +140,5 @@ declare module '../../world/types' {
 /** The jukebox, in the lounge's corner against the east wall. */
 export const jukebox: Fixture<'jukebox'> = (site) => {
   const built = buildJukebox();
-  site.wall('east', JUKEBOX.z, JUKEBOX.height / 2, JUKEBOX.width + 0.1, JUKEBOX.height);
   return { group: built.group, colliders: [built.collider], interactables: [built.interactable], handle: { jukebox: built } };
 };

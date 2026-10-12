@@ -6,3 +6,34 @@
 .jb-disc.spin { animation: jb-spin 2.4s linear infinite; }
 @keyframes jb-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .jb-disc.spin { animation: none; } }
+
+/* A YouTube link plays in a visible player: YouTube's own terms want it seen, and it keeps playing
+   while the window is open. */
+.jukebox .jb-screen:empty {
+  display: none;
+}
+.jukebox .jb-player {
+  margin-top: 16px;
+}
+.jukebox .jb-player iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 10px;
+  background: #000;
+}
+.jukebox .jb-player .svc-meta {
+  margin-top: 6px;
+}
+/* What the floor has played, newest first: scrollable, because it is kept for a while. */
+.jukebox .jb-history {
+  max-height: 190px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-top: 8px;
+}
+.jukebox .jb-empty {
+  cursor: default;
+  padding: 8px 4px;
+}

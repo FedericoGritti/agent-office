@@ -22,7 +22,7 @@ function setJukebox(s: Store, j: JukeboxState) {
 
 export const jukebox: Slice = {
   init(s) {
-    s.jukebox = { on: false, track: JUKEBOX_TUNES[0].id, startedAt: 0, elapsed: 0, since: 0 };
+    s.jukebox = { on: false, track: JUKEBOX_TUNES[0].id, history: [], startedAt: 0, elapsed: 0, since: 0 };
     s.clock = undefined;
   },
   methods: {

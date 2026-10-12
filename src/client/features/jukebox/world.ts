@@ -4,7 +4,7 @@ import { mesh, roundedBox, textSprite, toon, toonUnique } from '../../world/toon
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
 
-// The lounge jukebox: a cherry-red cabinet with a rounded top, a neon tube round its face that
+// The jukebox: a cherry-red cabinet with a rounded top, a neon tube round its face that
 // glows to the beat while it plays, a little display saying what's on, and notes floating up.
 
 export interface JukeboxView {
@@ -132,12 +132,12 @@ export function buildJukebox(): JukeboxView {
 
 declare module '../../world/types' {
   interface OfficeHandles {
-    /** The jukebox in the lounge (see features/jukebox). */
+    /** The jukebox by the docs bookshelf (see features/jukebox). */
     jukebox: JukeboxView;
   }
 }
 
-/** The jukebox, in the lounge's corner against the east wall. */
+/** The jukebox, against the north wall beside the bookshelf of the project's docs. */
 export const jukebox: Fixture<'jukebox'> = (site) => {
   const built = buildJukebox();
   return { group: built.group, colliders: [built.collider], interactables: [built.interactable], handle: { jukebox: built } };

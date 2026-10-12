@@ -1,4 +1,3 @@
-import { JUKEBOX } from '../../../shared/layout';
 import { STREAM } from '../../../shared/jukebox';
 import type { AudioCore } from '../../sound/core';
 import { biquad, rms } from '../../sound/dsp';
@@ -15,16 +14,12 @@ export interface JukeboxPlay {
   since: number;
 }
 
-/** How the jukebox fades with distance: the same curve for its tunes (a panner) and a stream (by hand). */
-const MUSIC_REF = 2.5;
-const MUSIC_ROLLOFF = 1.3;
-
-/** The jukebox on your floor: a tune or a stream, muffled from across the room, at your own volume. */
+/** The jukebox on your floor: a tune, a stream or a YouTube player, at your own volume, the same
+ *  everywhere on the floor — it is not a sound coming from the lounge, it is the floor's music. */
 export class Jukebox {
-  // From the cabinet, through a filter that muffles it from across the room, to your own volume.
-  private musicIn!: PannerNode;
+  // Straight from the jukebox to your own volume: no panning, no muffling, no fading with distance.
+  private musicIn!: GainNode;
   private musicTone!: BiquadFilterNode;
-  private musicCutoff = 16000;
   /** Your music volume, which the DJ on the roof plays through too. */
   musicBus!: GainNode;
   private musicMeter!: AnalyserNode;
@@ -44,7 +39,8 @@ export class Jukebox {
   /** Once there's audio: the jukebox's part of the graph. */
   connect(ctx: AudioContext) {
     // The jukebox skips the master (it has its own volume) and keeps playing while the tab is hidden.
-    this.musicIn = this.a.panner(JUKEBOX, MUSIC_REF, MUSIC_ROLLOFF);
+    this.musicIn = ctx.createGain();
+    this.musicIn.gain.value = 1;
     this.musicTone = biquad(ctx, 'lowpass', 16000, 0.5);
     this.musicBus = ctx.createGain();
     this.musicBus.gain.value = 0;
@@ -151,27 +147,16 @@ export class Jukebox {
     if (Number.isFinite(a.duration) && a.duration > 0) a.currentTime = this.musicAt() % a.duration;
   }
 
-  /** Muffles the jukebox the further you are from it. */
-  hearJukebox(now: number) {
-    const d = this.jukeboxDistance();
-    const cutoff = d < 5 ? 16000 : Math.max(1600, 16000 * (5 / d) ** 1.5);
-    if (Math.abs(cutoff - this.musicCutoff) > this.musicCutoff * 0.02) {
-      this.musicCutoff = cutoff;
-      this.musicTone.frequency.setTargetAtTime(cutoff, now, 0.1);
-    }
+  /** The jukebox sounds the same wherever you stand on the floor: nothing to muffle, nothing to fade. */
+  hearJukebox(_now: number) {
     this.hearStream();
   }
 
-  /** A stream plays outside Web Audio (most don't allow that), so it gets quieter with distance by hand. */
+  /** A stream plays outside Web Audio (most don't allow that), so its volume is set by hand — the same
+   *  everywhere on the floor. */
   private hearStream() {
     if (!this.stream) return;
-    const d = Math.max(MUSIC_REF, this.jukeboxDistance());
-    this.stream.volume = Math.min(1, this.musicGain() * (MUSIC_REF / (MUSIC_REF + MUSIC_ROLLOFF * (d - MUSIC_REF))));
-  }
-
-  private jukeboxDistance(): number {
-    const l = this.a.listener;
-    return Math.hypot(l.x - JUKEBOX.x, l.y - JUKEBOX.y, l.z - JUKEBOX.z);
+    this.stream.volume = Math.min(1, this.musicGain());
   }
 
 }

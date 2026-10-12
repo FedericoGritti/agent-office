@@ -27,6 +27,8 @@ export function buildFigures(): FiguresStand {
   const { x, z, width, height, bottom } = FIGURES;
   const group = new THREE.Group();
   group.position.set(x, 0, z);
+  // Turned to face into the room the way the desks are: the face (and the picture on it) looks -z.
+  group.rotation.y = Math.PI;
   const alu = toon(ALU);
   const mid = bottom + height / 2;
   const post = width / 2 + 0.1;
@@ -55,7 +57,7 @@ export function buildFigures(): FiguresStand {
   group.add(mesh(new THREE.CylinderGeometry(0.025, 0.025, post * 2, 8).rotateZ(Math.PI / 2), alu, 0, 0.3, 0, false));
 
   const colliders: Collider[] = [{ minX: x - post - 0.1, maxX: x + post + 0.1, minZ: z - 0.42, maxZ: z + 0.42, top: bottom + height + 0.3 }];
-  const interactable: Interactable = { kind: 'figures', x, z: z + 1.6, radius: 2.2 };
+  const interactable: Interactable = { kind: 'figures', x, z: z - 1.6, radius: 2.2 };
   group.userData.interact = interactable;
   return { group, colliders, interactable, face, texture };
 }

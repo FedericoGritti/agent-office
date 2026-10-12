@@ -24,7 +24,6 @@ export function installFigures(ctx: Ctx) {
   let names: string[] = [];
   let at = 0;
   let note = 'Reading images/…';
-  let reading = false;
   /** The pictures already asked for, by name: they arrive once and are drawn from memory after. */
   const pictures = new Map<string, HTMLImageElement>();
 
@@ -83,6 +82,8 @@ export function installFigures(ctx: Ctx) {
       pictures.set(name, pic);
     }
     draw();
+  }
+
   let reading = false;
   /** A read asked for while one was in flight: it runs again once that one's done. */
   let again = false;

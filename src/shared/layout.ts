@@ -152,10 +152,8 @@ export const LOFT = { minX: 9, maxX: FLOOR.maxX, minZ: 8, maxZ: FLOOR.maxZ, y: 3
 export const STAIRS = { fromX: 3, toX: LOFT.minX, minZ: 11.2, maxZ: FLOOR.maxZ, steps: 15 } as const;
 
 /**
- * The coordinator: a worker at its own desk up in the boss's office (see LOFT), for anyone to prompt
- * about the phase plan. The loft was a room nobody used; now the plan is kept up there, looking down
- * over the boards it drives (x, z is the desk, `y` the floor it stands on). Nobody hires it from the
- * desks or the queue.
+ * The coordinator: a worker at its own desk up in the boss's office (see LOFT, and `y` in DeskDef), for
+ * anyone to prompt about the phase plan. Nobody hires it from the desks or the queue.
  */
 export const STATIONS: DeskDef[] = [
   { id: 'station-coordinator', station: 'coordinator', x: 10.9, y: LOFT.y, z: 9.7, rotY: -Math.PI / 2, label: 'Coordinator' },
@@ -238,11 +236,9 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
 
 /** Wall boards. `rotY` is the way the board faces (0 = +z, like the north-wall boards). */
 export const BOARDS = {
-  // Side by side along the west half of the north wall, evenly spaced: from the corner the jukebox, the
-  // shelf of the project's docs, then the coordinator's checklist, its timeline and the phase it is on.
-  // The row stops short of the elevator (which is the wall's middle-east), and the gap between one and
-  // the next is the same as at either end. The coordinator drives them from up in the boss's office
-  // (see STATIONS), and the floor he keeps is in front of him.
+  // Side by side along the west half of the north wall, evenly spaced: the jukebox, the shelf of the
+  // project's docs, then the checklist, the timeline and the phase, stopping short of the elevator with
+  // the same gap between each and at either end.
   issues: { x: -9.84, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Checklist' },
   queue: { x: -3.12, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🕓 Timeline' },
   pulls: { x: 3.6, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🎯 Phase' },

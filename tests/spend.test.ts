@@ -75,3 +75,24 @@ test("a project's spend counts its own folder and everything under it, its own a
   assert.equal(grown.total.calls, 6);
   assert.equal(grown.total.tokens, state.total.tokens + 8);
 });
+
+test("a worker's session counts as the project's sub-agent wherever the office files it", () => {
+  const home = mkdtempSync(path.join(tmpdir(), 'spend-'));
+  process.env.PI_CODING_AGENT_DIR = home;
+  const project = path.join(home, 'work', 'shop');
+  const worktree = path.join(project, '.agent-office', 'worktrees', 'pixel-1f2e');
+  mkdirSync(worktree, { recursive: true });
+  const today = new Date();
+
+  // The office files every one of a floor's workers in the project's own folder (see providers/omp.ts):
+  // the session's own record is what says it ran in a worktree, and that is what it is counted as.
+  const own = folder(home, project);
+  writeFileSync(path.join(own, '2026-10-13T10-00-00-000Z_aaa.jsonl'), lines(project, today, 100, 10, 0.5));
+  writeFileSync(path.join(own, '2026-10-13T11-00-00-000Z_bbb.jsonl'), lines(worktree, today, 30, 3, 0.15));
+
+  const state = new OmpSpend(project, 'shop').refresh();
+  assert.equal(state.today.calls, 2);
+  assert.equal(state.today.tokens, 100 + 10 + 30 + 3);
+  assert.equal(state.today.byAgent.agents.calls, 1);
+  assert.equal(state.today.byAgent.subagents.calls, 1);
+});

@@ -4,19 +4,21 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { normalizeOmpHook, ompArgs, OMP_EXTENSION_SOURCE, writeOmpExtension, writeOmpOverlay } from '../src/server/omp.js';
+import { ompSessionDir } from '../src/server/omp-usage.js';
 import { isValidOmpModel } from '../src/shared/providers.js';
 import { WorkerManager, type WorkerEvents } from '../src/server/workers.js';
 import { Ledger } from '../src/server/usage.js';
 import type { Pty, PtyExit, SpawnOpts } from '../src/server/ptys.js';
 
-test('OMP launch names no session folder of its own, keeps the extension, and takes only plain prompt arguments', () => {
+test('OMP launch keeps the extension, takes only plain prompt arguments, and names the session folder it is given', () => {
   const args = ompArgs(['--profile', 'work', '--model', 'old', '--thinking', 'low', '--mode', 'rpc', '-p', '--continue', '--resume', 'other', '--session-dir', '/shared', '-e', '/user-extension.mjs'], {
     extension: '/office-extension.mjs', overlay: '/office-config.yml', sessionId: 'worker-session-id', model: 'deepseek/deepseek-v4-flash', effort: 'high', prompt: '- fix login',
   });
   assert.deepEqual(args, ['-e', '/user-extension.mjs', '--extension', '/office-extension.mjs', '--config', '/office-config.yml', '--resume', 'worker-session-id', '--model', 'deepseek/deepseek-v4-flash', '--thinking', 'high', '--', '- fix login']);
-  // A desk that still keeps a session folder of its own resumes inside it; nothing else names one.
-  assert.deepEqual(ompArgs([], { extension: 'office.mjs', overlay: 'office.yml', sessionDir: 'desk-folder', sessionId: 'abc' }),
-    ['--session-dir', 'desk-folder', '--extension', 'office.mjs', '--config', 'office.yml', '--resume', 'abc']);
+  // A session folder the office asks for goes in, and a person's own one is left out: the office names
+  // the project's folder for every run (see providers/omp.ts).
+  assert.deepEqual(ompArgs([], { extension: 'office.mjs', overlay: 'office.yml', sessionDir: 'project-folder', sessionId: 'abc' }),
+    ['--session-dir', 'project-folder', '--extension', 'office.mjs', '--config', 'office.yml', '--resume', 'abc']);
   assert.deepEqual(ompArgs(['--model', 'sonnet', '--thinking', 'off', '--no-session'], { extension: 'office.mjs', overlay: 'office.yml' }),
     ['--model', 'sonnet', '--thinking', 'off', '--extension', 'office.mjs', '--config', 'office.yml']);
   // A person's own overlay is left alone, and the office's follows it so it has the last word.
@@ -94,6 +96,10 @@ test('an OMP worker launches, authenticates hooks, resumes its own session, and 
   writeFileSync(file, process.platform === 'win32' ? '@echo off\r\n' : '#!/bin/sh\n', { mode: 0o700 });
   const data = path.join(root, 'data');
   mkdirSync(data);
+  // OMP's store under the test's own root, so the folder a conversation is filed in is the test's.
+  const agentDir = path.join(root, 'agent');
+  const before = process.env.PI_CODING_AGENT_DIR;
+  process.env.PI_CODING_AGENT_DIR = agentDir;
   const launches: { opts: SpawnOpts; exit?: (event: PtyExit) => void }[] = [];
   const managers: WorkerManager[] = [];
   const events: WorkerEvents = { update() {}, remove() {}, data() {}, screen() {}, toast() {} };
@@ -111,14 +117,21 @@ test('an OMP worker launches, authenticates hooks, resumes its own session, and 
     } as any;
     return manager;
   };
-  t.after(() => { managers.forEach((m) => m.shutdown()); rmSync(root, { recursive: true, force: true }); });
+  t.after(() => {
+    managers.forEach((m) => m.shutdown());
+    if (before === undefined) delete process.env.PI_CODING_AGENT_DIR;
+    else process.env.PI_CODING_AGENT_DIR = before;
+    rmSync(root, { recursive: true, force: true });
+  });
   const workers = open();
   const worker = workers.spawn('desk-1', 'Tester', '- fix login', false, 'agent', 'omp', 'deepseek/deepseek-v4-flash', 'high');
   assert.ok(typeof worker === 'object');
   const first = launches[0].opts;
   assert.equal(first.file, file);
-  // Its sessions are OMP's own (the person's store), so a new desk names no folder of its own.
-  assert.equal(first.args.includes('--session-dir'), false);
+  // Its conversation is filed in the floor project's own OMP folder, so it reads as one of that
+  // project's sessions, and never as another working directory's (see omp-usage).
+  const sessionDir = ompSessionDir(root, path.join(agentDir, 'sessions'));
+  assert.deepEqual(first.args.slice(0, 2), ['--session-dir', sessionDir]);
   assert.deepEqual(first.args.slice(-6), ['--model', 'deepseek/deepseek-v4-flash', '--thinking', 'high', '--', '- fix login']);
   assert.match(readFileSync(writeOmpExtension(data), 'utf8'), /willContinue/);
   // The office's overlay goes with every run, so a desk never opens the folder's last conversation.
@@ -142,7 +155,7 @@ test('an OMP worker launches, authenticates hooks, resumes its own session, and 
   assert.equal(workers.resume(worker.id), undefined);
   assert.ok(launches[1].opts.args.includes('--resume'));
   assert.ok(launches[1].opts.args.includes('omp-root'));
-  assert.equal(launches[1].opts.args.includes('--session-dir'), false);
+  assert.deepEqual(launches[1].opts.args.slice(0, 2), ['--session-dir', sessionDir]);
   assert.ok(launches[1].opts.args.includes('--config'));
   assert.ok(!launches[1].opts.args.includes('- fix login'));
   workers.shutdown();

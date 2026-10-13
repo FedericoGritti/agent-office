@@ -1,20 +1,20 @@
 // What a floor's project has spent in OMP, read off OMP's own session records (see omp-usage.ts
 // for the records themselves): the same files `omp stats` sums, so the wall shows what a terminal
-// `omp stats` would. OMP files a session by the folder it ran in, and a sub-agent inside the session
+// `omp stats` would. OMP files a session in the folder it ran in, and a sub-agent inside the session
 // that spawned it, so "the project" is the project's own folder and everything under it — the
-// workers' worktrees included. Only what's new in a file is read each time, so pressing the board's
-// button again is cheap. Nothing here is invented: a record whose numbers don't add up is skipped.
+// workers' worktrees included. What a session is counted as goes by where it ran, not by the folder
+// it is filed in, so a worker's conversation counts the same wherever the office keeps it. Only
+// what's new in a file is read each time, so pressing the board's button again is cheap. Nothing here
+// is invented: a record whose numbers don't add up is skipped.
 
 import { closeSync, constants, openSync, readdirSync, readSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { localDay } from '../shared/coordinator.js';
 import { EMPTY_SPEND, noSpend, noWindow, type SpendAgent, type SpendNumbers, type SpendState, type SpendWindow } from '../shared/protocol.js';
-import { ompAgentDir, recorded } from './omp-usage.js';
+import { firstSessionFile, ompAgentDir, recorded, sessionCwd, worktreeSession } from './omp-usage.js';
 
 /** How much of a session file one read takes at a time. */
 const CHUNK = 4 * 1024 * 1024;
-/** The most of a session file looked at to find the folder it ran in. */
-const HEAD = 256 * 1024;
 /**
  * The name OMP gives the advisor runtime's records inside a session's folder. The advisor works for
  * that session, so its calls are counted with it.
@@ -60,7 +60,7 @@ interface Followed {
 export class OmpSpend {
   private current: SpendState = { ...EMPTY_SPEND };
   private files = new Map<string, Followed>();
-  /** Where each session folder ran, by folder: null when its records don't say. */
+  /** Where each session file ran, by file: null when its record doesn't say. */
   private cwds = new Map<string, string | null>();
 
   constructor(
@@ -86,41 +86,27 @@ export class OmpSpend {
     let files = 0;
     for (const folder of folders) {
       const at = path.join(root, folder);
-      const cwd = this.cwdOf(at);
+      // Which folders are the project's at all: a session's own record says where it ran.
+      const first = firstSessionFile(at);
+      const cwd = first ? this.cwdOf(first) : null;
       if (!cwd || !this.ours(cwd)) continue;
-      files += this.folder(at, this.underWorktrees(cwd) ? 'subagents' : 'agents');
+      files += this.folder(at, this.agentOf(cwd));
     }
     return (this.current = this.windows(files));
   }
 
-  /** Where a session folder ran, off the `session` record its own session file starts with. */
-  private cwdOf(dir: string): string | null {
-    const known = this.cwds.get(dir);
+  /** Where a session file ran, read once and kept: null when its record doesn't say. */
+  private cwdOf(file: string): string | null {
+    const known = this.cwds.get(file);
     if (known !== undefined) return known;
-    let cwd: string | null = null;
-    try {
-      const file = readdirSync(dir).find((f) => f.endsWith('.jsonl'));
-      if (file) {
-        const text = Buffer.alloc(HEAD);
-        const fd = openSync(path.join(dir, file), constants.O_RDONLY | constants.O_NOFOLLOW);
-        let got = 0;
-        try {
-          got = readSync(fd, text, 0, HEAD, 0);
-        } finally {
-          closeSync(fd);
-        }
-        for (const line of text.subarray(0, got).toString('utf8').split('\n')) {
-          if (!line.includes('"type":"session"')) continue;
-          const row = JSON.parse(line) as { cwd?: unknown };
-          if (typeof row.cwd === 'string' && row.cwd) cwd = row.cwd;
-          break;
-        }
-      }
-    } catch {
-      cwd = null;
-    }
-    this.cwds.set(dir, cwd);
+    const cwd = sessionCwd(file) ?? null;
+    this.cwds.set(file, cwd);
     return cwd;
+  }
+
+  /** Which of the project's two kinds of agent a session run in `cwd` is: one of its own, or a worker's. */
+  private agentOf(cwd: string): SpendAgent {
+    return worktreeSession(this.dir, cwd) ? 'subagents' : 'agents';
   }
 
   /** Whether a session's folder is the project or something building inside it (a worktree, say). */
@@ -131,16 +117,9 @@ export class OmpSpend {
   }
 
   /**
-   * Whether a session is a worker's: the coordinator runs each one in a worktree under the project's
-   * `.agent-office/worktrees/`, so its spend is the project's sub-agents', not its own agents'.
-   */
-  private underWorktrees(cwd: string): boolean {
-    return path.resolve(cwd).startsWith(path.join(path.resolve(this.dir), '.agent-office', 'worktrees') + path.sep);
-  }
-
-  /**
-   * Reads the session files of one folder: its own session's (`base`), the sub-agents OMP files
-   * inside it, and the advisor's.
+   * Reads the session files of one folder: each of its own sessions by where it ran — the project's own
+   * folder, or a worker's worktree under it, whichever folder OMP files it in — the sub-agents OMP
+   * files inside a session, and the advisor, which counts with the session it works for.
    */
   private folder(dir: string, base: SpendAgent): number {
     let read = 0;
@@ -150,8 +129,15 @@ export class OmpSpend {
     } catch {
       return 0;
     }
+    const agents = new Map<string, SpendAgent>();
     for (const entry of entries) {
-      if (!entry.dir && entry.name.endsWith('.jsonl')) read += this.follow(path.join(dir, entry.name), base) ? 1 : 0;
+      if (entry.dir || !entry.name.endsWith('.jsonl')) continue;
+      const file = path.join(dir, entry.name);
+      const cwd = this.cwdOf(file);
+      // A file that doesn't say where it ran is counted the way its own folder is.
+      const agent = cwd && this.ours(cwd) ? this.agentOf(cwd) : base;
+      agents.set(entry.name.slice(0, -'.jsonl'.length), agent);
+      read += this.follow(file, agent) ? 1 : 0;
     }
     for (const entry of entries) {
       if (!entry.dir) continue;
@@ -162,7 +148,12 @@ export class OmpSpend {
       } catch {
         continue;
       }
-      for (const sub of subs) read += this.follow(path.join(inner, sub), sub.startsWith(ADVISOR) ? base : 'subagents') ? 1 : 0;
+      // A session OMP files inside another one is that one's sub-agent; the advisor works for the
+      // session it sits in, so it counts with it.
+      for (const sub of subs) {
+        const agent = sub.startsWith(ADVISOR) ? agents.get(entry.name) ?? base : 'subagents';
+        read += this.follow(path.join(inner, sub), agent) ? 1 : 0;
+      }
     }
     return read;
   }

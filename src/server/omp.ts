@@ -14,9 +14,9 @@ const OMP_SESSION_ID = /^[A-Za-z0-9._-]{1,160}$/;
 /**
  * A desk's OMP command line. Sessions are OMP's own, in the person's OMP store, so a conversation
  * the office starts is the one a terminal `omp` resumes and the numbers `omp stats` shows (see
- * providers/omp.ts). `sessionDir` is only for a desk that still holds a folder of its own, from
- * before: nothing on this command line ever names another desk's conversation, and `--continue`
- * (which would pick the newest one in the folder) is never passed.
+ * providers/omp.ts). `sessionDir` is the project's own folder, where every one of its workers is
+ * filed however it runs (see omp-usage.ts): nothing on this command line ever names another desk's
+ * conversation, and `--continue` (which would pick the newest one in the folder) is never passed.
  */
 export function ompArgs(extra: string[], options: { extension: string; overlay: string; sessionDir?: string; sessionId?: string; model?: string; effort?: AgentEffort; prompt?: string }): string[] {
   const values = new Set(['--session-dir', '--resume', '-r', '--mode', '--profile', '--cwd', '--export']);

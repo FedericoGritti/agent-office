@@ -118,6 +118,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   // Voice chat: an open mic, or muted until you hold V.
   const talkRow = choiceRow('Voice chat', [[false, '🎙️ Open mic'], [true, '✋ Push to talk']], () => settings.pushToTalk, (pushToTalk) => change({ pushToTalk }));
   const musicRow = volumeRow('Jukebox volume', 'music', 'musicMuted');
+  // Your own hands, held up in front of you in first person, or out of the way.
+  const handsRow = choiceRow('Your hands in first person', [[true, '🙌 Show them'], [false, '🙈 Hide them']], () => settings.hands, (hands) => change({ hands }));
 
   // The swish of the book's pages at the bookshelf, on or off.
   const pagesRow = choiceRow('Page turns at the bookshelf', [[true, '📖 On'], [false, 'Off']], () => settings.pageTurns, (pageTurns) => change({ pageTurns }));
@@ -446,6 +448,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
     you: [
       setting('Your character', null, character),
       setting('Camera view', 'you', seg, note),
+      setting('Your hands in first person', 'you', handsRow, h('p.setting-note', {}, 'Your own hands, held up in front of you looking through your own eyes. Hide them and the view is the office and your body below you, with nothing in the way — the ball, the club and the rest still work the same.')),
       setting('Signed in', null, h('div.volume', {}, signOut), h('p.setting-note', {}, account ? `As ${account.name}, with your own account (${account.role}).` : 'With the shared office password.')),
     ],
     sound: [

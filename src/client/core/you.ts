@@ -33,6 +33,8 @@ export function makeSmoke(ctx: Ctx): { smoke: Smoke; puff: Puff } {
   ctx.me.onSmoke = (kind, at, dir) => {
     const { camera } = ctx;
     if (ctx.player.view !== 'first') return puff(kind, at, dir);
+    // With your hands hidden (see Settings) there's no cigarette drawn to puff a wisp from; the breath out still shows.
+    if (kind === 'wisp' && !ctx.settings.hands) return;
     if (kind === 'wisp') return smoke.wisp(camera.localToWorld(ctx.hands.cigTip(camLocal)));
     smoke.exhale(camera.localToWorld(camLocal.set(0, -0.14, -0.3)), camera.getWorldDirection(camLocal).setY(0.1).normalize());
   };

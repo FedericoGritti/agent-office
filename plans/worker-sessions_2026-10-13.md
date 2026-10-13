@@ -50,13 +50,23 @@ devono restare contati.
 
 ## Verifica
 
-- `npm run typecheck`, i test toccati, `npm test`, `npm run build`.
+- `npm run typecheck`, i test toccati, `npm test` (648/648), `npm run build`.
 - Test nuovi: la regola del nome della cartella; l'adozione (sposta, salta il worker vivo, è
   idempotente); il worker con worktree riceve `--session-dir` **della cartella del progetto**; un
   worker archiviato nella cartella del progetto conta ancora come sotto-agente.
-- Riavvio dell'ufficio già in esecuzione (stessa istanza, porta 4600): l'adozione gira all'avvio, le
-  cartelle `…-worktrees-*` di omnitrade restano vuote e le loro sessioni compaiono nella cartella di
-  omnitrade. L'ufficio lo prova l'utente.
+- Riavvio dell'ufficio già in esecuzione (stessa istanza, porta 4600): l'adozione ha spostato **8**
+  conversazioni nella cartella di omnitrade (6 dai worktree, 2 dalle vecchie cartelle per desk), e le
+  vecchie cartelle `.agent-office/omp-sessions/` sono sparite.
+- Le 7 cartelle dei vecchi worktree rimaste senza nessuna sessione dentro sono state rimosse a mano:
+  i file di sessione (`.jsonl`, l'unica cosa che il tabellone conta) erano 178 prima e 178 dopo, e
+  nessuna delle cartelle rimosse ne conteneva uno. L'ufficio lo prova l'utente.
+
+## Esito
+
+Fatto e spinto su `fork/main`. Un worker assunto con worktree ora nasce già nella cartella di
+omnitrade: verificato sul codice compilato, `omp.prepare` + `omp.launch` per un cwd in
+`.agent-office/worktrees/pixel-1f2e` danno `--session-dir
+/home/fjg/.omp/agent/sessions/-raspnas-development-projects-web_apps_omnitrade`.
 
 ## Cosa resta aperto
 

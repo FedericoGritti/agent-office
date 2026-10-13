@@ -17,18 +17,17 @@ const MAX = 500;
 const MAX_BYTES = 12 * 1024 * 1024;
 /** How deep it looks under `images/`. */
 const MAX_DEPTH = 6;
-/** A listing this fresh is handed out again rather than walking the folder. */
-const FRESH_MS = 3000;
 
 /** A floor's figures: what's in its `images/` folder, and the bytes of one. */
 export class Images {
-  private last: { at: number; list: ImageList } | null = null;
-
   constructor(private dir: string) {}
 
-  /** The pictures under `images/`, by name — the file names are the index. */
+  /**
+   * The pictures under `images/`, by name — the file names are the index. The folder is walked every
+   * time: nothing is held back, so a figure added or written again is listed on the very next ask
+   * (see features/figures, which asks again on a timer rather than keeping what it was shown).
+   */
   async list(): Promise<ImageList> {
-    if (this.last && Date.now() - this.last.at < FRESH_MS) return this.last.list;
     const root = path.join(this.dir, DIR);
     const out: string[] = [];
     const queue: [string, number][] = [['', 0]];
@@ -49,9 +48,7 @@ export class Images {
     }
     // The names sort the way a person reads them: 02.4 before 02.10.
     out.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    const list: ImageList = { files: out.slice(0, MAX), more: out.length > MAX };
-    this.last = { at: Date.now(), list };
-    return list;
+    return { files: out.slice(0, MAX), more: out.length > MAX };
   }
 
   /** One of them, as bytes. Only pictures, and only inside the project (not through a link out of it). */

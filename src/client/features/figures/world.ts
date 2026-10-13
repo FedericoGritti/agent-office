@@ -64,9 +64,13 @@ export function buildFigures(board: FiguresBoard): FiguresStand {
   group.userData.interact = interactable;
 
   // A plate over the top edge, worn the way the whiteboard wears its own: the file name goes up there
-  // rather than across the picture. It is rebuilt only when the name changes.
+  // rather than across the picture. It is rebuilt only when the name changes (the boards ask again on
+  // a timer, and a name left alone must not be rebuilt every time).
   let plaque: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | null = null;
+  let shown = '';
   const setLabel = (text: string) => {
+    if (text === shown) return;
+    shown = text;
     if (plaque) {
       group.remove(plaque);
       plaque.geometry.dispose();

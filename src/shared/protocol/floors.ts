@@ -183,4 +183,9 @@ export type FloorServerMsg =
   /** The projects folder moved (see floor.projectsDir). */
   | { t: 'projectsDir'; state: ProjectsDirState }
   /** Your floor's signs changed, or its back office was built out or walled up. */
-  | { t: 'plan'; plan: FloorPlan };
+  | { t: 'plan'; plan: FloorPlan }
+  /**
+   * Your floor's `images/` folder changed: a figure was added, taken away, or written again under
+   * its own name. The figures boards read the folder and their picture again (see features/figures).
+   */
+  | { t: 'images' };

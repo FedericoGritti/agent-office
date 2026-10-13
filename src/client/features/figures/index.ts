@@ -15,13 +15,6 @@ declare module '../../world/types' {
 
 const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
 
-/**
- * How often every board asks the folder for its list and its picture again. Nothing is cached, in the
- * office or in the browser: a figure added, taken away or written again shows up on every board of its
- * own within this, with no key to press.
- */
-const POLL_MS = 3000;
-
 /** One board's own state: which picture it is on, and what it says while that one arrives. */
 interface Board {
   readonly stand: FiguresStand;
@@ -140,9 +133,10 @@ export function installFigures(ctx: Ctx) {
   for (const b of boards) draw(b, null);
   void refresh();
   store.on('floor', () => void refresh());
-  // Nothing is cached: on a timer the boards ask the folder and their picture again, so a figure
-  // written again reaches every board on its own (see POLL_MS).
-  setInterval(() => void refresh(), POLL_MS);
+  // The office watches the project's images/ and says when it moves: a figure added, taken away or
+  // written again under its own name. The boards read the folder and their picture again then, and on
+  // E at one of them. Nothing is kept between times, so what a board shows is always what's there.
+  ctx.messages.on('images', () => void refresh());
 
   ctx.interactions.define('figures', {
     reach: 6,

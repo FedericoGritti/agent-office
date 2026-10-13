@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { Images } from '../src/server/images.js';
 
 /** A project folder with an `images/` in it, a figure written into it, and its Images. */
@@ -52,4 +53,25 @@ test('only pictures are listed, subfolders included', async (t) => {
   mkdirSync(path.join(dir, 'images', 'nested'), { recursive: true });
   writeFileSync(path.join(dir, 'images', 'nested', 'deep.png'), 'a picture in a subfolder');
   assert.deepEqual((await images.list()).files, ['images/figure.png', 'images/nested/deep.png']);
+});
+
+test('a figure added, taken away or written again is said once, after the writing stops', async (t) => {
+  const { images, write, remove } = project(t);
+  let notices = 0;
+  t.after(images.watch(() => notices++));
+
+  /** Waits for one more notice than there was, polling rather than sleeping a fixed time. */
+  const noticed = async (what: string) => {
+    const was = notices;
+    const until = Date.now() + 5000;
+    while (notices === was && Date.now() < until) await delay(20);
+    assert.ok(notices > was, `nothing was said about a figure ${what}`);
+  };
+
+  write('one.png', 'first');
+  await noticed('added');
+  write('one.png', 'written again under its own name');
+  await noticed('written again');
+  remove('one.png');
+  await noticed('taken away');
 });

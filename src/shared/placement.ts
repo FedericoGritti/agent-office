@@ -8,7 +8,7 @@
 // in layout.ts to fall back on: the entry is the whole of it, which is why it carries a kind and its
 // own height, and why change() below never lets one leave the file.
 
-import { isCatalogKind, catalogEntry, type CatalogKind } from './catalog.js';
+import { isAdditionKind, kindLabel, type AdditionKind } from './model-sources.js';
 import { BEANBAGS, DESKS, SEATING, STATIONS } from './layout.js';
 import type { DeskDef } from './layout.js';
 
@@ -26,10 +26,11 @@ export interface Placement {
    */
   y?: number;
   /**
-   * What the editor added here, off the catalog (see shared/catalog): the piece is built from this,
-   * not from layout.ts, so this entry is the piece's whole self rather than a change to a base.
+   * What the editor added here: a kind of the office's own, or the source and id of a model fetched
+   * from an online catalog (see shared/catalog and shared/model-sources). The piece is built from this, not
+   * from layout.ts, so this entry is the piece's whole self rather than a change to a base.
    */
-  kind?: CatalogKind;
+  kind?: AdditionKind;
   /** Taken out of the room: built by nobody, and remembered as gone. */
   deleted?: boolean;
 }
@@ -85,11 +86,11 @@ export const PLACEABLE_LABELS: Record<string, string> = {
   'station-coordinator': "🧑‍💼 The coordinator's desk",
 };
 
-/** What an id is called: a piece the editor added goes by what it is, a plant by its number (`plant-3`
- *  reading "Plant 3"). */
+/** What an id is called: a piece the editor added goes by what it is (see kindLabel), a plant by its
+ *  number (`plant-3` reading "Plant 3"). */
 export function labelFor(id: string): string {
   const added = saved[id]?.kind;
-  if (added && isCatalogKind(added)) return catalogEntry(added).label;
+  if (added) return kindLabel(added);
   const named = PLACEABLE_LABELS[id];
   if (named) return named;
   const plant = /^plant-(\d+)$/.exec(id);
@@ -166,10 +167,11 @@ export function placeAdded(id: string, base: Base): Placed {
   return place(id, base);
 }
 
-/** One thing in the room the file itself put there (see shared/catalog): where it stands, and what it is. */
+/** One thing in the room the file itself put there (see shared/catalog and shared/model-sources): where it
+ *  stands, and what it is. */
 export interface SpawnedPiece {
   id: string;
-  kind: CatalogKind;
+  kind: AdditionKind;
   x: number;
   y: number;
   z: number;
@@ -186,7 +188,7 @@ export function spawned(): SpawnedPiece[] {
     const kind = p.kind;
     const x = num(p.x);
     const z = num(p.z);
-    if (!kind || !isCatalogKind(kind) || x === undefined || z === undefined) continue;
+    if (!kind || !isAdditionKind(kind) || x === undefined || z === undefined) continue;
     out.push({ id, kind, x, y: num(p.y) ?? 0, z, rotY: num(p.rotY) ?? 0, deleted: p.deleted === true });
   }
   return out;
@@ -208,7 +210,7 @@ export function nextSpawnId(): string {
 
 /** Writes down a piece the editor added: what the panel does when you pick something off the catalog.
  *  Its place is its own — there is no base in layout.ts for it to differ from. */
-export function spawn(id: string, kind: CatalogKind, at: { x: number; y: number; z: number; rotY: number }): Placements {
+export function spawn(id: string, kind: AdditionKind, at: { x: number; y: number; z: number; rotY: number }): Placements {
   const one: Placement = { kind, x: round(at.x), z: round(at.z), rotY: round(at.rotY) };
   // Only where the floor it stands on needs saying: on the ground floor it is nothing.
   if (Math.abs(at.y) > 0.005) one.y = round(at.y);
@@ -259,7 +261,7 @@ export function sanitize(file: unknown): Placements {
     const z = num(p.z);
     const rotY = num(p.rotY);
     if (p.kind !== undefined) {
-      if (!isCatalogKind(p.kind) || x === undefined || z === undefined) continue;
+      if (!isAdditionKind(p.kind) || x === undefined || z === undefined) continue;
       if (Math.abs(x) >= 1000 || Math.abs(z) >= 1000) continue;
       const added: Placement = { kind: p.kind, x, z, rotY: rotY !== undefined && Math.abs(rotY) < 100 ? rotY : 0 };
       const y = num(p.y);

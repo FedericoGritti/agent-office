@@ -1,61 +1,35 @@
-// The things the editor can add to the room (see shared/catalog for the list, and
-// features/layout-editor for the panel that picks them). Every kind is one builder here, and the map is
-// typed with every kind of the catalog in it, so a kind nobody builds doesn't compile.
+// The things the editor can add to the room (see shared/catalog for the office's own list, shared/model-sources
+// for the online catalogs, and features/layout-editor for the window that picks them). Every kind of the
+// office's own is one builder here, and the map is typed with every kind in it, so a kind nobody builds
+// doesn't compile; a model fetched from outside is built by external.ts.
 //
-// An addition is a piece of furniture like any other: `placed(…, added)` declares it with the room, so
-// it has its own footprint, the editor can carry it and turn it, and Canc takes it away. What is
-// different is that it has no position in layout.ts to fall back on: it stands exactly where the file
-// says, and nowhere when this floor's file hasn't got it (see applyCatalog below).
+// An addition is a piece of furniture like any other: it is declared with `placed(…, added)`, so it has
+// its own footprint, the editor can carry it and turn it, and Canc takes it away. What is different is
+// that it has no position in layout.ts to fall back on: it stands exactly where the file says, and
+// nowhere when this floor's file hasn't got it (see applyCatalog below).
 
 import * as THREE from 'three';
-import { type CatalogKind } from '../../../shared/catalog';
+import { isCatalogKind, type CatalogKind } from '../../../shared/catalog';
+import type { AdditionKind } from '../../../shared/model-sources';
 import { spawned } from '../../../shared/placement';
 import { noOutline } from '../../core/outline';
 import { mesh, roundedBox, toon } from '../toon';
-import type { Collider } from '../types';
+import { buildExternal } from './external';
+import { applyPiece, footprint, placed, type AdditionRoom, type Built, type Piece, type Spot } from './placed';
 import { PALETTE } from './materials';
-import { applyPiece, placed, type Piece, type Room } from './placed';
 import { coffeeTable, plant, type PlantSpecies } from './props';
-
-/** Where an addition is being put down: its middle on the floor, and the way it faces. */
-export interface Spot {
-  x: number;
-  y: number;
-  z: number;
-  rotY: number;
-}
-
-/** What a builder hands back: what the piece is made of, what the room walks into, and what it does
- *  each frame (the fountain's water), if anything. */
-interface Built {
-  group: THREE.Object3D;
-  colliders: Collider[];
-  update?: (t: number) => void;
-}
-
-/** The room an addition is put in: the lists its colliders go in, and the group it is drawn in. */
-export type AdditionRoom = Room & { group: THREE.Object3D };
 
 /** Every addition standing in the room, by id, so a file arriving twice builds each one once. */
 const standing = new Map<string, Piece>();
+/** The additions being built right now (a model coming over the network), so two files asking for one
+ *  don't build it twice. */
+const building = new Set<string>();
 const animated: { piece: Piece; update: (t: number) => void }[] = [];
 
 /** The number in an addition's id (`add-3`): what a builder varies on, so two rugs don't come out the
  *  same colour. */
 function idNumber(id: string): number {
   return Number(/^add-(\d+)$/.exec(id)?.[1] ?? 0);
-}
-
-/**
- * A box round a footprint `w` by `d` at (x, z), turned `rotY` and standing `y` up: the same box
- * world/office/placed.ts would write if it turned one, exact at the quarter turns things are put down at.
- */
-function footprint(x: number, z: number, w: number, d: number, rotY: number, y: number, height: number): Collider {
-  const c = Math.abs(Math.cos(rotY));
-  const s = Math.abs(Math.sin(rotY));
-  const hx = (w * c + d * s) / 2;
-  const hz = (w * s + d * c) / 2;
-  return { minX: x - hx, maxX: x + hx, minZ: z - hz, maxZ: z + hz, bottom: y, top: y + height };
 }
 
 /** A pot plant of `species`, `scale` times the modelled size (see props.ts): the same pot the room's
@@ -164,12 +138,22 @@ const BUILDERS: Record<CatalogKind, (id: string, at: Spot) => Built> = {
 };
 
 /**
- * Builds a thing of `kind` at `at`, puts it in the room and declares it as a piece of the editor's own
- * doing. The file has to have been written first (see `spawn` in shared/placement): a piece with no
- * entry of its own is one the room puts away again.
+ * Builds one thing the editor added, without putting it in the room: a kind of the office's own here and
+ * now, a model fetched from an online catalog once it has loaded (see external.ts). Null when it can't be
+ * built at all — a model that isn't there, or won't load. Whoever asked decides what to say about it, and
+ * the room is untouched either way.
  */
-export function addPiece(kind: CatalogKind, id: string, at: Spot, room: AdditionRoom): Piece {
-  const built = BUILDERS[kind](id, at);
+export async function buildAddition(kind: AdditionKind, id: string, at: Spot): Promise<Built | null> {
+  if (isCatalogKind(kind)) return BUILDERS[kind](id, at);
+  return buildExternal(kind, at);
+}
+
+/**
+ * Puts a built thing in the room and declares it as a piece of the editor's own doing. The file has to
+ * have been written first (see `spawn` in shared/placement): a piece with no entry of its own is one the
+ * room puts away again.
+ */
+export function declareAddition(built: Built, id: string, at: Spot, room: AdditionRoom): Piece {
   noOutline(built.group);
   room.group.add(built.group);
   // Into the room's own list, the way a builder does it: `placed` keeps that list and the piece in step
@@ -179,6 +163,13 @@ export function addPiece(kind: CatalogKind, id: string, at: Spot, room: Addition
   standing.set(id, piece);
   if (built.update) animated.push({ piece, update: built.update });
   return piece;
+}
+
+/** Builds an addition and puts it in the room: what the editor does when you pick something, and what
+ *  applyCatalog does for everything the file already names. */
+export async function addAddition(kind: AdditionKind, id: string, at: Spot, room: AdditionRoom): Promise<Piece | null> {
+  const built = await buildAddition(kind, id, at);
+  return built ? declareAddition(built, id, at, room) : null;
 }
 
 /**
@@ -191,8 +182,18 @@ export function applyCatalog(room: AdditionRoom): void {
   for (const it of spawned()) {
     wanted.add(it.id);
     const have = standing.get(it.id);
-    if (have) applyPiece(have, { x: it.x, z: it.z, rotY: it.rotY, hidden: it.deleted }, room);
-    else addPiece(it.kind, it.id, { x: it.x, y: it.y, z: it.z, rotY: it.rotY }, room);
+    if (have) {
+      applyPiece(have, { x: it.x, z: it.z, rotY: it.rotY, hidden: it.deleted }, room);
+      continue;
+    }
+    // A model that has to come over the network is built when it arrives, and a second file arriving in
+    // the meantime doesn't ask for it again.
+    if (building.has(it.id)) continue;
+    building.add(it.id);
+    void addAddition(it.kind, it.id, { x: it.x, y: it.y, z: it.z, rotY: it.rotY }, room).then((piece) => {
+      building.delete(it.id);
+      if (!piece) console.warn(`the room couldn't build ${it.id} (${it.kind})`);
+    });
   }
   for (const [id, piece] of standing) {
     if (!wanted.has(id)) applyPiece(piece, { ...piece.at, hidden: true }, room);

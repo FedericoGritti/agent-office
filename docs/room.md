@@ -66,6 +66,32 @@ the same `x` and `z` as the meeting room underneath it.
 
 Nothing with a seat is in the catalog, and not for lack of furniture: see the next section.
 
+### From an online catalog
+
+The same window searches **Poly Haven** (521 models, all **CC0** — furniture, seating, tables, office
+things, plants, rocks, food) and what you pick is fetched into the floor's own folder and stood in the
+room like anything else: `kind: "polyhaven:ArmChair_01"` in the same file, with the model's own
+materials and a footprint taken from what it measures. The results say the triangles, the metres and
+who made the model, so a click is an informed one.
+
+- **The office does the asking and the downloading** (`src/server/model-sources/`, one adapter per source,
+  and the routes in `src/server/http/routes/models.ts`): a browser never reaches across to a catalog,
+  and the models come down into `<project>/.agent-office/models/<source>/<id>/`, out of git and out of
+  the sync like the rest of the floor's state.
+- **A Poly Haven model is not one file**: a glTF, its `.bin` and its textures, all fetched together
+  (the smallest resolution they offer — five to eight files, about two megabytes) and served back with
+  their own names intact, so the browser's loader reads them exactly as it reads the office's own.
+- **Their terms, and what the office does about them**: every call is signed as agent-office, and the
+  window shows *Powered by Poly Haven*, which is the credit their API asks for while it's the one
+  listing the models. The models themselves are CC0: no attribution needed once downloaded.
+- **Two limits worth knowing**: an addition of this sort lives on the floor it was put on and in the
+  machine that downloaded it (a second machine would fetch it again, and today nothing does that on
+  its own), and an external model can only be turned in quarter turns, so one that doesn't face the
+  same way the office's own models do stays as it came.
+- **Other sources are one adapter away**: `src/shared/model-sources.ts` lists them and
+  `src/server/model-sources/index.ts` needs one each; Poly Pizza (a free API key) and Sketchfab (a token) are
+  the two that would come next, and Kenney's packs (CC0, no API) after them.
+
 ## Why one and not the other
 
 A piece is pickable when its builder said so, with `placed(...)` (see

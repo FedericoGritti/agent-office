@@ -14,6 +14,37 @@ export interface Room {
   interactables: Interactable[];
 }
 
+/** The room something new is being put in: the lists its colliders go in, and the group it's drawn in. */
+export type AdditionRoom = Room & { group: THREE.Object3D };
+
+/** Where something the editor adds is being put down: its middle on the floor, and the way it faces. */
+export interface Spot {
+  x: number;
+  y: number;
+  z: number;
+  rotY: number;
+}
+
+/** What building one thing made: what it's made of, what the room walks into, and what it does each
+ *  frame (the fountain's water), if anything. */
+export interface Built {
+  group: THREE.Object3D;
+  colliders: Collider[];
+  update?: (t: number) => void;
+}
+
+/**
+ * A box round a footprint `w` by `d` at (x, z), turned `rotY` and standing `y` up: the same box this
+ * file would write if it turned one, exact at the quarter turns things are put down at.
+ */
+export function footprint(x: number, z: number, w: number, d: number, rotY: number, y: number, height: number): Collider {
+  const c = Math.abs(Math.cos(rotY));
+  const s = Math.abs(Math.sin(rotY));
+  const hx = (w * c + d * s) / 2;
+  const hz = (w * s + d * c) / 2;
+  return { minX: x - hx, maxX: x + hx, minZ: z - hz, maxZ: z + hz, bottom: y, top: y + height };
+}
+
 /** One piece of furniture, as its builder declared it: what to move, and what moves with it. */
 export interface Piece {
   id: string;

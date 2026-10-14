@@ -6,6 +6,7 @@ import { agentRoutes } from './agents.js';
 import { authRoutes } from './auth.js';
 import { fileRoutes } from './files.js';
 import { githubRoutes } from './github.js';
+import { modelRoutes } from './model-sources.js';
 import { pageRoutes } from './pages.js';
 import { searchRoutes } from './search.js';
 import { serviceRoutes } from './services.js';
@@ -37,6 +38,10 @@ export const routes: readonly Route[] = [
   searchRoutes.search,
   serviceRoutes.forwards,
   githubRoutes.github,
+  // The online catalogs of models: the two exact paths first, then the folders they come down into.
+  modelRoutes.search,
+  modelRoutes.add,
+  modelRoutes.files,
   pageRoutes.office,
   pageRoutes.lite,
   pageRoutes.bundle,

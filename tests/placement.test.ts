@@ -120,3 +120,16 @@ test('an addition written by hand is read whole or not at all', () => {
   assert.deepEqual(spawned().map((p) => p.id), ['add-1', 'add-5']);
   assert.equal(nextSpawnId(), 'add-6');
 });
+
+test('an addition can name a model fetched from an online catalog', () => {
+  const cleaned = sanitize({
+    'add-1': { kind: 'polyhaven:ArmChair_01', x: 2, z: -3, y: 3 },
+    'add-2': { kind: 'rockery:Rock_01', x: 1, z: 1 },
+    'add-3': { kind: 'polyhaven:../etc/passwd', x: 1, z: 1 },
+  });
+  // The source nobody has and the id that would climb out of the model's folder are no pieces at all.
+  assert.deepEqual(cleaned, { 'add-1': { kind: 'polyhaven:ArmChair_01', x: 2, z: -3, rotY: 0, y: 3 } });
+  setPlacements(cleaned);
+  assert.deepEqual(spawned().map((p) => p.kind), ['polyhaven:ArmChair_01']);
+  assert.equal(labelFor('add-1'), 'ArmChair 01');
+});

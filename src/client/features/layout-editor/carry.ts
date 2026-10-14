@@ -32,6 +32,12 @@ export class Carrying {
   private held: Piece | null = null;
   /** Where the piece you're carrying was when you picked it up, for Esc. */
   private from: Placed | null = null;
+  /**
+   * The height the piece in your hands is being carried across: the one it had when you took it, so that
+   * raising or lowering it with the keys leaves its place across the room alone (see `destination`). Null
+   * for a piece of the room's own, which is carried on the height its builder gave it.
+   */
+  private carriedY: number | null = null;
   private marker = new THREE.Mesh(
     new THREE.PlaneGeometry(1.4, 1.4),
     new THREE.MeshBasicMaterial({ color: '#ffd166', transparent: true, opacity: 0.45, depthWrite: false }),
@@ -78,6 +84,7 @@ export class Carrying {
   hold(piece: Piece): void {
     this.held = piece;
     this.from = { ...piece.at };
+    this.carriedY = piece.at.y ?? null;
     this.deps.changed();
   }
 
@@ -106,6 +113,7 @@ export class Carrying {
     this.place(piece, this.from, false);
     this.held = null;
     this.from = null;
+    this.carriedY = null;
   }
 
   /** Every frame: what you're looking at, or where the piece in your hands is going. */
@@ -125,38 +133,27 @@ export class Carrying {
   }
 
   /**
-   * Where the piece in your hands goes: its place on the room's 25 cm grid, keeping the height it has.
-   * Across the room it follows the aim on that height: looking down, it is the floor it stands on (a
-   * couch in the loft follows the loft's floor); looking up, the height it hangs at (a board two metres
-   * up, with your eye below it). The height itself is not the aim's to change but the editor's (see
-   * `raise`), and a piece of the room's own has none to change at all.
+   * Where the piece in your hands goes: its place on the room's 25 cm grid, on the height it is being
+   * carried across — the height it had when you picked it up (`carriedY`), so raising it on the keys or
+   * the wheel doesn't also walk it across the room. A piece of the room's own is carried on the floor it
+   * stands on, looking down, and on the height it hangs at looking up: it is where its builder put it,
+   * and nothing here changes it.
+   *
+   * The plane the look-ray meets is what puts the piece down exactly where you are looking, at any
+   * distance. A height your eye never crosses — looking up at something standing on the floor — leaves
+   * it where it is, which is why a piece is carried by looking at the ground.
    */
   private destination(piece: Piece): { x: number; z: number } | null {
-    const height = piece.at.y ?? (this.raycaster.ray.direction.y < 0 ? this.standingAt(piece) : piece.parts[0]!.position.y);
-    const at = this.across(piece, height);
+    const height = this.carriedY ?? (this.raycaster.ray.direction.y < 0 ? this.standingAt(piece) : piece.parts[0]!.position.y);
+    const { origin, direction } = this.raycaster.ray;
+    if ((height - origin.y) * direction.y <= 0) return null;
+    this.floor.constant = -height;
+    const at = this.raycaster.ray.intersectPlane(this.floor, this.at);
     if (!at) return null;
     return {
       x: this.snap(at.x, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN),
       z: this.snap(at.z, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN),
     };
-  }
-
-  /**
-   * Where your look puts the piece across the room: the point where the ray crosses the height it is at,
-   * or — a height your eye never crosses, like looking up at something standing on the floor — the point
-   * on the line of sight at the distance the piece already had. The plane is what lets it be put down
-   * exactly where you are looking, at any distance; the line of sight is what keeps it moving when that
-   * plane isn't there to be crossed.
-   */
-  private across(piece: Piece, height: number): THREE.Vector3 | null {
-    const { origin, direction } = this.raycaster.ray;
-    if ((height - origin.y) * direction.y > 0) {
-      this.floor.constant = -height;
-      return this.raycaster.ray.intersectPlane(this.floor, this.at);
-    }
-    const middle = piece.parts[0]!.position;
-    const along = (middle.x - origin.x) * direction.x + (middle.y - origin.y) * direction.y + (middle.z - origin.z) * direction.z;
-    return this.at.copy(origin).addScaledVector(direction, Math.max(along, AHEAD));
   }
 
   /** The height a piece of the room's own stands at: the bottom of what it fills, which is the floor it
@@ -187,6 +184,7 @@ export class Carrying {
     if (!piece) return false;
     this.held = piece;
     this.from = { ...piece.at };
+    this.carriedY = piece.at.y ?? null;
     this.deps.changed();
     return true;
   }
@@ -203,6 +201,7 @@ export class Carrying {
     if (!piece) return false;
     this.held = null;
     this.from = null;
+    this.carriedY = null;
     this.save();
     this.deps.changed();
     return true;
@@ -267,6 +266,7 @@ export class Carrying {
     this.place(piece, { ...piece.at, hidden: true }, true);
     this.held = null;
     this.from = null;
+    this.carriedY = null;
     this.deps.save(placements());
     this.deps.changed();
     return true;

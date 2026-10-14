@@ -74,14 +74,14 @@ you're putting it, and what you walk into grows with it. The sign at the top say
 everyone on the floor and after a restart.
 
 **And it can be lifted.** While you carry a thing you added, **PgUp** raises it a quarter of a metre and
-**PgDn** lowers it — or the scroll wheel, a step a turn — never under the floor or through the ceiling
-above it, less the thing's own height, so a tall model held up over the loft doesn't end up standing
-through the roof. It keeps its place across the room while it goes up, and left up there it stays up
-there, because nothing in this room falls. The height is saved with the rest (`y` in the file, where the
-floor is 0 and needs no saying), and the sign at the top says it (`Carrying Monstera (130% · 3.25 m
-up)`): a lamp raised over the lounge is still hanging there for everyone on the floor, and after a
-restart. The room's own furniture is not lifted — a board stays at the height it hangs at and a desk on
-the floor — and carrying one of those is carrying it across the room.
+**PgDn** lowers it — or the scroll wheel, a step a turn. It goes straight up and down where it stands,
+never drifting towards you or the floor, and never under the floor or through the ceiling above it (less
+the thing's own height, so a tall model held up over the loft doesn't end up standing through the roof).
+Left up there it stays up there, because nothing in this room falls. The height is saved with the rest
+(`y` in the file, where the floor is 0 and needs no saying), and the sign at the top says it
+(`Carrying Monstera (130% · 3.25 m up)`): a lamp raised over the lounge is still hanging there for
+everyone on the floor, and after a restart. The room's own furniture is not lifted — a board stays at the
+height it hangs at and a desk on the floor — and carrying one of those is carrying it across the room.
 
 Only an addition can be resized or lifted because the room's own furniture is where the room's *plan* is
 measured: a desk's seat, the chairs round the meeting table, a jukebox's use-point and the walk map round

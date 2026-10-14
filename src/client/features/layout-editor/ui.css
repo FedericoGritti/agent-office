@@ -1,0 +1,11 @@
+/* The catalog's list: the things that can be put in the room, two to a row, with their description on
+   a line of its own (base.css' .svc-list is a column of one-line services, which these aren't). */
+.modal.catalog { width: min(680px, 100%); }
+ul.cat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.modal.catalog .setting-note { margin: 0 0 12px; }
+.cat-grid .svc-title { margin-bottom: 2px; }
+.cat-grid .svc-meta { overflow: visible; white-space: normal; text-overflow: clip; line-height: 1.3; }
+
+@media (max-width: 620px) {
+  ul.cat-grid { grid-template-columns: minmax(0, 1fr); }
+}

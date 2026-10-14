@@ -5,7 +5,7 @@
 // colliders and its use-point with it (see features/layout-editor for the hands that do this).
 
 import * as THREE from 'three';
-import { place, type Base, type Placed } from '../../../shared/placement';
+import { place, placeAdded, type Base, type Placed } from '../../../shared/placement';
 import type { Collider, Interactable } from '../types';
 
 /** The room a piece joins: the lists its colliders and its use-point go in (see Site in fixture.ts). */
@@ -26,6 +26,11 @@ export interface Piece {
   interact: Interactable | null;
   /** Where it stands now: the base, or what the editor saved. */
   at: Placed;
+  /**
+   * A piece the editor added off the catalog (see shared/catalog): it has no base in layout.ts, so it
+   * stands only where the file says (see placeAdded and applyPlacements).
+   */
+  added: boolean;
 }
 
 /** Every piece the room has declared, in the order they were built. */
@@ -71,7 +76,9 @@ export function removeFromPiece(part: THREE.Object3D): void {
 /**
  * Declares a piece of furniture (see features/jukebox/world.ts and the others): `parts` are moved
  * together — its group, plus anything the builder added to the room beside it (a sign, a plaque) — and
- * `colliders` are what the room walks into, so they travel with it.
+ * `colliders` are what the room walks into, so they travel with it. `added` is for a piece the editor
+ * itself put there, off the catalog: the file is its only base (see placeAdded). Returns the piece, for
+ * the builder that wants to keep hold of it (the catalog hands one straight to the editor's hands).
  */
 export function placed(
   parts: THREE.Object3D | THREE.Object3D[],
@@ -79,7 +86,8 @@ export function placed(
   base: Base,
   colliders: Collider[] = [],
   room?: Room,
-): void {
+  added = false,
+): Piece {
   const list = Array.isArray(parts) ? parts : [parts];
   const first = list[0];
   const interact = (first.userData.interact as Interactable | undefined) ?? null;
@@ -89,6 +97,7 @@ export function placed(
     parts: list,
     colliders,
     interact,
+    added,
     // Where the piece stands *now*: as the room built it. What the file says is a target, applied by
     // the caller (and by the office, when the floor's file arrives): a move needs a real starting
     // point, or a piece with a saved place would be "moved" from where it is to where it is.
@@ -97,7 +106,8 @@ export function placed(
   pieces.push(piece);
   for (const part of list) byPart.set(part, piece);
   // Straight away, so a piece the file took out never joins the room's colliders or what you can use.
-  if (room) applyPiece(piece, place(id, base), room);
+  if (room) applyPiece(piece, added ? placeAdded(id, base) : place(id, base), room);
+  return piece;
 }
 
 /** Turns a part about the piece's middle — where it stands now, not where it was built, so a quarter
@@ -179,9 +189,12 @@ function setIn<T>(list: T[], items: readonly T[], inside: boolean): void {
   }
 }
 
-/** Puts every piece the room declared where the saved file says. */
+/** Puts every piece the room declared where the saved file says: an addition of the editor's only
+ *  where *this* floor's file has it (see placeAdded), the rest wherever layout.ts put them. */
 export function applyPlacements(room: Room): void {
-  for (const piece of pieces) applyPiece(piece, place(piece.id, piece.base), room);
+  for (const piece of pieces) {
+    applyPiece(piece, piece.added ? placeAdded(piece.id, piece.base) : place(piece.id, piece.base), room);
+  }
 }
 
 /** A quarter turn, the step the editor works in: the colliders stay square, and furniture sits square

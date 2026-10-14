@@ -3,15 +3,17 @@
 // Esc puts it back where you found it. Nothing here draws a window: you look, you pick up, you walk.
 
 import * as THREE from 'three';
-import { FLOOR } from '../../../shared/layout';
+import { FLOOR, LOFT } from '../../../shared/layout';
 import { change, placements, type Placed, type Placements } from '../../../shared/placement';
-import { applyPiece, pieceOf, placedPieces, type Piece, type Room } from '../../world/office/placed';
+import { applyPiece, pieceOf, placedPieces, QUARTER, type Piece, type Room } from '../../world/office/placed';
 import { textSprite } from '../../world/toon';
 
 /** A quarter of a metre: fine enough to line a shelf up with a board, coarse enough to stay on the grid. */
 const SNAP = 0.25;
 /** How far past the floor's edge a piece may still stand. */
 const MARGIN = 0.4;
+/** How far in front of you a thing picked off the catalog lands. */
+const AHEAD = 2.2;
 /** The middle of the screen: what you're looking at, in first person or in third. */
 const CENTRE = new THREE.Vector2(0, 0);
 
@@ -58,6 +60,25 @@ export class Carrying {
   /** What you're carrying, if anything. */
   get carrying(): Piece | null {
     return this.held;
+  }
+
+  /**
+   * Where a thing picked off the catalog lands (see ui.ts and world/office/catalog.ts): a couple of
+   * metres in front of you, on the room's grid and inside the floor's edge, at the height of the floor
+   * you're standing on (up on the loft, on the loft's own floor), turned a quarter turn to face you.
+   */
+  spotAhead(pos: THREE.Vector3, facing: number): { x: number; y: number; z: number; rotY: number } {
+    const x = this.snap(pos.x + Math.sin(facing) * AHEAD, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN);
+    const z = this.snap(pos.z + Math.cos(facing) * AHEAD, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN);
+    const turn = (((facing + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    return { x, y: pos.y > LOFT.y / 2 ? LOFT.y : 0, z, rotY: Math.round(turn / QUARTER) * QUARTER };
+  }
+
+  /** Takes a piece the catalog just added in hand, so it can be put where it goes straight away. */
+  hold(piece: Piece): void {
+    this.held = piece;
+    this.from = { ...piece.at };
+    this.deps.changed();
   }
 
   /** Into the room's furniture, and out again. */
@@ -132,13 +153,19 @@ export class Carrying {
     return true;
   }
 
+  /** Writes the room down as it stands (see layout.set): what putting a piece down does, and what
+   *  adding one off the catalog does, so a new piece is saved even if nobody touches it. */
+  save(): void {
+    this.deps.save(placements());
+  }
+
   /** Puts down what you're carrying, where you're looking, and writes it down. */
   putDown(): boolean {
     const piece = this.held;
     if (!piece) return false;
     this.held = null;
     this.from = null;
-    this.deps.save(placements());
+    this.save();
     this.deps.changed();
     return true;
   }

@@ -10,6 +10,7 @@ import type { Ctx } from '../core/context';
 import type { CoreState } from '../core/ctx';
 import type { Parts } from '../core/parts';
 import { interactionAvailable, type DeskKey } from '../interaction';
+import { span } from '../core/perf';
 import { EYE_HEIGHT } from '../player';
 import { store } from '../state';
 import { modalOpen, toast } from '../ui/dom';
@@ -84,6 +85,10 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
 
   // ---- Clicking the world: use what's under the crosshair (first person) or the mouse (third) ----------
   const raycaster = new THREE.Raycaster();
+  // Nothing further than this can be used (the longest reach is the TV's 10 m, plus the 2.5 m of slack a
+  // click in third person allows), and nothing further can be in the way of something you can use: the ray
+  // needn't be cast through the street, the garage or the floors above to answer "what am I facing?".
+  raycaster.far = 20;
   const CROSSHAIR = new THREE.Vector2(0, 0);
   const eye = new THREE.Vector3();
 
@@ -164,7 +169,7 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
     aimedRefresh = false;
     if (modalOpen() || parts.telescope.active || ctx.activities.busy()) target = null;
     else if (firstPerson) {
-      const aim = aimedAt(CROSSHAIR);
+      const aim = span('ray', () => aimedAt(CROSSHAIR));
       target = aim?.near ? aim.it : (throneTarget() ?? seating.mySeat() ?? (inOffice() ? hoops.ballAtFeet() : null));
       if (aim?.near) {
         aimedNote = noteUnder(aim);
@@ -174,8 +179,9 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
     } else {
       target = throneTarget() ?? seating.mySeat() ?? pickTarget();
       // By a board, the mouse points at the note you'd take, an arrow you'd click, or its button.
-      if (pointer && (target?.kind === 'issues' || target?.kind === 'services')) {
-        const aim = aimedAt(pointer, 2.5);
+      const over = pointer;
+      if (over && (target?.kind === 'issues' || target?.kind === 'services')) {
+        const aim = span('ray', () => aimedAt(over, 2.5));
         if (aim?.near) {
           aimedNote = noteUnder(aim);
           aimedArrow = arrowUnder(aim);
@@ -183,11 +189,15 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
         }
       }
     }
-    parts.boards.checklistTex.hover(aimedArrow);
-    parts.boards.spendTex.hover(aimedRefresh);
-    parts.boards.issuesTex.lift(aimedNote?.number ?? null);
-    parts.hintbar.renderHint();
-    parts.hintbar.renderCrosshair();
+    span('boards', () => {
+      parts.boards.checklistTex.hover(aimedArrow);
+      parts.boards.spendTex.hover(aimedRefresh);
+      parts.boards.issuesTex.lift(aimedNote?.number ?? null);
+    });
+    span('hint', () => {
+      parts.hintbar.renderHint();
+      parts.hintbar.renderCrosshair();
+    });
   });
 
   player.onClick = (ndc) => {

@@ -20,6 +20,8 @@ export interface FrameCost {
   frame: number;
   /** The frame's own work, phase by phase, the biggest first. Phases under 0.05 ms are left out. */
   phases: { phase: TickPhase; ms: number }[];
+  /** The named pieces of work inside those phases (see span), the biggest first. */
+  spans: { name: string; ms: number }[];
   /** What's left outside that work: waiting for the browser, its own layout and drawing, other tabs. */
   elsewhere: number;
   /** The worst single frame in this window, in milliseconds: a hitch is a frame, not an average. */
@@ -35,6 +37,8 @@ let frameSum = 0;
 /** The worst single frame the browser gave us, which is what a hitch actually feels like. */
 let worstFrame = 0;
 const sums = new Map<TickPhase, number>();
+/** The named pieces inside those phases, summed over the same window (see span). */
+const spanSums = new Map<string, number>();
 /** The frame being timed now, which the loop fills in (see phaseTimes). */
 const current = new Map<TickPhase, number>();
 let last: FrameCost | null = null;
@@ -54,6 +58,7 @@ export function watchFrames(on: boolean, strip = false): void {
   frameSum = 0;
   worstFrame = 0;
   sums.clear();
+  spanSums.clear();
   current.clear();
   last = null;
   worst = null;
@@ -68,6 +73,23 @@ export function framesWatched(): boolean {
 export function phaseTimes(): Map<TickPhase, number> {
   current.clear();
   return current;
+}
+
+/**
+ * Times one named piece of work inside a phase while someone is watching, and runs it either way.
+ *
+ * A phase can hide several jobs of very different cost, and which one is the slow one is not something to
+ * be reasoned out — the aim tick, for instance, both casts a ray through the room and repaints a board's
+ * canvas. Nothing is timed at all when nobody is watching, so this costs nothing in ordinary play.
+ */
+export function span<T>(name: string, fn: () => T): T {
+  if (!watching) return fn();
+  const at = performance.now();
+  try {
+    return fn();
+  } finally {
+    spanSums.set(name, (spanSums.get(name) ?? 0) + (performance.now() - at));
+  }
 }
 
 /** One frame measured: how long the browser gave it, and what its own work took (which the loop has put in the map). */
@@ -88,6 +110,10 @@ export function sampleFrame(frameMs: number): void {
       .map(([phase, ms]) => ({ phase, ms: ms / n }))
       .filter((p) => p.ms >= 0.05)
       .sort((a, b) => b.ms - a.ms),
+    spans: [...spanSums]
+      .map(([name, ms]) => ({ name, ms: ms / n }))
+      .filter((s) => s.ms >= 0.05)
+      .sort((a, b) => b.ms - a.ms),
     elsewhere: Math.max(0, mean - own),
     worst: worstFrame,
   };
@@ -97,6 +123,7 @@ export function sampleFrame(frameMs: number): void {
   frameSum = 0;
   worstFrame = 0;
   sums.clear();
+  spanSums.clear();
   paintOverlay();
 }
 
@@ -141,7 +168,11 @@ function paintOverlay(): void {
     overlay.textContent = 'measuring…';
     return;
   }
-  const line = (c: FrameCost) => `${c.frame.toFixed(1)} ms · ${c.fps.toFixed(0)}/s — ${c.phases.slice(0, 3).map((p) => `${p.phase} ${p.ms.toFixed(1)}`).join(' · ') || 'nothing in it'}`;
+  const line = (c: FrameCost) => {
+    const phases = c.phases.slice(0, 3).map((p) => `${p.phase} ${p.ms.toFixed(1)}`).join(' · ') || 'nothing in it';
+    const inner = c.spans.length ? ` (${c.spans.slice(0, 3).map((s) => `${s.name} ${s.ms.toFixed(1)}`).join(' · ')})` : '';
+    return `${c.frame.toFixed(1)} ms · ${c.fps.toFixed(0)}/s — ${phases}${inner}`;
+  };
   const hitched = worst && worst.frame > last.frame * 1.15;
   overlay.textContent = hitched ? `now  ${line(last)}\nworst ${line(worst!)} (${worst!.worst} ms one frame)` : `now  ${line(last)}`;
 }

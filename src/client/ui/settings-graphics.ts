@@ -29,7 +29,8 @@ export function graphicsRows(settings: Settings, change: (some: Partial<Settings
       const cost = frameCost();
       if (!cost) return;
       const work = cost.phases.slice(0, 4).map((p) => `${p.phase} ${p.ms.toFixed(1)}`).join(' · ') || 'nothing measurable';
-      el.textContent = `Frame ${cost.frame.toFixed(1)} ms · ${cost.fps.toFixed(0)} a second. The frame's own work: ${work}. ${cost.elsewhere.toFixed(1)} ms elsewhere (the browser drawing the page, layout, other tabs).`;
+      const inner = cost.spans.length ? ` Inside those: ${cost.spans.slice(0, 4).map((s) => `${s.name} ${s.ms.toFixed(1)}`).join(' · ')}.` : '';
+      el.textContent = `Frame ${cost.frame.toFixed(1)} ms · ${cost.fps.toFixed(0)} a second. The frame's own work: ${work}.${inner} ${cost.elsewhere.toFixed(1)} ms elsewhere (the browser drawing the page, layout, other tabs).`;
     }, 500);
     return el;
   })();

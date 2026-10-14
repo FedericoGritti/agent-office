@@ -61,6 +61,12 @@ you look, **−**/**+** lift it and lower it, **scroll** makes it bigger or smal
 | 🛋️ Coffee table | the lounge's round table, for a second one anywhere |
 | ⛲ Fountain | a stone basin with water, a bowl on a column above it and that bowl's water falling back into the basin: built in code, out of cylinders, and the one thing in the room that moves on its own |
 
+**C** is also where the room's losses are. The window opens with **↩️ Gone from the room** — everything
+the floor's file has taken out, the office's own furniture (a whiteboard, a board, the television, a pot
+plant) as much as anything put in from a catalog — and a click puts each one back where it was, as big and
+as high as it was left. Nothing is lost for good by a **Canc** pressed once too often; a piece that is
+standing isn't on the list, because there is nothing to bring back.
+
 An addition is a piece of furniture like any other — it has a footprint, the editor carries and turns
 it, and `Canc` takes it away with its colliders. What is different is that it has no position in
 `layout.ts` to fall back on: it stands exactly where the file says and **nowhere** when the file hasn't

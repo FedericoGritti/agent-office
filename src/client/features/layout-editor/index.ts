@@ -12,7 +12,7 @@ import { aside, hintTitle, key } from '../../core/hint';
 import { store } from '../../state';
 import { toast } from '../../ui/dom';
 import { buildAddition, declareAddition, applyCatalog, updateCatalog } from '../../world/office/catalog';
-import { applyPlacements } from '../../world/office/placed';
+import { applyPlacements, placedPieces } from '../../world/office/placed';
 import { makeBanner } from './banner';
 import { Carrying } from './carry';
 import { openCatalog } from './ui';
@@ -97,6 +97,15 @@ export function installLayoutEditor(ctx: Ctx) {
     await stand(externalKind(source, id));
   }
 
+  /** What the room declares but this floor's file has taken away, to be put back: a whiteboard
+   *  cancelled by mistake is one click from standing again (see openCatalog and Carrying.bringBack). */
+  function gone(): { id: string; label: string }[] {
+    return placedPieces()
+      .filter((piece) => piece.at.hidden)
+      .map((piece) => ({ id: piece.id, label: labelFor(piece.id) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
   /** The keys while you're arranging: E takes and puts, and the rest work on what you're carrying. */
   function press(e: KeyboardEvent): boolean {
     if (!carrying.on) return false;
@@ -108,7 +117,15 @@ export function installLayoutEditor(ctx: Ctx) {
     }
     if (e.code === 'KeyC') {
       e.preventDefault();
-      openCatalog({ add, addModel });
+      openCatalog({
+        add,
+        addModel,
+        gone,
+        restore: (id) => {
+          const piece = placedPieces().find((p) => p.id === id);
+          if (piece) carrying.bringBack(piece);
+        },
+      });
       return true;
     }
     if (e.code === 'KeyR') {

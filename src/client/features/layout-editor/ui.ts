@@ -12,11 +12,49 @@ import { h, openModal } from '../../ui/dom';
 export interface CatalogOptions {
   add(kind: CatalogKind): Promise<void>;
   addModel(source: ModelSource, id: string): Promise<void>;
+  /** What the floor's file has taken out of the room — its own furniture as much as what was put in
+   *  from here — to be put back (see Carrying.bringBack). */
+  gone(): { id: string; label: string }[];
+  restore(id: string): void;
 }
 
 export function openCatalog(opts: CatalogOptions): void {
   /** Set once the window exists: what a row calls when what it picked is in the room. */
   let close = () => {};
+
+  // What is gone, at the top of the window: the room's own whiteboard, a board, the television, a plant
+  // somebody cancelled by mistake, or a model taken out — one click each to stand them where they were,
+  // as big and as high as they were left. Redrawn after every one, so several can come back in a row.
+  const back = h('section.cat-source.hidden');
+  function drawBack(): void {
+    const gone = opts.gone();
+    back.classList.toggle('hidden', gone.length === 0);
+    if (!gone.length) return;
+    back.replaceChildren(
+      h('h3', {}, '↩️ Gone from the room'),
+      h('p.setting-note', {}, 'What the file has taken out. Click one to put it back where it was, as big and as high as it was left.'),
+      h(
+        'ul.svc-list.cat-grid',
+        {},
+        ...gone.map((piece) => {
+          const li = h('li', { tabindex: 0, role: 'button', title: `Put the ${piece.label} back` }, h('div.svc-main', {}, h('div.svc-title', {}, piece.label)));
+          const pick = () => {
+            opts.restore(piece.id);
+            drawBack();
+          };
+          li.addEventListener('click', pick);
+          li.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              pick();
+            }
+          });
+          return li;
+        }),
+      ),
+    );
+  }
+  drawBack();
 
   const trouble = h('p.setting-note.bad');
   const list = h(
@@ -52,6 +90,7 @@ export function openCatalog(opts: CatalogOptions): void {
       'div.body',
       {},
       h('p.setting-note', {}, 'What goes in the room. It lands in front of you: R turns it a quarter, E puts it down where you look, Canc takes it away again.'),
+      back,
       list,
       trouble,
       ...MODEL_SOURCE_IDS.map((source) => section(source, opts, () => close())),

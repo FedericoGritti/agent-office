@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { FLOOR, LOFT, WALL_HEIGHT } from '../../../shared/layout';
-import { change, liftBy, placements, resizeBy, scaleOf, type Placed, type Placements } from '../../../shared/placement';
+import { change, hasSeat, liftBy, placements, resizeBy, scaleOf, type Placed, type Placements } from '../../../shared/placement';
 import { applyPiece, pieceOf, placedPieces, QUARTER, type Piece, type Room } from '../../world/office/placed';
 import { textSprite } from '../../world/toon';
 
@@ -34,8 +34,9 @@ export class Carrying {
   private from: Placed | null = null;
   /**
    * The height the piece in your hands is being carried across: the one it had when you took it, so that
-   * raising or lowering it with the keys leaves its place across the room alone (see `destination`). Null
-   * for a piece of the room's own, which is carried on the height its builder gave it.
+   * raising or lowering it with the keys leaves its place across the room alone (see `destination`). A
+   * seat's furniture is carried on its own height instead, and there is none of this when your hands are
+   * empty.
    */
   private carriedY: number | null = null;
   private marker = new THREE.Mesh(
@@ -144,9 +145,17 @@ export class Carrying {
    * it where it is, which is why a piece is carried by looking at the ground.
    */
   private destination(piece: Piece): { x: number; z: number } | null {
-    const height = this.carriedY ?? (this.raycaster.ray.direction.y < 0 ? this.standingAt(piece) : piece.parts[0]!.position.y);
     const { origin, direction } = this.raycaster.ray;
-    if ((height - origin.y) * direction.y <= 0) return null;
+    // A piece whose height is the editor's (see `adjustable`) is carried on the height it had when you
+    // picked it up, so raising it doesn't also walk it across the room. A seat keeps the height the room
+    // built it at: it is carried on the floor it stands on, looking down, and on the height it hangs at,
+    // looking up.
+    const height = hasSeat(piece.id)
+      ? direction.y < 0
+        ? this.standingAt(piece)
+        : piece.parts[0]!.position.y
+      : this.carriedY ?? piece.at.y;
+    if (height === undefined || (height - origin.y) * direction.y <= 0) return null;
     this.floor.constant = -height;
     const at = this.raycaster.ray.intersectPlane(this.floor, this.at);
     if (!at) return null;
@@ -216,20 +225,20 @@ export class Carrying {
   }
 
   /**
-   * Whether what you're carrying is yours to adjust — its size, and the height it stands at: only a
-   * thing the catalog added, whose file is the whole of it. The room's own furniture is where its seats,
-   * its use-points and the walk map round them are measured, so neither the wheel nor the keys touch it
-   * (see docs/room.md).
+   * Whether what you're carrying is yours to adjust — its size, and the height it stands at. Everything
+   * the room declares is, except a seat's own furniture (a desk, a station, a cushion, a couch): the
+   * office hires into that place and walks around it, so a desk half its size would be a seat nobody
+   * could sit at and one up in the air a place nobody could reach (see hasSeat).
    */
   get adjustable(): boolean {
-    return !!this.held?.added;
+    return !!this.held && !hasSeat(this.held.id);
   }
 
   /** A press of the size keys goes up (`dir` > 0) or down, while you carry it: it grows about its own
    *  middle, so it stays where you're putting it and keeps standing on the height it is at. */
   resize(dir: number): boolean {
     const piece = this.held;
-    if (!piece || !piece.added) return false;
+    if (!piece || !this.adjustable) return false;
     this.place(piece, { ...piece.at, scale: resizeBy(scaleOf(piece.at), dir) }, false);
     this.deps.changed();
     return true;
@@ -243,7 +252,7 @@ export class Carrying {
    */
   raise(dir: number): boolean {
     const piece = this.held;
-    if (!piece || !piece.added) return false;
+    if (!piece || !this.adjustable) return false;
     this.place(piece, { ...piece.at, y: liftBy(piece.at.y ?? 0, dir, this.ceilingFor(piece)) }, false);
     this.deps.changed();
     return true;

@@ -48,9 +48,10 @@ export function footprint(x: number, z: number, w: number, d: number, rotY: numb
 /** One piece of furniture, as its builder declared it: what to move, and what moves with it. */
 export interface Piece {
   id: string;
-  /** Where the room built it: what the file's entry differs from. An addition has no base in layout.ts
-   *  at all — the file's entry is its whole self (see placeAdded). */
-  base: { x: number; z: number; rotY: number };
+  /** Where the room built it — how high included, which is what the editor's own height is measured
+   *  from. An addition has no base in layout.ts at all: the file's entry is its whole self (see
+   *  placeAdded). */
+  base: { x: number; z: number; rotY: number; y: number };
   /** Every object that makes the piece up, moved together: its group, and anything the builder left beside it. */
   parts: THREE.Object3D[];
   /** Its footprint, in world coordinates, as built at the base. */
@@ -131,16 +132,17 @@ export function placed(
   const interact = (first.userData.interact as Interactable | undefined) ?? null;
   const piece: Piece = {
     id,
-    base: { x: base.x, z: base.z, rotY: base.rotY ?? 0 },
+    base: { x: base.x, z: base.z, rotY: base.rotY ?? 0, y: base.y ?? first.position.y },
     parts: list,
     colliders,
     interact,
     added,
-    // Where the piece stands *now*: as the room built it. What the file says is a target, applied by
-    // the caller (and by the office, when the floor's file arrives): a move needs a real starting
-    // point, or a piece with a saved place would be "moved" from where it is to where it is. An
-    // addition also has a height of its own from here on (see Placed.y), which is where it was built.
-    at: { x: base.x, z: base.z, rotY: base.rotY ?? 0, ...(added ? { y: base.y ?? first.position.y } : {}), hidden: false },
+    // Where the piece stands *now*: as the room built it, which for every piece includes how high that
+    // was (see the carry: a board two metres up is lifted from two metres, and a desk on the floor from
+    // the floor). What the file says is a target, applied by the caller (and by the office, when the
+    // floor's file arrives): a move needs a real starting point, or a piece with a saved place would be
+    // "moved" from where it is to where it is.
+    at: { x: base.x, z: base.z, rotY: base.rotY ?? 0, y: base.y ?? first.position.y, hidden: false },
   };
   pieces.push(piece);
   for (const part of list) {
@@ -200,13 +202,16 @@ function turnBox(box: Collider, piece: Piece, x: number, z: number, drot: number
  * what you walk into following it up there.
  */
 export function applyPiece(piece: Piece, at: Placed, room?: Room): void {
+  // A placement that says nothing about a height isn't asking for the floor: it is one of the room's own
+  // pieces whose file states no height (see Placed.y), or a caller that is only moving the piece across
+  // the room. The piece keeps the height it has — a thing left up in the air needs that, since the
+  // floor's file comes round on every save — and keeps it for good, since the next lift is measured from
+  // where it stands.
+  const height = at.y ?? piece.at.y ?? 0;
+  if (at.y === undefined) at = { ...at, y: height };
   const dx = at.x - piece.at.x;
   const dz = at.z - piece.at.z;
-  // A placement that says nothing about a height isn't asking for the floor: it is one of the room's own
-  // pieces, which has no height of its own to move (see Placed.y), or a caller that is only moving the
-  // piece across the room. Either way the piece keeps the height it has — which is what a thing left up
-  // in the air needs, since the floor's file comes round on every save.
-  const dy = at.y === undefined ? 0 : at.y - (piece.at.y ?? 0);
+  const dy = height - (piece.at.y ?? 0);
   const drot = at.rotY - piece.at.rotY;
   const s = scaleOf(at);
   const grow = s / scaleOf(piece.at);
@@ -223,13 +228,16 @@ export function applyPiece(piece: Piece, at: Placed, room?: Room): void {
       if (dy) liftBox(box, dy);
       if (grow !== 1) growBox(box, at.x, at.z, grow);
     }
-    // A use-point belongs to the room's own furniture, which is never resized or lifted (see Placed):
-    // what moves here is its place.
-    if (piece.interact && (dx || dz || drot)) {
-      const x = piece.interact.x - piece.at.x;
-      const z = (piece.interact.z ?? 0) - piece.at.z;
-      piece.interact.x = piece.at.x + x * Math.cos(drot) + z * Math.sin(drot) + dx;
-      piece.interact.z = piece.at.z + -x * Math.sin(drot) + z * Math.cos(drot) + dz;
+    // A use-point goes wherever its piece goes, up included: a board lifted two metres is still the
+    // board you press E at, and the place you reach it from is up there with it.
+    if (piece.interact) {
+      if (dy && piece.interact.y !== undefined) piece.interact.y += dy;
+      if (dx || dz || drot) {
+        const x = piece.interact.x - piece.at.x;
+        const z = (piece.interact.z ?? 0) - piece.at.z;
+        piece.interact.x = piece.at.x + x * Math.cos(drot) + z * Math.sin(drot) + dx;
+        piece.interact.z = piece.at.z + -x * Math.sin(drot) + z * Math.cos(drot) + dz;
+      }
     }
   }
   if (hiding && room) {

@@ -43,6 +43,10 @@ in the room at two metres, and turned on the spot.
 | `walls`, `shell`, `elevator`, `garageLift`, `wing`, `stack`, `tower`, `plug`, `clearOfStairs` | the room itself | ✘ |
 | `downstairs` (`cars`, `street`, `green`, `scenic`), `tee`, `hoop` | the street, the garage and the things out there | ✘ not this room |
 
+Anything with a **✔** can also be lifted and resized (**PgUp**/**PgDn**, **−**/**+**) — the room's own
+furniture as much as what the catalog adds — except the pieces that say a seat comes with them (a desk, a
+cushion, a couch): those keep the height and the size the room builds them at, for the reason below.
+
 ## What you can put in the room
 
 **C** while you're arranging opens the catalog — `src/shared/catalog.ts` is the list, and
@@ -61,33 +65,29 @@ smaller, **Canc** takes it away.
 An addition is a piece of furniture like any other — it has a footprint, the editor carries and turns
 it, and `Canc` takes it away with its colliders. What is different is that it has no position in
 `layout.ts` to fall back on: it stands exactly where the file says and **nowhere** when the file hasn't
-got it, so an addition made on one floor doesn't turn up on another. Three more fields, and only for
-additions: `kind` says what it is, `y` says how high it stands — a pot up on the loft's floor has the
-same `x` and `z` as the meeting room underneath it, and one the editor lifted into the air keeps the
-height it was left at — and `scale` says how big it is when it isn't the size it was built at.
+got it, so an addition made on one floor doesn't turn up on another. One more field, and only for
+additions: `kind` says what it is. The other two are any piece's: `y` says how high it stands — a pot up
+on the loft's floor has the same `x` and `z` as the meeting room underneath it, and one the editor lifted
+keeps the height it was left at — and `scale` says how big it is when it isn't the size it was built at.
 
-**A thing you added can be resized; the room's own furniture can't.** Press **=** (or **−**) while you
-carry one and it grows or shrinks — a hundredth of what it came as at the smallest, a hundred times at
-the largest, a tenth a press — about its own middle and the height it stands at, so it stays where
-you're putting it, and what you walk into grows with it. The sign at the top says how big it is
-(`Carrying Monstera (130%)`), and the size is saved with everything else: it comes back that size for
-everyone on the floor and after a restart.
+**Anything you can pick up can be resized and lifted; a seat's own furniture can't.** Press **=** (or
+**−**) while you carry a piece and it grows or shrinks — a hundredth of what it came as at the smallest,
+a hundred times at the largest, a tenth a press — and **PgUp**/**PgDn** (or the scroll wheel) raise and
+lower it a quarter of a metre a step. It grows about its own middle and the height it stands at, and goes
+straight up and down where it stands, so it stays where you're putting it; what you walk into grows with
+it and goes up with it, and the place you use it from goes up too, so a board lifted two metres is still
+the board you press E at. Left up there it stays up there, because nothing in this room falls. It stops at
+the room's floor and at the ceiling above it, less the thing's own height, so a tall model held up over
+the loft doesn't end up standing through the roof. The sign at the top says both
+(`Carrying Monstera (130% · 3.25 m up)`), and both are saved with everything else: they come back that
+way for everyone on the floor, and after a restart.
 
-**And it can be lifted.** While you carry a thing you added, **PgUp** raises it a quarter of a metre and
-**PgDn** lowers it — or the scroll wheel, a step a turn. It goes straight up and down where it stands,
-never drifting towards you or the floor, and never under the floor or through the ceiling above it (less
-the thing's own height, so a tall model held up over the loft doesn't end up standing through the roof).
-Left up there it stays up there, because nothing in this room falls. The height is saved with the rest
-(`y` in the file, where the floor is 0 and needs no saying), and the sign at the top says it
-(`Carrying Monstera (130% · 3.25 m up)`): a lamp raised over the lounge is still hanging there for
-everyone on the floor, and after a restart. The room's own furniture is not lifted — a board stays at the
-height it hangs at and a desk on the floor — and carrying one of those is carrying it across the room.
-
-Only an addition can be resized or lifted because the room's own furniture is where the room's *plan* is
-measured: a desk's seat, the chairs round the meeting table, a jukebox's use-point and the walk map round
-them are numbers the office hires workers into and walks by — a desk half its size would be a seat nobody
-could sit at. An addition has no seat and no use-point; it is furniture and nothing else, so its size and
-its height are nobody's business but yours.
+Anything with a seat — a desk, a station, a cushion, a couch — is where the room's plan is measured: that
+is the place the office hires into and the walk map goes round. Moving one writes the seat as well as the
+furniture, so the office follows it; but a desk half its size would be a seat nobody could sit at, and one
+up in the air a place nobody could reach, so a seat's furniture keeps the size and the height `layout.ts`
+builds it at. Nothing else in the room is anything but furniture, so nothing else is anybody's business
+but yours.
 
 Nothing with a seat is in the catalog, and not for lack of furniture: see the next section.
 

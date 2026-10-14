@@ -130,6 +130,49 @@ test('a piece carried up into the air stays there, with what you walk into', () 
   near(box.maxX, 4.6);
 });
 
+test('a piece of the room\'s own is lifted from the height its builder gave it', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  // A board two metres up on the wall, with the place you press E at on the wall beside it.
+  group.position.set(-9.84, 2.1, -12.92);
+  group.userData.interact = { kind: 'board', x: -9.84, z: -12.4, y: 1.6, radius: 1.8 };
+  placed(group, 'test-board', { x: -9.84, z: -12.92, rotY: 0 });
+  const piece = placedPieces()[0];
+  assert.equal(piece.at.y, 2.1, 'it starts where the room built it');
+
+  // Lifted a metre and a quarter: the board goes up from there, and the place you use it from goes with
+  // it — a board in the air is still the board you press E at.
+  applyPiece(piece, { x: -9.84, z: -12.92, rotY: 0, y: 3.35, hidden: false });
+  near(group.position.y, 3.35);
+  near(piece.interact!.y!, 2.85);
+
+  // And it takes its colliders with it, up and back down.
+  applyPiece(piece, { x: -9.84, z: -12.92, rotY: 0, y: 2.1, hidden: false });
+  near(group.position.y, 2.1);
+  near(piece.interact!.y!, 1.6);
+});
+
+test('a piece moved with no height said keeps the height it stands at', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  // A board on the wall, two metres up, which is where layout.ts builds it.
+  group.position.set(-9.84, 2.1, -12.92);
+  placed(group, 'test-board', { x: -9.84, z: -12.92, rotY: 0 });
+  const piece = placedPieces()[0];
+  assert.equal(piece.at.y, 2.1);
+
+  // The floor's file coming round with no height in it (a piece of the room's own that nobody has
+  // lifted): the board is carried across the room and keeps the two metres it stands at — which the
+  // next lift is measured from, or half a metre up would be two and a half metres up.
+  applyPiece(piece, { x: 2, z: -4, rotY: 0, hidden: false });
+  near(group.position.y, 2.1);
+  assert.equal(piece.at.y, 2.1);
+  applyPiece(piece, { x: 2, z: -4, rotY: 0, y: 2.6, hidden: false });
+  near(group.position.y, 2.6);
+});
+
 test('a placement that says nothing about a height leaves the piece where it is', () => {
   setPlacements(null);
   clearPieces();

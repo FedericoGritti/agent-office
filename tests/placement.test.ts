@@ -3,7 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LIFT_STEP, SCALE_MAX, SCALE_MIN, change, clampScale, labelFor, liftBy, nextSpawnId, place, placeAdded, placements, resizeBy, sanitize, scaleOf, setPlacements, spawn, spawned } from '../src/shared/placement.js';
+import { LIFT_STEP, SCALE_MAX, SCALE_MIN, change, clampScale, hasSeat, labelFor, liftBy, nextSpawnId, place, placeAdded, placements, resizeBy, sanitize, scaleOf, setPlacements, spawn, spawned } from '../src/shared/placement.js';
 
 const BASE = { x: -16.63, z: -12.56, rotY: 0 } as const;
 const TURNED = { x: -2, z: -4, rotY: Math.PI } as const;
@@ -49,12 +49,14 @@ test('a floor reads only its own file', () => {
 test('a file written by hand is read only where it makes sense', () => {
   const cleaned = sanitize({
     jukebox: { x: 4, z: 'over there', rotY: Number.NaN, y: 3, deleted: 'yes' },
+    // A seat's furniture is never lifted or resized (see hasSeat), so neither is read for one.
+    'desk-3': { x: 5, y: 2, scale: 4 },
     gong: { z: -4, deleted: true },
     [''.padEnd(70, 'x')]: { x: 1 },
     board: 3,
     empty: {},
   });
-  assert.deepEqual(cleaned, { jukebox: { x: 4 }, gong: { z: -4, deleted: true } });
+  assert.deepEqual(cleaned, { jukebox: { x: 4, y: 3 }, 'desk-3': { x: 5 }, gong: { z: -4, deleted: true } });
   assert.deepEqual(sanitize(null), {});
   assert.deepEqual(sanitize('nonsense'), {});
 });
@@ -179,7 +181,7 @@ test('a piece the editor resized keeps its size in the file, and the size it cam
 test('a thing you added can be left up in the air, and the file remembers how high', () => {
   setPlacements(null);
   spawn('add-1', 'fountain', { x: 1, y: 0, z: 2, rotY: 0 });
-  assert.equal(place('add-1', { x: 0, z: 0 }).y, 0, "the room's floor is the height it came at");
+  assert.equal(placeAdded('add-1', { x: 0, z: 0 }).y, 0, "the room's floor is the height it came at");
 
   // Carried up: the file keeps where it was left, and a piece read back stands up there.
   change('add-1', { x: 1, z: 2 }, { x: 1, y: 2.75, z: 2, rotY: 0, hidden: false });
@@ -190,17 +192,37 @@ test('a thing you added can be left up in the air, and the file remembers how hi
   // Brought back down, there is nothing left to say about a height of none.
   change('add-1', { x: 1, z: 2 }, { x: 1, y: 0, z: 2, rotY: 0, hidden: false });
   assert.deepEqual(placements()['add-1'], { kind: 'fountain', x: 1, z: 2, rotY: 0 });
-
-  // The room's own furniture has no height of its own: it is built where its builder put it (a board
-  // two metres up, a desk on the floor), so there is nothing to read and nothing the editor may write.
-  setPlacements(null);
-  assert.equal('y' in place('jukebox', BASE), false);
-  change('jukebox', BASE, { ...BASE, y: 3, hidden: false });
-  assert.deepEqual(placements(), {});
-  assert.deepEqual(sanitize({ jukebox: { x: 4, y: 3 } }), { jukebox: { x: 4 } });
 });
 
-test('a size stops at the ends of what a piece may be made, and the room\'s own furniture has none', () => {
+test('a piece of the room\'s own is lifted and sized like a thing the catalog added', () => {
+  setPlacements(null);
+  // The whiteboard hangs two metres up (layout.ts'), and the file says how far it has been lifted from
+  // there — nothing said means it stands where its builder built it.
+  const board = { x: -9.84, z: -12.92, rotY: 0, y: 2.1 } as const;
+  assert.equal('y' in place('whiteboard', board), false);
+
+  change('whiteboard', board, { ...board, y: 3.35, hidden: false });
+  assert.equal(placements().whiteboard?.y, 3.35);
+  assert.equal(place('whiteboard', board).y, 3.35);
+
+  // Bigger, too: a size is a size wherever the piece came from.
+  change('whiteboard', board, { ...board, y: 3.35, scale: 2, hidden: false });
+  assert.equal(scaleOf(place('whiteboard', board)), 2);
+
+  // Put back at its own height and its own size, there is nothing left to remember.
+  change('whiteboard', board, { ...board, scale: 1, hidden: false });
+  assert.deepEqual(placements(), {});
+
+  // A seat's furniture is the exception: a desk a worker sits at is a place the office hires into, so
+  // the file neither writes a height or a size for it nor reads one back.
+  assert.ok(hasSeat('desk-3') && hasSeat('couch') && hasSeat('beanbag-1') && hasSeat('station-coordinator'));
+  assert.ok(!hasSeat('whiteboard') && !hasSeat('jukebox') && !hasSeat('add-1'));
+  const desk = { x: 9.75, z: 3.5, rotY: 1.57, y: 0 } as const;
+  change('desk-3', desk, { x: 9.75, z: 3.5, rotY: 1.57, y: 2, scale: 3, hidden: false });
+  assert.deepEqual(placements(), {});
+});
+
+test('a size stops at the ends of what a piece may be made', () => {
   // However many presses it takes to get there (the ends are the code's to choose): it stops at them.
   let big = 1;
   let small = 1;
@@ -227,12 +249,4 @@ test('a size stops at the ends of what a piece may be made, and the room\'s own 
     ['add-1', 'add-2', 'add-3', 'add-4'].map((id) => cleaned[id]?.scale),
     [SCALE_MAX, undefined, SCALE_MIN, 1.2],
   );
-
-  // The room's own furniture is only ever where it was measured: a size written for one is not read,
-  // and the editor never writes one.
-  setPlacements(sanitize({ jukebox: { x: 2, scale: 3 } }));
-  assert.deepEqual(placements().jukebox, { x: 2 });
-  assert.equal(place('jukebox', BASE).scale, 1);
-  change('jukebox', BASE, { x: 2, rotY: 0, scale: 3, hidden: false });
-  assert.deepEqual(placements().jukebox, { x: 2 });
 });

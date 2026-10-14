@@ -20,10 +20,9 @@ export interface Placement {
   /** Its facing, in radians, as the builder would have set it. */
   rotY?: number;
   /**
-   * How high it stands, where the floor it stands on needs saying: an addition up on the loft has the
-   * same x and z as the meeting room underneath it. Only additions carry it (every other piece is
-   * built at its own height by its builder), and for one it is where the editor left it — the room's
-   * floor is 0, and nothing here falls, so a thing held up in the air stays up.
+   * How high it stands: how far the editor has lifted it from where its builder built it, or — for a
+   * thing the catalog added, which has no base in layout.ts — its own height, the room's floor being 0.
+   * Nothing here falls, so a piece held up in the air stays up.
    */
   y?: number;
   /**
@@ -33,10 +32,9 @@ export interface Placement {
    */
   kind?: AdditionKind;
   /**
-   * How big the piece is, as a multiple of the size it was built at — 1, or nothing at all, when it's
-   * as it came. Only an addition carries one: the room's own furniture is where its seats, its use-points
-   * and the walk map round it are measured, and those don't move when a desk is made smaller (see
-   * docs/room.md).
+   * How big the piece is, as a multiple of the size it was built at — 1, or nothing at all, when it's as
+   * it came. Any piece may carry one except a seat's own furniture: a desk a worker sits at is a place
+   * the office hires into and walks around, so it stays the size layout.ts built it (see hasSeat).
    */
   scale?: number;
   /** Taken out of the room: built by nobody, and remembered as gone. */
@@ -54,9 +52,8 @@ export interface Placed {
   /** How big it is: nothing said means 1 (see scaleOf). Only an addition is ever anything else. */
   scale?: number;
   /**
-   * How high it is, for a piece that has a height of its own — an addition, which the editor lifts and
-   * drops with your look (see features/layout-editor). A piece of the room's own has no such field: it
-   * stands where its builder built it.
+   * How high it is, for a piece the editor may lift (see hasSeat): nothing said means it stands where
+   * its builder built it, which is what a piece of the room's own that nobody has touched says.
    */
   y?: number;
   /** Gone: the builder leaves it out of the room entirely. */
@@ -175,6 +172,16 @@ const COUCHES: readonly MovableSeat[] = SEATING.filter((s) => s.id === 'couch' |
 const MOVABLE_SEATS: readonly MovableSeat[] = [...DESKS, ...STATIONS, ...BEANBAGS, ...COUCHES];
 const SEAT_BASE = new Map(MOVABLE_SEATS.map((s) => [s.id, { x: s.x, z: s.z, rotY: s.rotY }]));
 
+/**
+ * Whether a piece is a seat's furniture: a desk a worker sits at, a station, a cushion, a couch. Moving
+ * one writes the seat as well as the piece (see applyToSeats), because the office hires into that place
+ * and walks around it — so a seat is the one thing the editor won't lift or resize: a desk half its size
+ * would be a seat nobody could sit at, and one up in the air a place nobody could reach.
+ */
+export function hasSeat(id: string): boolean {
+  return SEAT_BASE.has(id);
+}
+
 /** Puts the seats where the file says, and the rest back where layout.ts has them. */
 function applyToSeats(): void {
   for (const seat of MOVABLE_SEATS) {
@@ -204,13 +211,14 @@ function num(v: unknown): number | undefined {
 /** Where a piece goes: its base, with `saved`'s numbers over it. An id nobody saved keeps the base. */
 export function place(id: string, base: Base): Placed {
   const p = saved[id];
+  const y = num(p?.y);
   return {
     x: num(p?.x) ?? base.x,
     z: num(p?.z) ?? base.z,
     rotY: num(p?.rotY) ?? base.rotY ?? 0,
     scale: scaleOf({ scale: num(p?.scale) }),
-    // Only an addition is ever lifted or dropped (see Placed.y), and the floor it stands on is 0.
-    ...(p?.kind ? { y: num(p?.y) ?? 0 } : {}),
+    // How high the editor left it: nothing said means it stands where its builder built it (see Placed.y).
+    ...(y !== undefined ? { y } : {}),
     hidden: p?.deleted === true,
   };
 }
@@ -222,7 +230,9 @@ export function place(id: string, base: Base): Placed {
  */
 export function placeAdded(id: string, base: Base): Placed {
   if (!saved[id]?.kind) return { x: base.x, z: base.z, rotY: base.rotY ?? 0, scale: 1, y: base.y ?? 0, hidden: true };
-  return place(id, base);
+  // A thing the catalog added has a height of its own wherever it stands: the file's, or the floor.
+  const at = place(id, base);
+  return { ...at, y: at.y ?? 0 };
 }
 
 /** One thing in the room the file itself put there (see shared/catalog and shared/model-sources): where it
@@ -291,9 +301,17 @@ export function change(id: string, base: Base, at: Placed): Placements {
     // brought back down to the floor comes to.
     const y = round(at.y ?? 0);
     if (y !== 0) p.y = y;
-    // Only an addition is ever resized (see Placement.scale), and only what differs is written: back
-    // at the size it came, the field goes. Compared as it would be written, so the wheel's own rounding
-    // (up three notches and down three again is 1.0000000000000002) leaves no trace.
+    // Only what differs is written: back at the size it came, the field goes. Compared as it would be
+    // written, so the wheel's own rounding (up three notches and down three again is 1.0000000000000002)
+    // leaves no trace.
+    const scale = roundScale(scaleOf(at));
+    if (scale !== 1) p.scale = scale;
+  } else if (!hasSeat(id)) {
+    // A piece of the room's own: how far it has been lifted from where layout.ts builds it, and how big
+    // it has been made. Put back at its own height, and at its own size, there is nothing to remember.
+    // A seat's furniture is the exception and writes neither (see hasSeat).
+    const y = round(at.y ?? base.y ?? 0);
+    if (Math.abs(y - (base.y ?? 0)) > 0.005) p.y = y;
     const scale = roundScale(scaleOf(at));
     if (scale !== 1) p.scale = scale;
   }
@@ -354,6 +372,19 @@ export function sanitize(file: unknown): Placements {
     if (x !== undefined && Math.abs(x) < 1000) one.x = x;
     if (z !== undefined && Math.abs(z) < 1000) one.z = z;
     if (rotY !== undefined && Math.abs(rotY) < 100) one.rotY = rotY;
+    // A piece of the room's own is lifted and sized like anything the catalog adds (see Placement.y and
+    // .scale): its `y` is how far from where layout.ts builds it, and nothing said means it stands there.
+    // A seat's furniture is the exception — the office hires into that place — so a height or a size
+    // written for one by hand is not read at all.
+    if (!hasSeat(id)) {
+      const y = num(p.y);
+      if (y !== undefined && Math.abs(y) < 100) one.y = y;
+      const scale = num(p.scale);
+      if (scale !== undefined) {
+        const s = roundScale(clampScale(scale));
+        if (s !== 1) one.scale = s;
+      }
+    }
     if (p.deleted === true) one.deleted = true;
     if (Object.keys(one).length) out[id] = one;
   }

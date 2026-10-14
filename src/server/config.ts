@@ -76,6 +76,7 @@ Usage:
   agent-office [dir] [options]
   agent-office setup [--projects <dir>] [--project <owner/repo>]...
   agent-office prune [dir] [--dry-run] [--force]
+  agent-office reduce-models [dir] [--dry-run]
   agent-office accounts [list|invite|revoke|role|password] ...
   agent-office tunnel [office@address | url]
 

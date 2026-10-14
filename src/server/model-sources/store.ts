@@ -6,6 +6,7 @@ import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { isModelId, isModelSource, type ModelSource } from '../../shared/model-sources.js';
 import { MODEL_ADAPTERS } from './index.js';
+import { reduceModel } from '../models/reduce.js';
 
 /** What a downloaded model's folder says about itself: which file is the model's own, and when it came. */
 export interface ModelManifest {
@@ -14,6 +15,9 @@ export interface ModelManifest {
   /** The file the loader asks for first; everything else it needs is named inside that file. */
   entry: string;
   at: number;
+  /** Set when the office has written a smaller copy of this model beside it (see server/models/reduce.ts):
+   *  `entry` then names that copy, and this says which file it was made from. */
+  reduced?: { from: string; before: number; after: number };
 }
 
 const MANIFEST = '.model.json';
@@ -72,6 +76,10 @@ export class ModelStore {
     } catch (err) {
       return { error: `The office could not keep ${id}: ${(err as Error).message}` };
     }
+    // A catalog's model can arrive with millions of triangles, which the room pays for on every frame:
+    // it comes down to a size the room can afford before it is ever built (see models/reduce.ts). What
+    // can't be rewritten is left as it came and the model still works.
+    await reduceModel(dir);
     return { ok: true };
   }
 

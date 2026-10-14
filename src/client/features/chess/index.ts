@@ -43,8 +43,7 @@ const MARKS = 30;
 /** One square's worth of the board, as the room moves it about: where its middle is and what it is. */
 interface SetPiece {
   object: THREE.Object3D;
-  /** Where the model put it, and where its middle and its base were then: what a move is measured from. */
-  home: THREE.Vector3;
+  /** Where its middle and its lowest point were when the model was built: what a move is measured from. */
   centre: THREE.Vector3;
   baseY: number;
   /** `wpawn`, `bknight`…: which of the set's pieces this is. */
@@ -73,6 +72,26 @@ interface Board {
 
 /** What the set is called, by the letter a FEN uses for that piece. */
 const KIND_OF = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' } as const;
+
+/**
+ * The part of the model that holds both the board and every piece of the set: the space the squares are
+ * measured in. Not the board mesh's own parent — a glTF puts a node around every mesh, so that is a node
+ * of its own, and the pieces are its siblings rather than its children.
+ */
+function frameFor(boardMesh: THREE.Mesh, nodes: readonly THREE.Object3D[]): THREE.Object3D | null {
+  const holds = (at: THREE.Object3D, node: THREE.Object3D) => {
+    for (let up: THREE.Object3D | null = node; up; up = up.parent) if (up === at) return true;
+    return false;
+  };
+  for (let at: THREE.Object3D | null = boardMesh; at; at = at.parent) if (nodes.every((node) => holds(at, node))) return at;
+  return null;
+}
+
+/** Says, on screen, why a set can't be played: a board that silently refuses to move is a mystery. */
+function warn(why: string): void {
+  console.warn(`chess: ${why}`);
+  toast(`♟️ This chess set can't be played: ${why}`);
+}
 
 export function installChess(ctx: Ctx) {
   const { player, camera, office, net } = ctx;
@@ -104,7 +123,7 @@ export function installChess(ctx: Ctx) {
       if (boards.has(id) || refused.has(id)) continue;
       const piece = placedPieces().find((p) => p.id === id);
       if (!piece) continue;
-      const built = build(id, piece);
+      const built = build(piece);
       if (!built) {
         // A set the room can't move is left standing as it came rather than half-played: nothing is asked
         // of this one again, and the piece itself is the room's furniture like any other.
@@ -135,25 +154,24 @@ export function installChess(ctx: Ctx) {
   }
 
   /** Reads a board piece's model: the board mesh, the pieces of the set, and the metres they're in. */
-  function build(id: string, piece: Piece): Board | null {
-    const boards: THREE.Mesh[] = [];
+  function build(piece: Piece): Board | null {
+    let boardMesh: THREE.Mesh | null = null;
     const nodes: THREE.Object3D[] = [];
     for (const part of piece.parts) {
       part.traverse((o) => {
-        if ((o as THREE.Mesh).isMesh && o.name === 'board') boards.push(o as THREE.Mesh);
-        if (parsePiece(o.name)) nodes.push(o);
+        if ((o as THREE.Mesh).isMesh && o.name === 'board') boardMesh ??= o as THREE.Mesh;
+        // The name may be on a piece's node, on its mesh, or on both: the outer one is the one to move, or
+        // it would be moved twice over.
+        if (parsePiece(o.name) && !(o.parent && parsePiece(o.parent.name))) nodes.push(o);
       });
     }
-    const boardMesh = boards[0];
     if (!boardMesh || nodes.length < 32) {
-      console.warn(`the room found ${nodes.length} chess pieces where it expects 32`);
+      warn(`the room found ${nodes.length} chess pieces where it expects 32`);
       return null;
     }
-    const frame = boardMesh.parent;
-    // The pieces have to be siblings of the board for a move to be one vector: anything else and this
-    // board stands there as a model nobody moves, which is better than pieces flying off it.
-    if (!frame || nodes.some((node) => node.parent !== frame)) {
-      console.warn('the chess set is not laid out the way the room can move it');
+    const frame = frameFor(boardMesh, nodes);
+    if (!frame) {
+      warn('this chess set is not laid out the way the room can move it');
       return null;
     }
     const box = new THREE.Box3().setFromObject(boardMesh);
@@ -164,9 +182,11 @@ export function installChess(ctx: Ctx) {
     const set = nodes.map((node) => {
       const piece = parsePiece(node.name)!;
       const own = new THREE.Box3().setFromObject(node);
-      const ownCentre = frame.worldToLocal(own.getCenter(new THREE.Vector3()));
+      const ownCentre = own.getCenter(new THREE.Vector3());
+      const centre = frame.worldToLocal(ownCentre.clone());
+      // Its lowest point, in the frame's own metres, so a piece can be stood on the board's surface.
       const baseY = frame.worldToLocal(new THREE.Vector3(ownCentre.x, own.min.y, ownCentre.z)).y;
-      return { object: node, home: node.position.clone(), centre: ownCentre, baseY, key: `${piece.colour}${piece.kind}` };
+      return { object: node, centre, baseY, key: `${piece.colour}${piece.kind}` };
     });
     const marks = Array.from({ length: MARKS }, () => {
       // Each its own material: a mark says a different thing from the one beside it (where you are, where
@@ -206,9 +226,13 @@ export function installChess(ctx: Ctx) {
       ones.forEach((one, at) => {
         const square = squares[at];
         one.object.visible = square !== undefined;
-        if (!square) return;
+        if (!square || !one.object.parent) return;
         const { x, z } = squareCentre(square, board.side);
-        one.object.position.copy(one.home).add(new THREE.Vector3(board.middle.x + x - one.centre.x, board.top - one.baseY, board.middle.z + z - one.centre.z));
+        // Where the piece's own origin has to be for it to stand on that square, in the frame's metres…
+        const want = new THREE.Vector3(board.middle.x + x - one.centre.x, board.top - one.baseY, board.middle.z + z - one.centre.z);
+        // …said in the space of the object it actually is: a glTF nests a node inside a node.
+        const inParent = one.object.parent.worldToLocal(board.frame.localToWorld(want));
+        one.object.position.copy(inParent);
       });
     }
   }

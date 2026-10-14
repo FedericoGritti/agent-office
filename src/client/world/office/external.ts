@@ -20,14 +20,14 @@ const loaded = new Map<string, Promise<THREE.Object3D | null>>();
  *  standing one in a room of sixteen by twenty-six metres is not a piece of furniture. */
 const MAX_SIDE = 40;
 
-function loadModel(source: ModelSource, id: string): Promise<THREE.Object3D | null> {
-  const key = `${source}:${id}`;
+function loadModel(floor: string, source: ModelSource, id: string): Promise<THREE.Object3D | null> {
+  const key = `${floor}:${source}:${id}`;
   let p = loaded.get(key);
   if (!p) {
     // The folder's own URL answers with the model's first file, and everything that file names resolves
     // beside it (see modelFolderPath): asking for the folder is what makes the relative names work.
     p = new GLTFLoader()
-      .loadAsync(modelFolderPath(source, id))
+      .loadAsync(modelFolderPath(floor, source, id))
       .then((gltf) => gltf.scene)
       .catch((err: unknown) => {
         console.warn(`${key} didn't load:`, err);
@@ -51,10 +51,10 @@ function usable(model: THREE.Object3D): boolean {
  * its own middle on the spot, its lowest point on the floor it stands on, and a footprint of what it
  * measures. Null when it can't be had — not downloaded, gone, or not a model the room can hold.
  */
-export async function buildExternal(kind: string, at: Spot): Promise<Built | null> {
+export async function buildExternal(kind: string, at: Spot, floor: string): Promise<Built | null> {
   const external = parseExternal(kind);
   if (!external) return null;
-  const model = await loadModel(external.source, external.id);
+  const model = await loadModel(floor, external.source, external.id);
   if (!model || !usable(model)) return null;
   const object = clone(model);
   object.traverse((o) => {

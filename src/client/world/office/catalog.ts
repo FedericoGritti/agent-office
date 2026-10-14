@@ -143,9 +143,9 @@ const BUILDERS: Record<CatalogKind, (id: string, at: Spot) => Built> = {
  * built at all — a model that isn't there, or won't load. Whoever asked decides what to say about it, and
  * the room is untouched either way.
  */
-export async function buildAddition(kind: AdditionKind, id: string, at: Spot): Promise<Built | null> {
+export async function buildAddition(kind: AdditionKind, id: string, at: Spot, floor: string): Promise<Built | null> {
   if (isCatalogKind(kind)) return BUILDERS[kind](id, at);
-  return buildExternal(kind, at);
+  return buildExternal(kind, at, floor);
 }
 
 /**
@@ -167,8 +167,8 @@ export function declareAddition(built: Built, id: string, at: Spot, room: Additi
 
 /** Builds an addition and puts it in the room: what the editor does when you pick something, and what
  *  applyCatalog does for everything the file already names. */
-export async function addAddition(kind: AdditionKind, id: string, at: Spot, room: AdditionRoom): Promise<Piece | null> {
-  const built = await buildAddition(kind, id, at);
+export async function addAddition(kind: AdditionKind, id: string, at: Spot, room: AdditionRoom, floor: string): Promise<Piece | null> {
+  const built = await buildAddition(kind, id, at, floor);
   return built ? declareAddition(built, id, at, room) : null;
 }
 
@@ -177,7 +177,7 @@ export async function addAddition(kind: AdditionKind, id: string, at: Spot, room
  * way in, or another browser putting one down), puts the ones that are where it says, and puts away the
  * ones it hasn't got — an addition on another floor, or one taken out of the file.
  */
-export function applyCatalog(room: AdditionRoom): void {
+export function applyCatalog(room: AdditionRoom, floor: string): void {
   const wanted = new Set<string>();
   for (const it of spawned()) {
     wanted.add(it.id);
@@ -190,7 +190,7 @@ export function applyCatalog(room: AdditionRoom): void {
     // the meantime doesn't ask for it again.
     if (building.has(it.id)) continue;
     building.add(it.id);
-    void addAddition(it.kind, it.id, { x: it.x, y: it.y, z: it.z, rotY: it.rotY }, room).then((piece) => {
+    void addAddition(it.kind, it.id, { x: it.x, y: it.y, z: it.z, rotY: it.rotY }, room, floor).then((piece) => {
       building.delete(it.id);
       if (!piece) console.warn(`the room couldn't build ${it.id} (${it.kind})`);
     });

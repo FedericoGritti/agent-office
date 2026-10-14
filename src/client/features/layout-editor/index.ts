@@ -40,7 +40,7 @@ export function installLayoutEditor(ctx: Ctx) {
     setPlacements(store.layout);
     applyPlacements(ctx.office);
     // And the things somebody added here off the catalog, which the file is the only record of.
-    applyCatalog(ctx.office);
+    if (store.floor) applyCatalog(ctx.office, store.floor);
   });
 
   ctx.ticks.add('world', () => carrying.update());
@@ -59,11 +59,13 @@ export function installLayoutEditor(ctx: Ctx) {
    * room and the file exactly as they were. Throws with what went wrong: the window is waiting on it.
    */
   async function stand(kind: AdditionKind): Promise<void> {
+    const floor = store.floor;
+    if (!floor) throw new Error('Take the elevator to a floor first');
     // Whatever was in your hands stays where you left it, saved, before the next one arrives.
     carrying.putDown();
     const at = carrying.spotAhead(ctx.player.pos, ctx.player.facing);
     const id = nextSpawnId();
-    const built = await buildAddition(kind, id, at);
+    const built = await buildAddition(kind, id, at, floor);
     if (!built) throw new Error(`${kindLabel(kind)} couldn't be built — it may not be downloaded, or may be too big for the room`);
     spawn(id, kind, at);
     carrying.hold(declareAddition(built, id, at, ctx.office));

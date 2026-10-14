@@ -48,12 +48,12 @@ export const modelRoutes = {
   files: {
     prefix: MODEL_FILES_PREFIX,
     auth: 'session',
-    async handle(ctx, { res, url, path: p }) {
-      // `/api/models/files/<source>/<id>/<file…>`: the last part is a name the model itself asked for,
-      // which is how a glTF that came in several pieces is read (see shared/model-sources' modelFolderPath).
-      const floor = floorParam(ctx, url);
+    async handle(ctx, { res, path: p }) {
+      // `/api/models/files/<floor>/<source>/<id>/<file…>`: keeping the floor in the path makes every
+      // relative name inside a glTF ask the same floor for its buffers and textures.
+      const [floorId, source, id, ...file] = p.slice(MODEL_FILES_PREFIX.length).split('/');
+      const floor = ctx.floors.get(floorId ?? '');
       if (!floor) return send(res, 404, { error: 'No such floor' });
-      const [source, id, ...file] = p.slice(MODEL_FILES_PREFIX.length).split('/');
       const found = floor.models.file(source ?? '', id ?? '', file.join('/'));
       if (!found) return send(res, 404, { error: 'No such model' });
       const body = readFileSync(found.path);

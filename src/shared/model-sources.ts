@@ -96,9 +96,8 @@ export const MODEL_SEARCH_PATH = '/api/models/search';
 export const MODEL_ADD_PATH = '/api/models/add';
 export const MODEL_FILES_PREFIX = '/api/models/files/';
 
-/** Where a downloaded model is served from: the folder answers with the model's own file, and the names
- *  inside that file resolve under the same folder (`…/ArmChair_01/textures/….jpg`), which is how the
- *  browser's loader reads a glTF that came in more than one piece. */
-export function modelFolderPath(source: ModelSource, id: string): string {
-  return `${MODEL_FILES_PREFIX}${source}/${id}/`;
+/** Where a downloaded model is served from: the floor is part of the path so the model's own file and
+ * every relative name inside it (`…/ArmChair_01/textures/….jpg`) keep pointing at that same floor. */
+export function modelFolderPath(floor: string, source: ModelSource, id: string): string {
+  return `${MODEL_FILES_PREFIX}${floor}/${source}/${id}/`;
 }

@@ -35,7 +35,9 @@ test('an added model is a source and an id, and nothing else is a model', () => 
   assert.ok(!isAdditionKind('nonsense') && !isAdditionKind('rockery:Rock_01') && !isAdditionKind(7));
 
   assert.equal(modelName('ArmChair_01'), 'ArmChair 01');
-  assert.equal(modelFolderPath('polyhaven', 'ArmChair_01'), '/api/models/files/polyhaven/ArmChair_01/');
+  const folder = modelFolderPath('my-floor', 'polyhaven', 'ArmChair_01');
+  assert.equal(folder, '/api/models/files/my-floor/polyhaven/ArmChair_01/');
+  assert.equal(new URL('textures/diff_1k.jpg', `http://office${folder}`).pathname, '/api/models/files/my-floor/polyhaven/ArmChair_01/textures/diff_1k.jpg');
 });
 
 test('Poly Haven says what a model is in millimetres, and what the window shows in metres', () => {

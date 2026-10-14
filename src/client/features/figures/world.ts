@@ -22,7 +22,7 @@ export interface FiguresStand {
   /** The face the feature draws the current figure on, and the texture to refresh after. */
   face: HTMLCanvasElement;
   texture: THREE.CanvasTexture;
-  /** The plate over the top edge: the feature writes the file name on it (see features/figures/index.ts). */
+  /** The plate under the board: the feature writes the file name on it (see features/figures/index.ts). */
   setLabel(text: string): void;
 }
 
@@ -63,9 +63,9 @@ export function buildFigures(board: FiguresBoard): FiguresStand {
   const interactable: Interactable = { kind: 'figures', x, z: z - 1.6, radius: 2.2 };
   group.userData.interact = interactable;
 
-  // A plate over the top edge, worn the way the whiteboard wears its own: the file name goes up there
-  // rather than across the picture. It is rebuilt only when the name changes (the boards ask again on
-  // a timer, and a name left alone must not be rebuilt every time).
+  // The plate goes under the board, on the stand's lower bar: a caption for the picture rather than a
+  // name hung over it. It is rebuilt only when the name changes (the boards ask again on a timer, and a
+  // name left alone must not be rebuilt every time).
   let plaque: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | null = null;
   let shown = '';
   const setLabel = (text: string) => {
@@ -79,7 +79,8 @@ export function buildFigures(board: FiguresBoard): FiguresStand {
     }
     plaque = textPlane(text, { bg: '#fffaf3', size: 48 });
     plaque.scale.multiplyScalar(0.55);
-    plaque.position.set(0, bottom + height + 0.2, 0.05);
+    // The bar across the stand's feet, which the height of a plate this size fits over exactly.
+    plaque.position.set(0, bottom - 0.2, 0.05);
     group.add(plaque);
   };
   setLabel('🖼️ Figures');

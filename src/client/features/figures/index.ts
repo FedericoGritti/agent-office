@@ -1,4 +1,4 @@
-/** The figures boards: one picture from the project's `images/` folder each, its whole name on the plate above. */
+/** The figures boards: one picture from the project's `images/` folder each, its whole name on the plate under it. */
 import type { ImageList } from '../../../shared/images';
 import type { Ctx } from '../../core/context';
 import { aside, hintTitle, key, onE } from '../../core/hint';
@@ -40,7 +40,7 @@ export function installFigures(ctx: Ctx) {
   /** The first read opens each board on a different picture; later ones keep what each board was on. */
   let opening = true;
 
-  /** The plate over the top edge says what the board is on: the whole file name, and where it is in the folder. */
+  /** The plate under the board says what the board is on: the whole file name, and where it is in the folder. */
   function label(b: Board) {
     const name = names[b.at];
     b.stand.setLabel(name ? `🖼️ ${name} · ${b.at + 1}/${names.length}` : '🖼️ images/');

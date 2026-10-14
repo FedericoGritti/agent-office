@@ -36,8 +36,12 @@ export interface Stage {
 }
 
 export function makeRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer | null {
+  // Multi-sampling is for screens where one pixel is one pixel: on a 2× display the pixel ratio below
+  // already draws four of them per CSS pixel, and an anti-aliased buffer buys almost nothing on top —
+  // only bandwidth, on a frame that is drawn twice over (the outline pass) and into a 2048² shadow map.
+  const antialias = (window.devicePixelRatio || 1) < 2;
   try {
-    return new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    return new THREE.WebGLRenderer({ canvas, antialias, powerPreference: 'high-performance' });
   } catch (err) {
     console.error(err);
     return null;

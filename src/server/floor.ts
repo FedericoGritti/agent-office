@@ -24,6 +24,7 @@ import { Jail } from './jail.js';
 import { Garage } from './garage.js';
 import { Jukebox } from './jukebox.js';
 import { Layout } from './layout.js';
+import { ChessGames } from './chess.js';
 import { ModelStore } from './model-sources/store.js';
 import { Whiteboard } from './whiteboard.js';
 import { MeetingRoom } from './meetings.js';
@@ -131,6 +132,8 @@ export class Floor {
   readonly jukebox: Jukebox;
   /** Where this floor's furniture stands, as the editor has left it. */
   readonly layout: Layout;
+  /** The chess games being played on this floor's boards (see server/chess.ts). */
+  readonly chess: ChessGames;
   /** The models its windows have fetched from an online catalog, and served back to the room. */
   readonly models: ModelStore;
   /** The whiteboard everyone on the floor draws on together. */
@@ -329,6 +332,7 @@ export class Floor {
     this.decor = new Decor(dataDir);
     this.jukebox = new Jukebox(dataDir);
     this.layout = new Layout(dataDir);
+    this.chess = new ChessGames(dataDir);
     this.models = new ModelStore(dataDir);
     this.whiteboard = new Whiteboard(dataDir);
     this.coordinator = new Coordinator(def.dir, dataDir, (state) => ctx.emit(this, { t: 'coordinator', state }));

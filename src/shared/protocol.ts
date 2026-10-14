@@ -6,6 +6,7 @@
 
 import type { AccountsClientMsg, AccountsServerMsg, SignInsClientMsg, TeamClientMsg } from './protocol/accounts.js';
 import type { ChangesClientMsg, ChangesServerMsg } from './protocol/changes.js';
+import type { ChessClientMsg, ChessServerMsg } from './protocol/chess.js';
 import type { CoordinatorClientMsg, CoordinatorServerMsg } from './protocol/coordinator.js';
 import type { FloorClientMsg, FloorServerMsg, PlanClientMsg } from './protocol/floors.js';
 import type { GitHubClientMsg, GitHubServerMsg } from './protocol/github.js';
@@ -24,6 +25,7 @@ export * from './protocol/accounts.js';
 export * from './protocol/layout.js';
 export * from './protocol/agents.js';
 export * from './protocol/changes.js';
+export * from './protocol/chess.js';
 export * from './protocol/coordinator.js';
 export * from './protocol/floors.js';
 export * from './protocol/github.js';
@@ -56,6 +58,7 @@ export type ClientMsg =
   | DecorClientMsg
   | JukeboxClientMsg
   | LayoutClientMsg
+  | ChessClientMsg
   | CabinetClientMsg
   | WhiteboardClientMsg
   | BallClientMsg
@@ -78,4 +81,5 @@ export type ServerMsg =
   | UsageServerMsg
   | ToysServerMsg
   | LayoutServerMsg
+  | ChessServerMsg
   | SpendServerMsg;

@@ -13,6 +13,7 @@ import { accounts } from './accounts';
 import { ball } from './ball';
 import { cabinet } from './cabinet';
 import { cars } from './cars';
+import { chess } from './chess';
 import { coordinator } from './coordinator';
 import { decor } from './decor';
 import { dog } from './dog';
@@ -52,6 +53,7 @@ export const SLICES: readonly Slice[] = [
   floor,
   meeting,
   decor,
+  chess,
   floorPlan,
   services,
   dog,

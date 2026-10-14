@@ -30,6 +30,7 @@ import { installPointer } from './input/pointer';
 import { installBar } from './features/bar';
 import { installBarGames } from './features/bargames';
 import { installBasketball } from './features/basketball';
+import { installChess } from './features/chess';
 import { installBoards } from './features/boards';
 import { installBookshelf } from './features/bookshelf';
 import { installCabinet } from './features/cabinet';
@@ -155,6 +156,7 @@ parts.bar = installBar(ctx, { roof: parts.rooftop.roof, djAt: parts.rooftop.djAt
 parts.coffee = installCoffee(ctx);
 parts.smoking = installSmoke(ctx);
 installLamplight(ctx, parts);
+installChess(ctx);
 parts.hoops = installBasketball(ctx, { remotes: parts.peers.remotes, reach });
 parts.cards = installCarrying(ctx, {
   hold: (card) => void (core.carrying = card),

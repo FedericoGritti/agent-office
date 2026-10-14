@@ -1,6 +1,7 @@
 // The building: its floors, going between them, and what each floor holds.
 
 import type { CabinetView } from '../cabinet.js';
+import type { ChessBoards } from '../chess.js';
 import type { Decoration } from '../decor.js';
 import type { DogState } from '../dog.js';
 import type { FloorPlan } from '../floorplan.js';
@@ -133,6 +134,8 @@ export interface FloorView {
   jukebox: JukeboxState;
   /** Where this floor's furniture stands, as the editor left it (see features/layout-editor). */
   layout: Placements;
+  /** The chess games being played on this floor, by the id of the board piece (see features/chess). */
+  chess: ChessBoards;
   /** Who's at the arcade cabinet, what's on its screen, and the building's high scores. */
   cabinet: CabinetView;
   /** What's drawn on this floor's whiteboard, and who's drawing. */

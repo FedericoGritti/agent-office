@@ -22,27 +22,42 @@ export interface FrameCost {
   phases: { phase: TickPhase; ms: number }[];
   /** What's left outside that work: waiting for the browser, its own layout and drawing, other tabs. */
   elsewhere: number;
+  /** The worst single frame in this window, in milliseconds: a hitch is a frame, not an average. */
+  worst: number;
 }
 
-/** How many frames one reading averages: about a second at 60 a second. */
-export const FRAME_WINDOW = 60;
+/** How many frames one reading averages: about half a second at 60 a second. Short, so a hitch shows up in it. */
+export const FRAME_WINDOW = 30;
 
 let watching = false;
 let frames = 0;
 let frameSum = 0;
+/** The worst single frame the browser gave us, which is what a hitch actually feels like. */
+let worstFrame = 0;
 const sums = new Map<TickPhase, number>();
 /** The frame being timed now, which the loop fills in (see phaseTimes). */
 const current = new Map<TickPhase, number>();
 let last: FrameCost | null = null;
+let worst: FrameCost | null = null;
+let overlay: HTMLElement | null = null;
+let overlayTimer: number | undefined;
 
-/** Starts or stops measuring, and forgets what it had: a reading is about now, not about a minute ago. */
-export function watchFrames(on: boolean): void {
+/**
+ * Starts or stops measuring, and shows or hides the strip on screen (see setOverlay). Calling it with the
+ * state it's already in does nothing: a reading is about now, and it is not thrown away by asking again.
+ */
+export function watchFrames(on: boolean, strip = false): void {
+  setOverlay(on && strip);
+  if (watching === on) return;
   watching = on;
   frames = 0;
   frameSum = 0;
+  worstFrame = 0;
   sums.clear();
   current.clear();
   last = null;
+  worst = null;
+  paintOverlay();
 }
 
 export function framesWatched(): boolean {
@@ -60,12 +75,13 @@ export function sampleFrame(frameMs: number): void {
   if (!watching) return;
   frames++;
   frameSum += frameMs;
+  worstFrame = Math.max(worstFrame, frameMs);
   for (const [phase, ms] of current) sums.set(phase, (sums.get(phase) ?? 0) + ms);
   if (frames < FRAME_WINDOW) return;
   const n = frames;
   const mean = frameSum / n;
   const own = [...sums.values()].reduce((a, b) => a + b, 0) / n;
-  last = {
+  const cost: FrameCost = {
     fps: 1000 / mean,
     frame: mean,
     phases: [...sums]
@@ -73,13 +89,59 @@ export function sampleFrame(frameMs: number): void {
       .filter((p) => p.ms >= 0.05)
       .sort((a, b) => b.ms - a.ms),
     elsewhere: Math.max(0, mean - own),
+    worst: worstFrame,
   };
+  last = cost;
+  if (!worst || cost.frame > worst.frame) worst = cost;
   frames = 0;
   frameSum = 0;
+  worstFrame = 0;
   sums.clear();
+  paintOverlay();
 }
 
 /** The last reading, or null while nothing has been measured yet (or nobody is watching: see watchFrames). */
 export function frameCost(): FrameCost | null {
   return last;
+}
+
+/** The worst reading since measuring started: what the office looks like when it stutters, not on average. */
+export function worstCost(): FrameCost | null {
+  return worst;
+}
+
+/**
+ * The strip on screen while the measurement is kept on so it can be read while you play (see the Graphics
+ * settings: settings are no use if you have to stand still to read them). It takes no clicks, so it never
+ * gets between you and the office.
+ */
+function setOverlay(on: boolean): void {
+  if (on) {
+    if (overlay || typeof document === 'undefined') return;
+    overlay = document.createElement('div');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.style.cssText =
+      'position:fixed;left:10px;bottom:10px;z-index:60;pointer-events:none;padding:6px 10px;border-radius:9px;' +
+      'background:rgba(14,14,20,.74);color:#fff;font:700 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;';
+    document.body.append(overlay);
+    overlayTimer = setInterval(paintOverlay, 400);
+    paintOverlay();
+    return;
+  }
+  clearInterval(overlayTimer);
+  overlayTimer = undefined;
+  overlay?.remove();
+  overlay = null;
+}
+
+/** What the strip says: the frame now, and the worst one since it started — the two are different questions. */
+function paintOverlay(): void {
+  if (!overlay) return;
+  if (!last) {
+    overlay.textContent = 'measuring…';
+    return;
+  }
+  const line = (c: FrameCost) => `${c.frame.toFixed(1)} ms · ${c.fps.toFixed(0)}/s — ${c.phases.slice(0, 3).map((p) => `${p.phase} ${p.ms.toFixed(1)}`).join(' · ') || 'nothing in it'}`;
+  const hitched = worst && worst.frame > last.frame * 1.15;
+  overlay.textContent = hitched ? `now  ${line(last)}\nworst ${line(worst!)} (${worst!.worst} ms one frame)` : `now  ${line(last)}`;
 }

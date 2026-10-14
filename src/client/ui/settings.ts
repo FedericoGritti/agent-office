@@ -8,11 +8,12 @@ import { THEME_PICKS } from '../../shared/theme';
 import { mapChoices } from '../../shared/maps';
 import { dogSetting } from './settings-dog';
 import { h, openModal, timeAgo } from './dom';
-import { frameCost, framesWatched, watchFrames } from '../core/perf';
+import { watchFrames } from '../core/perf';
 import { agentFields, choiceLabel, officeChoice } from './provider';
 import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { outsideSetting } from './settings-sky';
-import { choiceRow } from './settings-rows';
+import { choiceRow, setting } from './settings-rows';
+import { graphicsRows } from './settings-graphics';
 
 const VIEWS: [ViewMode, string, string][] = [
   ['first', '👀 First person', 'See through your own eyes. Click the office to look around with the mouse and click things to use them. Esc frees the mouse.'],
@@ -34,18 +35,6 @@ const PANES: { id: SettingsPane; icon: string; label: string; blurb: string }[] 
   { id: 'building', icon: '🏢', label: 'Building', blurb: 'The map, the decorations, the sky, the dog, and where new floors are cloned.' },
   { id: 'workers', icon: '🤖', label: 'Workers', blurb: 'What workers start on, how many run at once, when they go home and what the office tells them.' },
 ];
-
-/** Who a setting is for, shown by its name: some are yours alone, some the whole office's. */
-type Scope = 'you' | 'floor' | 'office';
-const SCOPE: Record<Scope, [label: string, title: string]> = {
-  you: ['Just you', 'Only for you, kept in this browser'],
-  floor: ['This floor', 'The same for everyone on this floor'],
-  office: ['Everyone', 'The same for everyone in the building'],
-};
-
-/** One setting: its name and who it's for, then whatever sets it. */
-const setting = (title: string, scope: Scope | null, ...body: Node[]) =>
-  h('div.setting', {}, h('div.setting-head', {}, h('h4', {}, title), scope && h('span.scope', { class: scope, title: SCOPE[scope][1] }, SCOPE[scope][0])), ...body);
 
 /** Where ⚙️ Settings was last, so it opens there again. */
 let lastPane: SettingsPane = 'you';
@@ -116,34 +105,21 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const change = (some: Partial<Settings>) => {
     settings = { ...settings, ...some };
     onChange(settings);
+    refreshWatch();
   };
   // Voice chat: an open mic, or muted until you hold V.
   const talkRow = choiceRow('Voice chat', [[false, '🎙️ Open mic'], [true, '✋ Push to talk']], () => settings.pushToTalk, (pushToTalk) => change({ pushToTalk }));
   const musicRow = volumeRow('Jukebox volume', 'music', 'musicMuted');
   // Your own hands, held up in front of you in first person, or out of the way.
   const handsRow = choiceRow('Your hands in first person', [[true, '🙌 Show them'], [false, '🙈 Hide them']], () => settings.hands, (hands) => change({ hands }));
-  const outlinesRow = choiceRow('Outlines', [[true, '🖊️ On'], [false, 'Off']], () => settings.outlines, (outlines) => change({ outlines }));
-  const shadowsRow = choiceRow('Shadows', [[true, '🌤️ On'], [false, 'Off']], () => settings.shadows, (shadows) => change({ shadows }));
-  const resolutionRow = choiceRow('Resolution', [[2, 'Full'], [1.5, '1.5×'], [1, '1×']], () => settings.resolution, (resolution) => change({ resolution }));
-
-  // The live cost of a frame (core/perf.ts). It measures only while this page is open — watching is work
-  // of its own — and it goes on measuring until the window is closed, so the numbers move as you try the
-  // three rows above.
-  const costRow = (() => {
-    const el = h('p.setting-note', {}, 'Measuring…');
-    const tick = setInterval(() => {
-      if (!framesWatched()) {
-        clearInterval(tick);
-        el.textContent = 'Open this page to measure.';
-        return;
-      }
-      const cost = frameCost();
-      if (!cost) return;
-      const work = cost.phases.slice(0, 4).map((p) => `${p.phase} ${p.ms.toFixed(1)}`).join(' · ') || 'nothing measurable';
-      el.textContent = `Frame ${cost.frame.toFixed(1)} ms · ${cost.fps.toFixed(0)} a second. The frame's own work: ${work}. ${cost.elsewhere.toFixed(1)} ms elsewhere (the browser drawing the page, layout, other tabs).`;
-    }, 500);
-    return el;
-  })();
+  /**
+   * Whether frames are being measured right now: on this page, or — if you asked it to keep going — out in
+   * the office with the strip on screen. A stutter has to be caught where it happens, and this window has
+   * the controls while it's open (see core/perf.ts).
+   */
+  function refreshWatch(windowOpen = true) {
+    watchFrames(settings.measure || (windowOpen && lastPane === 'graphics'), settings.measure);
+  }
 
   // The swish of the book's pages at the bookshelf, on or off.
   const pagesRow = choiceRow('Page turns at the bookshelf', [[true, '📖 On'], [false, 'Off']], () => settings.pageTurns, (pageTurns) => change({ pageTurns }));
@@ -475,13 +451,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       setting('Your hands in first person', 'you', handsRow, h('p.setting-note', {}, 'Your own hands, held up in front of you looking through your own eyes. Hide them and the view is the office and your body below you, with nothing in the way — the ball, the club and the rest still work the same.')),
       setting('Signed in', null, h('div.volume', {}, signOut), h('p.setting-note', {}, account ? `As ${account.name}, with your own account (${account.role}).` : 'With the shared office password.')),
     ],
-    graphics: [
-      setting('Outlines', 'you', outlinesRow, h('p.setting-note', {}, 'The ink line round everything, which is the office’s own look — and the whole room drawn a second time, every frame. Off, a slow room costs about half as much to draw and looks a little flatter.')),
-      setting('Shadows', 'you', shadowsRow, h('p.setting-note', {}, 'The sun’s shadows: a map 2048 across, drawn again every frame, and looked up for every pixel of the room. Off, the room is lit flat and costs less — most of all where there is a lot in view.')),
-      setting('Resolution', 'you', resolutionRow, h('p.setting-note', {}, 'How many pixels the office draws for each pixel of your screen. Full is the sharpest and the most work; 1× draws a quarter of the pixels and is hard to tell from it on a dense screen. A slow frame here is usually this, or the outlines.')),
-      h('p.setting-note', {}, 'These are yours alone, kept in this browser. The office itself already offers the 2D view when frames stay slow for ten seconds — accepting it is the surest way out.'),
-      setting('What a frame costs', 'you', costRow, h('p.setting-note', {}, 'Measured while this page is open, so nothing is slowed down by measuring it. Read it with the three above at Full and then turned down: if the frame time hardly moves, what the office costs is its own work every frame — the workers, the sky, the smoke — and not what it draws, and no drawing setting will fix it. The biggest phases are named first.')),
-    ],
+    graphics: graphicsRows(settings, change),
     sound: [
       setting('Office sounds', 'you', soundRow, h('p.setting-note', {}, 'Workers typing, footsteps, the coffee machine, birds and rain outside, the dog, the ding when a worker is done and the alarm when one needs you. Voice chat isn’t affected.')),
       setting('When a worker needs you', 'you', alarmRow, h('p.setting-note', {}, 'An alarm the moment a worker stops to ask you something or wants a permission. Keep reminding me rings it again, softly, every 30 seconds until someone opens that worker’s terminal. It’s as loud as the office sounds are.')),
@@ -521,7 +491,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const show = (id: SettingsPane) => {
     lastPane = id;
     // The Graphics page is the only one that measures: nothing is timed while nobody is reading it.
-    watchFrames(id === 'graphics');
+    refreshWatch();
     for (const [t, tab] of tabs) {
       tab.classList.toggle('on', t === id);
       tab.setAttribute('aria-selected', String(t === id));
@@ -555,7 +525,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const modal = openModal(el, {
     doing: '⚙️ in settings',
     onClose: () => {
-      watchFrames(false);
+      // Only what you asked to keep going outlives this window (see refreshWatch).
+      refreshWatch(false);
       offNotify();
       offDog();
       offTheme();

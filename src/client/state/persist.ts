@@ -73,6 +73,9 @@ export interface Settings {
   shadows: boolean;
   /** How many pixels the office draws per pixel of the screen: the most the device offers, up to this. */
   resolution: number;
+  /** Keep measuring what a frame costs after the Settings window is closed, and show it on screen: the only
+   * way to see a stutter in the place it happens (see core/perf.ts). */
+  measure: boolean;
 }
 
 const SETTINGS_KEY = 'agent-office.settings';
@@ -135,7 +138,7 @@ export function rememberSpot(s: Spot) {
 }
 
 export function loadSettings(): Settings {
-  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [], outlines: true, shadows: true, resolution: 2 };
+  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [], outlines: true, shadows: true, resolution: 2, measure: false };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null');
     if (saved?.view === 'first' || saved?.view === 'third') s.view = saved.view;
@@ -152,6 +155,7 @@ export function loadSettings(): Settings {
     if (Array.isArray(saved?.pins)) s.pins = saved.pins.filter((p: unknown): p is string => typeof p === 'string').slice(0, 30);
     if (typeof saved?.outlines === 'boolean') s.outlines = saved.outlines;
     if (typeof saved?.shadows === 'boolean') s.shadows = saved.shadows;
+    if (typeof saved?.measure === 'boolean') s.measure = saved.measure;
     // A resolution nobody offers (a file edited by hand) is left at the sharpest.
     if (typeof saved?.resolution === 'number' && saved.resolution >= 0.5 && saved.resolution <= 2) s.resolution = saved.resolution;
   } catch {

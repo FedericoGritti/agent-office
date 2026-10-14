@@ -8,7 +8,7 @@ export const HELP_ROWS: readonly (readonly [string, string])[] = [
   ['Space', 'Jump'],
   ['☕', 'Press E at the coffee machine in the kitchen for a minute of quicker walking and higher jumps. Three cups in a row gives you the jitters'],
   ['Mouse', 'Look around in first person (click to capture the mouse, Esc to free it)'],
-  ['F2', "Arrange the room: look at a piece of furniture and E picks it up, and E puts it down on a 25 cm grid, R turns it a quarter (Shift+R the other way), C opens the catalog — the office's own things, and a search over models from Poly Haven — the scroll wheel sizes a thing you added from it, Canc takes it away, Esc puts it back, another Esc stops arranging"],
+  ['F2', "Arrange the room: look at a piece of furniture and E picks it up, and E puts it down on a 25 cm grid, R turns it a quarter (Shift+R the other way), C opens the catalog — the office's own things, and a search over models from Poly Haven — a thing you added from it goes where you look and the scroll wheel sizes it, Canc takes it away, Esc puts it back, another Esc stops arranging"],
   ['Click / E', "Use what you look at: hire a worker, open its terminal, read a board, call a meeting in the meeting room, watch the TV, put a song on the jukebox, tee off from the balcony, sit on a couch, a beanbag, a chair or the balcony bench (walk off to get up)"],
   ['👥', 'Click someone under "In the office" to walk over to them (on another floor, you ride the elevator first). The line under their name says what they have open or where they are'],
   ['🛗', 'Every project is a floor: step into the elevator on the north wall and press E (or click the project name, top left) to go to another one or add a project. It goes down to the garage too, and back up from there'],

@@ -159,7 +159,7 @@ export function declareAddition(built: Built, id: string, at: Spot, room: Additi
   // Into the room's own list, the way a builder does it: `placed` keeps that list and the piece in step
   // (a piece the file took away leaves it), but it never adds one nobody put there.
   room.colliders.push(...built.colliders);
-  const piece = placed(built.group, id, { x: at.x, z: at.z, rotY: at.rotY }, built.colliders, room, true);
+  const piece = placed(built.group, id, { x: at.x, y: at.y, z: at.z, rotY: at.rotY }, built.colliders, room, true);
   standing.set(id, piece);
   if (built.update) animated.push({ piece, update: built.update });
   return piece;

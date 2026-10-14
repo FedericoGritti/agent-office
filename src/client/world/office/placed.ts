@@ -48,7 +48,9 @@ export function footprint(x: number, z: number, w: number, d: number, rotY: numb
 /** One piece of furniture, as its builder declared it: what to move, and what moves with it. */
 export interface Piece {
   id: string;
-  base: Required<Base>;
+  /** Where the room built it: what the file's entry differs from. An addition has no base in layout.ts
+   *  at all — the file's entry is its whole self (see placeAdded). */
+  base: { x: number; z: number; rotY: number };
   /** Every object that makes the piece up, moved together: its group, and anything the builder left beside it. */
   parts: THREE.Object3D[];
   /** Its footprint, in world coordinates, as built at the base. */
@@ -136,8 +138,9 @@ export function placed(
     added,
     // Where the piece stands *now*: as the room built it. What the file says is a target, applied by
     // the caller (and by the office, when the floor's file arrives): a move needs a real starting
-    // point, or a piece with a saved place would be "moved" from where it is to where it is.
-    at: { x: base.x, z: base.z, rotY: base.rotY ?? 0, hidden: false },
+    // point, or a piece with a saved place would be "moved" from where it is to where it is. An
+    // addition also has a height of its own from here on (see Placed.y), which is where it was built.
+    at: { x: base.x, z: base.z, rotY: base.rotY ?? 0, ...(added ? { y: base.y ?? first.position.y } : {}), hidden: false },
   };
   pieces.push(piece);
   for (const part of list) {
@@ -192,26 +195,31 @@ function turnBox(box: Collider, piece: Piece, x: number, z: number, drot: number
  *
  * A piece may also come back a different size (see features/layout-editor): the parts grow about the
  * piece's own middle — so a bigger pot sits on the same spot and still stands on the floor — and its
- * colliders grow with them, since a fountain twice the size is also twice as much to walk into.
+ * colliders grow with them, since a fountain twice the size is also twice as much to walk into. And it
+ * may come back higher than it was: a thing the editor lifted stays where it was left, in the air, with
+ * what you walk into following it up there.
  */
 export function applyPiece(piece: Piece, at: Placed, room?: Room): void {
   const dx = at.x - piece.at.x;
   const dz = at.z - piece.at.z;
+  const dy = (at.y ?? 0) - (piece.at.y ?? 0);
   const drot = at.rotY - piece.at.rotY;
   const s = scaleOf(at);
   const grow = s / scaleOf(piece.at);
   const hiding = at.hidden !== piece.at.hidden;
   for (const part of piece.parts) {
     turn(part, piece, dx, dz, drot);
+    if (dy) part.position.y += dy;
     if (grow !== 1) rescale(part, s);
     if (hiding) part.visible = !at.hidden;
   }
-  if (dx || dz || drot || grow !== 1) {
+  if (dx || dz || dy || drot || grow !== 1) {
     for (const box of piece.colliders) {
       if (dx || dz || drot) turnBox(box, piece, dx, dz, drot);
+      if (dy) liftBox(box, dy);
       if (grow !== 1) growBox(box, at.x, at.z, grow);
     }
-    // A use-point belongs to the room's own furniture, which is never resized (see Placement.scale):
+    // A use-point belongs to the room's own furniture, which is never resized or lifted (see Placed):
     // what moves here is its place.
     if (piece.interact && (dx || dz || drot)) {
       const x = piece.interact.x - piece.at.x;
@@ -233,6 +241,13 @@ function rescale(part: THREE.Object3D, s: number): void {
   let base = baseScale.get(part);
   if (!base) baseScale.set(part, (base = part.scale.clone()));
   part.scale.copy(base).multiplyScalar(s);
+}
+
+/** A collider's box, moved up or down with the piece: it is what stands where the piece stands, so it
+ *  goes into the air with it and comes back down with it. */
+function liftBox(box: Collider, dy: number): void {
+  if (box.bottom !== undefined) box.bottom += dy;
+  if (box.top !== undefined) box.top += dy;
 }
 
 /** A collider's box, grown about the middle of the piece and the floor it stands on: wider, but no

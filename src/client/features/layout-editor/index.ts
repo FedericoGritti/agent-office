@@ -24,14 +24,17 @@ export function installLayoutEditor(ctx: Ctx) {
   function refresh(): void {
     const held = carrying.carrying;
     if (!carrying.on) banner.hide();
-    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)}${sizeSaid()} — E puts it down · R turns it${carrying.resizable ? ' · scroll sizes it' : ''} · Canc takes it away · Esc puts it back`);
+    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)}${heldSaid()} — E puts it down · R turns it${carrying.resizable ? ' · scroll sizes it' : ''} · Canc takes it away · Esc puts it back`);
     else banner.set('🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish');
     ctx.hint.invalidate();
   }
 
-  /** How big what you're carrying is, when it's not the size it came (see Carrying.size). */
-  function sizeSaid(): string {
-    return carrying.resizable && carrying.size !== 1 ? ` (${Math.round(carrying.size * 100)}%)` : '';
+  /** How big what you're carrying is and how high it is, when either is worth saying (see Carrying). */
+  function heldSaid(): string {
+    const bits: string[] = [];
+    if (carrying.size !== 1) bits.push(`${Math.round(carrying.size * 100)}%`);
+    if (carrying.height > 0.005) bits.push(`${carrying.height.toFixed(2)} m up`);
+    return bits.length ? ` (${bits.join(' · ')})` : '';
   }
 
   const carrying = new Carrying(ctx.office, ctx.camera, {
@@ -127,7 +130,7 @@ export function installLayoutEditor(ctx: Ctx) {
   function hint(el: HTMLElement): void {
     const held = carrying.carrying;
     el.replaceChildren(
-      hintTitle(held ? `🧰 Carrying ${labelFor(held.id)}${sizeSaid()}` : '🧰 Arranging the room'),
+      hintTitle(held ? `🧰 Carrying ${labelFor(held.id)}${heldSaid()}` : '🧰 Arranging the room'),
       aside(held ? 'It follows your look; E puts it down' : 'Look at a piece and press E to pick it up'),
       key('C', 'Catalog'),
       key('R', 'Quarter turn'),

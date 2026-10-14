@@ -3,7 +3,7 @@
 // Esc puts it back where you found it. Nothing here draws a window: you look, you pick up, you walk.
 
 import * as THREE from 'three';
-import { FLOOR, LOFT } from '../../../shared/layout';
+import { FLOOR, LOFT, WALL_HEIGHT } from '../../../shared/layout';
 import { change, placements, resizeBy, scaleOf, type Placed, type Placements } from '../../../shared/placement';
 import { applyPiece, pieceOf, placedPieces, QUARTER, type Piece, type Room } from '../../world/office/placed';
 import { textSprite } from '../../world/toon';
@@ -113,18 +113,8 @@ export class Carrying {
     if (!this.moving) return;
     this.raycaster.setFromCamera(CENTRE, this.camera);
     if (this.held) {
-      // Carry it over a plane the look-ray actually meets: looking down, the floor it stands on (a couch
-      // in the loft follows the loft's floor); looking up, the height it hangs at (a board two metres up,
-      // with your eye below it). The other plane is never reached from your eye, and the piece would sit
-      // there and not move at all.
-      const floorY = this.held.colliders.reduce((y, box) => Math.max(y, box.bottom ?? 0), 0);
-      const hangY = this.held.parts[0]!.position.y;
-      this.floor.constant = -(this.raycaster.ray.direction.y < 0 ? floorY : hangY);
-      const at = this.raycaster.ray.intersectPlane(this.floor, this.at);
-      if (!at) return;
-      const x = this.snap(at.x, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN);
-      const z = this.snap(at.z, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN);
-      this.place(this.held, { ...this.held.at, x, z, hidden: false }, false);
+      const to = this.destination(this.held);
+      if (to) this.place(this.held, { ...this.held.at, ...to, hidden: false }, false);
       return;
     }
     const piece = this.lookingAt();
@@ -132,6 +122,73 @@ export class Carrying {
     this.aimed = piece;
     this.mark(piece, piece ? 'E to pick it up' : '');
     if (changed) this.deps.changed();
+  }
+
+  /**
+   * Where the piece in your hands goes, as your look says: its place on the room's 25 cm grid, and — for
+   * a thing you added, which has a height of its own — how high it goes (see `lift`).
+   *
+   * Across the room it follows the aim on the height it is at: looking down, that is the floor it stands
+   * on (a couch in the loft follows the loft's floor); looking up, the height it hangs at (a board two
+   * metres up, with your eye below it). A piece of the room's own keeps that height — it is where its
+   * builder put it, and nothing here moves it up or down.
+   */
+  private destination(piece: Piece): { x: number; y?: number; z: number } | null {
+    const up = piece.at.y;
+    const y = up === undefined ? undefined : this.lift(piece);
+    const plane = up ?? (this.raycaster.ray.direction.y < 0 ? this.standingAt(piece) : piece.parts[0]!.position.y);
+    const at = this.across(piece, plane);
+    if (!at) return null;
+    const x = this.snap(at.x, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN);
+    const z = this.snap(at.z, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN);
+    return y === undefined ? { x, z } : { x, y, z };
+  }
+
+  /**
+   * Where your look puts the piece across the room: the point where the ray crosses the height it is at,
+   * or — a height your eye never crosses, like looking up at something standing on the floor — the point
+   * on the line of sight at the distance the piece already had. The plane is what lets it be put down
+   * exactly where you are looking, at any distance; the line of sight is what keeps it moving when that
+   * plane isn't there to be crossed.
+   */
+  private across(piece: Piece, height: number): THREE.Vector3 | null {
+    const { origin, direction } = this.raycaster.ray;
+    if ((height - origin.y) * direction.y > 0) {
+      this.floor.constant = -height;
+      return this.raycaster.ray.intersectPlane(this.floor, this.at);
+    }
+    const middle = piece.parts[0]!.position;
+    const along = (middle.x - origin.x) * direction.x + (middle.y - origin.y) * direction.y + (middle.z - origin.z) * direction.z;
+    return this.at.copy(origin).addScaledVector(direction, Math.max(along, AHEAD));
+  }
+
+  /** The height a piece of the room's own stands at: the bottom of what it fills, which is the floor it
+   *  was built on. */
+  private standingAt(piece: Piece): number {
+    return piece.colliders.reduce((y, box) => Math.max(y, box.bottom ?? 0), 0);
+  }
+
+  /**
+   * How high your look leaves the thing in your hands: the point your aim crosses on the plane facing
+   * you through the piece, so looking up lifts it and looking down sets it near the floor, keeping the
+   * distance it had. Left up there, it stays up there — nothing in this room falls — and it never goes
+   * under the floor or through the ceiling above it (see `ceilingFor`). It lands on the room's own grid,
+   * which is 0 on the floor, 3 m on the loft, and every quarter of a metre between.
+   */
+  private lift(piece: Piece): number {
+    const { origin, direction } = this.raycaster.ray;
+    const middle = piece.parts[0]!.position;
+    const along = (middle.x - origin.x) * direction.x + (middle.y - origin.y) * direction.y + (middle.z - origin.z) * direction.z;
+    // Nothing in front of your eye to judge by: it keeps the height it had.
+    if (!(along > 0)) return piece.at.y ?? 0;
+    return this.snap(origin.y + direction.y * along, 0, this.ceilingFor(piece));
+  }
+
+  /** The highest a thing may be left standing: the room's ceiling less its own height, so a tall model
+   *  held up over the loft doesn't end up standing through the roof. */
+  private ceilingFor(piece: Piece): number {
+    const tall = piece.colliders.reduce((h, box) => Math.max(h, (box.top ?? 0) - (box.bottom ?? 0)), 0);
+    return Math.max(0, WALL_HEIGHT - tall);
   }
 
   /** The piece under what you're looking at, if there is one. */
@@ -200,6 +257,11 @@ export class Carrying {
   /** How big what you're carrying is, for the hint bar to say (1 when it's as it came). */
   get size(): number {
     return this.held ? scaleOf(this.held.at) : 1;
+  }
+
+  /** How high it is, for the hint bar to say (0 when it stands on the floor). */
+  get height(): number {
+    return this.held?.at.y ?? 0;
   }
 
   /** Out of the room for good: it's saved as gone, and the colliders and its use-point go with it. */

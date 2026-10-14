@@ -22,7 +22,8 @@ export interface Placement {
   /**
    * How high it stands, where the floor it stands on needs saying: an addition up on the loft has the
    * same x and z as the meeting room underneath it. Only additions carry it (every other piece is
-   * built at its own height by its builder).
+   * built at its own height by its builder), and for one it is where the editor left it — the room's
+   * floor is 0, and nothing here falls, so a thing held up in the air stays up.
    */
   y?: number;
   /**
@@ -52,21 +53,29 @@ export interface Placed {
   rotY: number;
   /** How big it is: nothing said means 1 (see scaleOf). Only an addition is ever anything else. */
   scale?: number;
+  /**
+   * How high it is, for a piece that has a height of its own — an addition, which the editor lifts and
+   * drops with your look (see features/layout-editor). A piece of the room's own has no such field: it
+   * stands where its builder built it.
+   */
+  y?: number;
   /** Gone: the builder leaves it out of the room entirely. */
   hidden: boolean;
 }
 
-/** What a builder passes: the base from layout.ts, and the facing that piece stands at. */
+/** What a builder passes: the base from layout.ts, and the facing that piece stands at. `y` is the
+ *  floor a piece is built on, for the builders that take one (every addition does: see Spot). */
 export interface Base {
   x: number;
   z: number;
   rotY?: number;
+  y?: number;
 }
 
-/** The smallest and largest a piece may be made: a quarter of what it came as is a trinket, and four
- *  times it is a building. */
-export const SCALE_MIN = 0.25;
-export const SCALE_MAX = 4;
+/** The smallest and largest a piece may be made: a tenth of what it came as is a trinket, and ten times
+ *  it is a monument — wide enough to build with, bounded enough that the room stays a room. */
+export const SCALE_MIN = 0.1;
+export const SCALE_MAX = 10;
 /** How much one turn of the wheel changes it: the same tenth the pictures on the walls go up by. */
 const SCALE_STEP = 1.1;
 
@@ -188,6 +197,8 @@ export function place(id: string, base: Base): Placed {
     z: num(p?.z) ?? base.z,
     rotY: num(p?.rotY) ?? base.rotY ?? 0,
     scale: scaleOf({ scale: num(p?.scale) }),
+    // Only an addition is ever lifted or dropped (see Placed.y), and the floor it stands on is 0.
+    ...(p?.kind ? { y: num(p?.y) ?? 0 } : {}),
     hidden: p?.deleted === true,
   };
 }
@@ -198,7 +209,7 @@ export function place(id: string, base: Base): Placed {
  * where the file says, so a floor whose file hasn't got it never had it.
  */
 export function placeAdded(id: string, base: Base): Placed {
-  if (!saved[id]?.kind) return { x: base.x, z: base.z, rotY: base.rotY ?? 0, scale: 1, hidden: true };
+  if (!saved[id]?.kind) return { x: base.x, z: base.z, rotY: base.rotY ?? 0, scale: 1, y: base.y ?? 0, hidden: true };
   return place(id, base);
 }
 
@@ -264,7 +275,10 @@ export function change(id: string, base: Base, at: Placed): Placements {
   const p: Placement = {};
   if (added) {
     p.kind = added;
-    if (num(was?.y) !== undefined) p.y = was!.y;
+    // Where the editor left it: the room's floor is 0 and needs no saying, which is also what a piece
+    // brought back down to the floor comes to.
+    const y = round(at.y ?? 0);
+    if (y !== 0) p.y = y;
     // Only an addition is ever resized (see Placement.scale), and only what differs is written: back
     // at the size it came, the field goes. Compared as it would be written, so the wheel's own rounding
     // (up three notches and down three again is 1.0000000000000002) leaves no trace.

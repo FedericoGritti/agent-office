@@ -102,6 +102,34 @@ test('a piece made bigger grows on its own spot, standing on the floor, with wha
   near(box.maxX, 2.45);
 });
 
+test('a piece carried up into the air stays there, with what you walk into', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  group.position.set(4, 0, -3);
+  const box: Collider = { minX: 3.7, maxX: 4.3, minZ: -3.3, maxZ: -2.7, bottom: 0, top: 0.5 };
+  placed(group, 'add-1', { x: 4, y: 0, z: -3 }, [box], undefined, true);
+  const piece = placedPieces()[0];
+  assert.equal(piece.at.y, 0, 'it starts on the floor its spot says');
+
+  // Lifted two metres: the object and its box go up, and it is still over the same spot.
+  applyPiece(piece, { x: 4, y: 2, z: -3, rotY: 0, hidden: false });
+  near(group.position.y, 2);
+  near(box.bottom!, 2);
+  near(box.top!, 2.5);
+  assert.deepEqual([group.position.x, group.position.z], [4, -3]);
+
+  // Left up there, nothing brings it down: the height is where it was left, not where it was built.
+  applyPiece(piece, { x: 4, y: 2, z: -3, rotY: 0, hidden: false });
+  near(group.position.y, 2);
+
+  // Grown while it hangs, it grows about the height it stands at, not about the floor below it.
+  applyPiece(piece, { x: 4, y: 2, z: -3, rotY: 0, scale: 2, hidden: false });
+  near(box.bottom!, 2);
+  near(box.top!, 3);
+  near(box.maxX, 4.6);
+});
+
 test('a piece grows about its own middle while it is being carried somewhere else', () => {
   setPlacements(null);
   clearPieces();

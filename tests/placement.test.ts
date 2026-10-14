@@ -48,7 +48,7 @@ test('a floor reads only its own file', () => {
 
 test('a file written by hand is read only where it makes sense', () => {
   const cleaned = sanitize({
-    jukebox: { x: 4, z: 'over there', rotY: Number.NaN, deleted: 'yes' },
+    jukebox: { x: 4, z: 'over there', rotY: Number.NaN, y: 3, deleted: 'yes' },
     gong: { z: -4, deleted: true },
     [''.padEnd(70, 'x')]: { x: 1 },
     board: 3,
@@ -99,7 +99,7 @@ test('an added piece stands only where the file says', () => {
   assert.equal(place('jukebox', BASE).hidden, false);
 
   spawn('add-1', 'rug', { x: 1, y: 3, z: 2, rotY: 0 });
-  assert.deepEqual(placeAdded('add-1', { x: 0, z: 0 }), { x: 1, z: 2, rotY: 0, scale: 1, hidden: false });
+  assert.deepEqual(placeAdded('add-1', { x: 0, z: 0 }), { x: 1, z: 2, rotY: 0, scale: 1, y: 3, hidden: false });
   // Up on the loft it stays up there: the file is the only thing that says so.
   assert.equal(spawned()[0]?.y, 3);
 });
@@ -159,6 +159,30 @@ test('a piece the editor resized keeps its size in the file, and the size it cam
   change('add-1', { x: 1, z: 2 }, { x: 1, z: 2, rotY: 0, scale: back, hidden: false });
   assert.equal(placements()['add-1']?.scale, undefined);
   assert.deepEqual(placements()['add-1'], { kind: 'fountain', x: 1, z: 2, rotY: 0 });
+});
+
+test('a thing you added can be left up in the air, and the file remembers how high', () => {
+  setPlacements(null);
+  spawn('add-1', 'fountain', { x: 1, y: 0, z: 2, rotY: 0 });
+  assert.equal(place('add-1', { x: 0, z: 0 }).y, 0, "the room's floor is the height it came at");
+
+  // Carried up: the file keeps where it was left, and a piece read back stands up there.
+  change('add-1', { x: 1, z: 2 }, { x: 1, y: 2.75, z: 2, rotY: 0, hidden: false });
+  assert.equal(placements()['add-1']?.y, 2.75);
+  assert.equal(place('add-1', { x: 0, z: 0 }).y, 2.75);
+  assert.equal(spawned()[0]?.y, 2.75);
+
+  // Brought back down, there is nothing left to say about a height of none.
+  change('add-1', { x: 1, z: 2 }, { x: 1, y: 0, z: 2, rotY: 0, hidden: false });
+  assert.deepEqual(placements()['add-1'], { kind: 'fountain', x: 1, z: 2, rotY: 0 });
+
+  // The room's own furniture has no height of its own: it is built where its builder put it (a board
+  // two metres up, a desk on the floor), so there is nothing to read and nothing the editor may write.
+  setPlacements(null);
+  assert.equal('y' in place('jukebox', BASE), false);
+  change('jukebox', BASE, { ...BASE, y: 3, hidden: false });
+  assert.deepEqual(placements(), {});
+  assert.deepEqual(sanitize({ jukebox: { x: 4, y: 3 } }), { jukebox: { x: 4 } });
 });
 
 test('a size stops at the ends of what a piece may be made, and the room\'s own furniture has none', () => {

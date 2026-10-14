@@ -62,15 +62,23 @@ it, and `Canc` takes it away with its colliders. What is different is that it ha
 `layout.ts` to fall back on: it stands exactly where the file says and **nowhere** when the file hasn't
 got it, so an addition made on one floor doesn't turn up on another. Three more fields, and only for
 additions: `kind` says what it is, `y` says how high it stands — a pot up on the loft's floor has the
-same `x` and `z` as the meeting room underneath it — and `scale` says how big it is when it isn't the
-size it was built at.
+same `x` and `z` as the meeting room underneath it, and one the editor lifted into the air keeps the
+height it was left at — and `scale` says how big it is when it isn't the size it was built at.
 
 **A thing you added can be resized; the room's own furniture can't.** Scroll while you carry one and it
-grows or shrinks — a quarter of what it came as at the smallest, four times at the largest, a tenth a
-notch — about its own middle and the floor it stands on, so it stays where you're putting it and never
-leaves the ground, and what you walk into grows with it. The sign at the top says how big it is
-(`Carrying Monstera (130%)`), and the size is saved with everything else: it comes back that size for
-everyone on the floor and after a restart.
+grows or shrinks — a tenth of what it came as at the smallest, ten times at the largest, a tenth a
+notch — about its own middle and the height it stands at, so it stays where you're putting it, and what
+you walk into grows with it. The sign at the top says how big it is (`Carrying Monstera (130%)`), and
+the size is saved with everything else: it comes back that size for everyone on the floor and after a
+restart.
+
+**And it goes where your look goes.** Aim at the floor and an addition comes down to it; look up and it
+rises, keeping the distance it had — and left up there, it stays up there, because nothing in this room
+falls. The height is saved with the rest (`y` in the file, where the floor is 0 and needs no saying), so
+a lamp hung over the lounge is still hanging there for everyone and after a restart. It stops at the
+room's floor and at the ceiling above it, less the thing's own height, so a tall model held up over the
+loft doesn't end up standing through the roof. The room's own furniture is not lifted: a board stays at
+the height it hangs at and a desk on the floor, and carrying one of those is carrying it across the room.
 
 Only an addition is resizable because the room's own furniture is where the room's *plan* is measured: a
 desk's seat, the chairs round the meeting table, a jukebox's use-point and the walk map round them are

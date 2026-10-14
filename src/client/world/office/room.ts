@@ -3,7 +3,7 @@ import { BOARDS, LOFT, MACHINE_MONITOR, PLANTS, SEATING_BY_ID, STAIRS, STREET_Y,
 import { placed } from './placed';
 import { wallFacing } from '../../../shared/decor';
 import type { NightParts } from '../outside';
-import { mesh, roundedBox, textPlane, toon, toonUnique } from '../toon';
+import { mesh, roundedBox, toon, toonUnique } from '../toon';
 import type { Collider, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE } from './materials';
@@ -69,19 +69,13 @@ export const boards: Fixture<'boardMeshes'> = (site) => {
     bg.rotation.y = b.rotY;
     site.group.add(bg);
     boardMeshes[key] = face;
-    const label = textPlane(b.label, { bg: '#fffaf3', size: 64 });
-    label.scale.multiplyScalar(1.3);
-    label.position.set(b.x + nx * 0.04, b.y + b.height / 2 + 0.5, b.z + nz * 0.04);
-    label.rotation.y = b.rotY;
-    site.group.add(label);
     const it: Interactable = { kind: key, x: b.x + nx * 1.6, z: b.z + nz * 1.6, radius: 2.4 };
     site.interactables.push(it);
     bg.userData.interact = it;
     // The board hangs on a wall as the room is built; the editor may take it off and float it anywhere.
     const wall = wallFacing(b.rotY);
-    // The board and its label travel together when the editor moves it.
-    placed([bg, label], `board-${key}`, { x: b.x, z: b.z, rotY: b.rotY }, [], site);
-    // The board and its label above it, up to the ceiling.
+    placed(bg, `board-${key}`, { x: b.x, z: b.z, rotY: b.rotY }, [], site);
+    // The board's own wall, up to the ceiling.
     const bottom = b.y - (b.height + 0.3) / 2;
     site.wall(wall, wall === 'north' || wall === 'south' ? b.x : b.z, (bottom + WALL_HEIGHT) / 2, b.width + 0.3, WALL_HEIGHT - bottom);
   }

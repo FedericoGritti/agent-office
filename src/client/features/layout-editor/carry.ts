@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { FLOOR, LOFT, WALL_HEIGHT } from '../../../shared/layout';
-import { change, placements, resizeBy, scaleOf, type Placed, type Placements } from '../../../shared/placement';
+import { change, liftBy, placements, resizeBy, scaleOf, type Placed, type Placements } from '../../../shared/placement';
 import { applyPiece, pieceOf, placedPieces, QUARTER, type Piece, type Room } from '../../world/office/placed';
 import { textSprite } from '../../world/toon';
 
@@ -125,23 +125,20 @@ export class Carrying {
   }
 
   /**
-   * Where the piece in your hands goes, as your look says: its place on the room's 25 cm grid, and — for
-   * a thing you added, which has a height of its own — how high it goes (see `lift`).
-   *
-   * Across the room it follows the aim on the height it is at: looking down, that is the floor it stands
-   * on (a couch in the loft follows the loft's floor); looking up, the height it hangs at (a board two
-   * metres up, with your eye below it). A piece of the room's own keeps that height — it is where its
-   * builder put it, and nothing here moves it up or down.
+   * Where the piece in your hands goes: its place on the room's 25 cm grid, keeping the height it has.
+   * Across the room it follows the aim on that height: looking down, it is the floor it stands on (a
+   * couch in the loft follows the loft's floor); looking up, the height it hangs at (a board two metres
+   * up, with your eye below it). The height itself is not the aim's to change but the editor's (see
+   * `raise`), and a piece of the room's own has none to change at all.
    */
-  private destination(piece: Piece): { x: number; y?: number; z: number } | null {
-    const up = piece.at.y;
-    const y = up === undefined ? undefined : this.lift(piece);
-    const plane = up ?? (this.raycaster.ray.direction.y < 0 ? this.standingAt(piece) : piece.parts[0]!.position.y);
-    const at = this.across(piece, plane);
+  private destination(piece: Piece): { x: number; z: number } | null {
+    const height = piece.at.y ?? (this.raycaster.ray.direction.y < 0 ? this.standingAt(piece) : piece.parts[0]!.position.y);
+    const at = this.across(piece, height);
     if (!at) return null;
-    const x = this.snap(at.x, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN);
-    const z = this.snap(at.z, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN);
-    return y === undefined ? { x, z } : { x, y, z };
+    return {
+      x: this.snap(at.x, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN),
+      z: this.snap(at.z, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN),
+    };
   }
 
   /**
@@ -166,22 +163,6 @@ export class Carrying {
    *  was built on. */
   private standingAt(piece: Piece): number {
     return piece.colliders.reduce((y, box) => Math.max(y, box.bottom ?? 0), 0);
-  }
-
-  /**
-   * How high your look leaves the thing in your hands: the point your aim crosses on the plane facing
-   * you through the piece, so looking up lifts it and looking down sets it near the floor, keeping the
-   * distance it had. Left up there, it stays up there — nothing in this room falls — and it never goes
-   * under the floor or through the ceiling above it (see `ceilingFor`). It lands on the room's own grid,
-   * which is 0 on the floor, 3 m on the loft, and every quarter of a metre between.
-   */
-  private lift(piece: Piece): number {
-    const { origin, direction } = this.raycaster.ray;
-    const middle = piece.parts[0]!.position;
-    const along = (middle.x - origin.x) * direction.x + (middle.y - origin.y) * direction.y + (middle.z - origin.z) * direction.z;
-    // Nothing in front of your eye to judge by: it keeps the height it had.
-    if (!(along > 0)) return piece.at.y ?? 0;
-    return this.snap(origin.y + direction.y * along, 0, this.ceilingFor(piece));
   }
 
   /** The highest a thing may be left standing: the room's ceiling less its own height, so a tall model
@@ -236,20 +217,34 @@ export class Carrying {
   }
 
   /**
-   * Whether what you're carrying can be resized: only a piece the catalog added, whose file is the
-   * whole of it. The room's own furniture is furniture because of where it was measured — a desk's seat
-   * and use-point are the room's plan, not the desk's size (see docs/room.md).
+   * Whether what you're carrying is yours to adjust — its size, and the height it stands at: only a
+   * thing the catalog added, whose file is the whole of it. The room's own furniture is where its seats,
+   * its use-points and the walk map round them are measured, so neither the wheel nor the keys touch it
+   * (see docs/room.md).
    */
-  get resizable(): boolean {
+  get adjustable(): boolean {
     return !!this.held?.added;
   }
 
   /** One turn of the wheel goes up (`dir` > 0) or down, while you carry it: it grows about its own
-   *  middle, so it stays where you're putting it and keeps standing on the floor it's on. */
+   *  middle, so it stays where you're putting it and keeps standing on the height it is at. */
   resize(dir: number): boolean {
     const piece = this.held;
     if (!piece || !piece.added) return false;
     this.place(piece, { ...piece.at, scale: resizeBy(scaleOf(piece.at), dir) }, false);
+    this.deps.changed();
+    return true;
+  }
+
+  /**
+   * A step up (`dir` > 0) or down, while you carry it: a quarter of a metre at a press, never under the
+   * floor or through the ceiling above it (see ceilingFor). It keeps its place across the room, and
+   * where you leave it is where it stays — nothing in this room falls.
+   */
+  raise(dir: number): boolean {
+    const piece = this.held;
+    if (!piece || !piece.added) return false;
+    this.place(piece, { ...piece.at, y: liftBy(piece.at.y ?? 0, dir, this.ceilingFor(piece)) }, false);
     this.deps.changed();
     return true;
   }

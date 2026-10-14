@@ -97,6 +97,17 @@ export function resizeBy(scale: number, dir: number): number {
   return clampScale(scale * (dir > 0 ? SCALE_STEP : 1 / SCALE_STEP));
 }
 
+/** How far one press moves a piece up or down, in metres: a step, on the room's own grid. */
+export const LIFT_STEP = 0.25;
+
+/** The height one press up (`dir` > 0) or down from `y` leaves a piece at, never under the floor or past
+ *  the ceiling it is given. A height that isn't a number at all is the floor, like a size that isn't a
+ *  number is the size it came. */
+export function liftBy(y: number, dir: number, ceiling: number): number {
+  const next = (Number.isFinite(y) ? y : 0) + (dir > 0 ? LIFT_STEP : -LIFT_STEP);
+  return Math.min(Math.max(0, ceiling), Math.max(0, next));
+}
+
 /** What each piece is called on the panel. A piece without an entry goes by its id. */
 export const PLACEABLE_LABELS: Record<string, string> = {
   jukebox: '🎵 Jukebox',

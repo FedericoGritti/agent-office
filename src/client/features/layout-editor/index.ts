@@ -24,7 +24,7 @@ export function installLayoutEditor(ctx: Ctx) {
   function refresh(): void {
     const held = carrying.carrying;
     if (!carrying.on) banner.hide();
-    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)}${heldSaid()} — E puts it down · R turns it${carrying.resizable ? ' · scroll sizes it' : ''} · Canc takes it away · Esc puts it back`);
+    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)}${heldSaid()} — E puts it down · R turns it${carrying.adjustable ? ' · scroll sizes it · PgUp/PgDn up and down' : ''} · Canc takes it away · Esc puts it back`);
     else banner.set('🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish');
     ctx.hint.invalidate();
   }
@@ -115,6 +115,15 @@ export function installLayoutEditor(ctx: Ctx) {
       carrying.turn(e.shiftKey);
       return true;
     }
+    if (e.code === 'PageUp' || e.code === 'PageDown') {
+      // Up and down is a key press and not the aim (your look is for walking the room, and a piece that
+      // followed it would rise every time you glanced at a board). A piece of the room's own has no
+      // height of its own to change, so the key isn't the editor's there at all.
+      if (!carrying.adjustable) return false;
+      e.preventDefault();
+      carrying.raise(e.code === 'PageUp' ? 1 : -1);
+      return true;
+    }
     if (e.code === 'Delete' || e.code === 'Backspace') {
       e.preventDefault();
       if (!carrying.takeAway()) toast('Pick something up first');
@@ -134,7 +143,7 @@ export function installLayoutEditor(ctx: Ctx) {
       aside(held ? 'It follows your look; E puts it down' : 'Look at a piece and press E to pick it up'),
       key('C', 'Catalog'),
       key('R', 'Quarter turn'),
-      ...(carrying.resizable ? [key('Scroll', 'Size')] : []),
+      ...(carrying.adjustable ? [key('Scroll', 'Size'), key('PgUp/PgDn', 'Up / down')] : []),
       key('Canc', 'Take it away'),
       key('Esc', held ? 'Put it back' : 'Stop'),
     );
@@ -170,7 +179,7 @@ export function installLayoutEditor(ctx: Ctx) {
   window.addEventListener(
     'wheel',
     (e) => {
-      if (e.target !== ctx.canvas || !carrying.resizable) return;
+      if (e.target !== ctx.canvas || !carrying.adjustable) return;
       e.preventDefault();
       e.stopPropagation();
       carrying.resize(e.deltaY < 0 ? 1 : -1);

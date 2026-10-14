@@ -3,7 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SCALE_MAX, SCALE_MIN, change, clampScale, labelFor, nextSpawnId, place, placeAdded, placements, resizeBy, sanitize, scaleOf, setPlacements, spawn, spawned } from '../src/shared/placement.js';
+import { LIFT_STEP, SCALE_MAX, SCALE_MIN, change, clampScale, labelFor, liftBy, nextSpawnId, place, placeAdded, placements, resizeBy, sanitize, scaleOf, setPlacements, spawn, spawned } from '../src/shared/placement.js';
 
 const BASE = { x: -16.63, z: -12.56, rotY: 0 } as const;
 const TURNED = { x: -2, z: -4, rotY: Math.PI } as const;
@@ -132,6 +132,21 @@ test('an addition can name a model fetched from an online catalog', () => {
   setPlacements(cleaned);
   assert.deepEqual(spawned().map((p) => p.kind), ['polyhaven:ArmChair_01']);
   assert.equal(labelFor('add-1'), 'ArmChair 01');
+});
+
+test('a press goes up a step and no further than the floor or the ceiling', () => {
+  assert.equal(LIFT_STEP, 0.25);
+  assert.equal(liftBy(0, 1, 6.8), 0.25);
+  assert.equal(liftBy(2.75, 1, 6.8), 3);
+  assert.equal(liftBy(2.75, -1, 6.8), 2.5);
+  // The floor is as low as it goes, and the ceiling as high — the ceiling it is handed is already the
+  // room's less the thing's own height (see the carry's ceilingFor).
+  assert.equal(liftBy(0, -1, 6.8), 0);
+  assert.equal(liftBy(6.7, 1, 6.8), 6.8);
+  // A height arithmetic cannot make is the floor, the way a size it cannot make is the size it came.
+  assert.equal(liftBy(Number.NaN, 1, 6.8), 0.25);
+  // Nothing taller than the room moves: its ceiling is under its floor.
+  assert.equal(liftBy(0, 1, -1), 0);
 });
 
 test('a piece the editor resized keeps its size in the file, and the size it came at is nothing said', () => {

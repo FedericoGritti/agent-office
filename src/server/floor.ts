@@ -24,6 +24,7 @@ import { Jail } from './jail.js';
 import { Garage } from './garage.js';
 import { Jukebox } from './jukebox.js';
 import { Layout } from './layout.js';
+import { ModelStore } from './model-sources/store.js';
 import { Whiteboard } from './whiteboard.js';
 import { MeetingRoom } from './meetings.js';
 import { Worktrees, type WorktreeCleanup } from './worktrees.js';
@@ -130,6 +131,8 @@ export class Floor {
   readonly jukebox: Jukebox;
   /** Where this floor's furniture stands, as the editor has left it. */
   readonly layout: Layout;
+  /** The models its windows have fetched from an online catalog, and served back to the room. */
+  readonly models: ModelStore;
   /** The whiteboard everyone on the floor draws on together. */
   readonly whiteboard: Whiteboard;
   /** The meeting room, where workers work through a question together (see meetings.ts). */
@@ -148,6 +151,8 @@ export class Floor {
   /** Workers sent home on a map that locks them up (see MapPlan.sendHome). */
   readonly jail: Jail;
   private timer: NodeJS.Timeout;
+  /** Stops watching the project's `images/` for the figures boards (see images.watch). */
+  private imagesOff: () => void;
   /** Pull requests merging, to ring the gong for. */
   private merges = new MergeWatch();
   /** A look for workers whose pull request merged, due shortly (see sendLandedHome). */
@@ -167,6 +172,9 @@ export class Floor {
     this.project = projectInfo(def.dir, def.name, ctx.agentCmd, ctx.agentArgs);
     this.docs = new Docs(def.dir);
     this.images = new Images(def.dir);
+    // The figures boards read images/ again when it moves: a figure added, taken away or written
+    // again under its own name reaches every board on the floor by itself (see features/figures).
+    this.imagesOff = this.images.watch(() => ctx.emit(this, { t: 'images' }));
     // Before the workers and the dog: the back office's desks are only there once it's built.
     this.plan = new FloorPlanStore(dataDir);
     this.jail = new Jail(dataDir);
@@ -321,6 +329,7 @@ export class Floor {
     this.decor = new Decor(dataDir);
     this.jukebox = new Jukebox(dataDir);
     this.layout = new Layout(dataDir);
+    this.models = new ModelStore(dataDir);
     this.whiteboard = new Whiteboard(dataDir);
     this.coordinator = new Coordinator(def.dir, dataDir, (state) => ctx.emit(this, { t: 'coordinator', state }));
     this.spend = new OmpSpend(def.dir, def.name);
@@ -436,6 +445,7 @@ export class Floor {
     this.coordinator.shutdown();
     this.meetings.shutdown();
     this.changes.stop();
+    this.imagesOff();
     this.whiteboard.flush();
     this.workers.shutdown(keep);
   }

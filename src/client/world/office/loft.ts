@@ -212,19 +212,6 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   const lamp = pendant();
   lamp.position.set(deskX, roofY - 0.4, cz);
   group.add(lamp);
-
-  // Signs: one on the back wall inside, between its two windows, one over the open side for downstairs.
-  const inside = textPlane('👑 Boss Office', { bg: '#fffaf3', size: 64 });
-  inside.scale.multiplyScalar(0.8);
-  inside.position.set(cx, floorY + 1.9, maxZ - 0.04);
-  inside.rotation.y = Math.PI;
-  group.add(inside);
-  const outside = textPlane('👑 Boss Office', { bg: '#2b2d42', color: '#fffaf3', size: 64, border: '#fffaf3' });
-  outside.scale.multiplyScalar(1.4);
-  // In front of the roof's trim (minZ - 0.04 to minZ), or the trim hides the sign's lower half.
-  outside.position.set(cx, roofY + 0.2, minZ - 0.07);
-  outside.rotation.y = Math.PI;
-  group.add(outside);
 }
 
 /** The loft up the stairs, over the meeting room: the boss's office. */

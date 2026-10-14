@@ -236,11 +236,10 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
   };
 }
 
-/** Wall boards. `rotY` is the way the board faces (0 = +z, like the north-wall boards). */
+/** The four wall boards: the checklist, the timeline and the phase along the north wall, the token board
+ *  on the east. `rotY` is the way each faces (0 = +z), and `label` is what the plan calls one — the office
+ *  paints no name over its own (see `features/boards`: a board says what it is on itself). */
 export const BOARDS = {
-  // Side by side along the west half of the north wall, evenly spaced: the jukebox, the shelf of the
-  // project's docs, then the checklist, the timeline and the phase, stopping short of the elevator with
-  // the same gap between each and at either end.
   issues: { x: -9.84, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Checklist' },
   queue: { x: -3.12, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🕓 Timeline' },
   pulls: { x: 3.6, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🎯 Phase' },

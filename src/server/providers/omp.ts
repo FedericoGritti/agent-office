@@ -2,11 +2,14 @@
 // OMP login, settings, packages and extensions stay as they are. It reports on /hooks/omp in the same
 // statuses as OpenCode's plugin. Its sessions are OMP's own, in the person's OMP store: the conversation
 // a desk starts is the one a terminal `omp --resume` opens, and its spend is read off the same session
-// records `omp stats` sums (see omp-usage.ts) rather than metered separately by the office.
+// records `omp stats` sums (see omp-usage.ts) rather than metered separately by the office. Every worker
+// is filed in the project's own folder there, whatever folder it works in, so a run in a worktree is
+// still one of the project's own conversations rather than another working directory's; what the office
+// left in the worktrees' folders before that is moved there as the floor starts (adoptOmpSessions).
 import path from 'node:path';
 import { normalizeOmpHook, ompArgs, writeOmpExtension, writeOmpOverlay } from '../omp.js';
 import { stopIdleOmpBrowser } from '../omp-browser.js';
-import { OmpUsageReader, ompAgentDir, ompSessionFile, ompSessionFileIn } from '../omp-usage.js';
+import { OmpUsageReader, adoptOmpSessions, ompAgentDir, ompSessionDir, ompSessionFile } from '../omp-usage.js';
 import { reduceStatus, type StatusState } from './opencode.js';
 import type { ProviderAdapter } from './types.js';
 
@@ -15,8 +18,8 @@ interface OmpSetup {
   extension: string;
   /** The office's config overlay: a desk starts its own conversation, never the folder's last one. */
   overlay: string;
-  /** The floor's data dir, where a desk's own session folder lived before sessions moved into OMP's. */
-  dataDir: string;
+  /** The folder every one of the floor's workers is filed in: the project's own (see omp-usage.ts). */
+  sessionDir: string;
 }
 
 interface OmpState extends StatusState {
@@ -24,8 +27,6 @@ interface OmpState extends StatusState {
   usage: OmpUsageReader;
   /** Where the person's OMP keeps its sessions, from the environment the worker starts in. */
   sessions?: string;
-  /** A desk folder of its own, when the session being resumed still lives there. */
-  own?: string;
   /** The session file being read, and the session it belongs to. */
   file?: { id: string; path: string };
 }
@@ -33,7 +34,14 @@ interface OmpState extends StatusState {
 export const omp: ProviderAdapter<OmpState, OmpSetup> = {
   id: 'omp',
   createState: () => ({ usage: new OmpUsageReader() }),
-  prepare: ({ dataDir }) => ({ extension: writeOmpExtension(dataDir), overlay: writeOmpOverlay(dataDir), dataDir }),
+  prepare: ({ dir, dataDir }) => {
+    const sessionsRoot = path.join(ompAgentDir(dir, process.env), 'sessions');
+    // What the office left in worktrees' own folders, before it filed them in the project's: once per
+    // floor, and nothing to do the second time (see adoptOmpSessions).
+    const adopted = adoptOmpSessions({ dir, dataDir, sessionsRoot });
+    if (adopted) console.log(`agent-office: moved ${adopted} earlier OMP session${adopted === 1 ? '' : 's'} of this project's workers into its own folder`);
+    return { extension: writeOmpExtension(dataDir), overlay: writeOmpOverlay(dataDir), sessionDir: ompSessionDir(dir, sessionsRoot) };
+  },
   /**
    * A run of this provider's worker in `cwd` is over. OMP keeps a headless browser per folder and only
    * sweeps a hard-killed session's tabs the next time somebody opens the browser there, so the folder's
@@ -44,17 +52,13 @@ export const omp: ProviderAdapter<OmpState, OmpSetup> = {
   },
   launch({ h, args, prompt, resumeSessionId, setup }) {
     const { info, state } = h;
-    // A desk that already kept a session folder of its own (started before sessions moved into the
-    // person's OMP store) carries on there, so its conversation isn't lost. Everything else names no
-    // folder at all: OMP writes the session into its own store, under the folder it was run in, which
-    // is what makes the office's conversations the same ones `omp --resume` finds.
-    const own = path.join(setup.dataDir, 'omp-sessions', info.id);
-    state.own = resumeSessionId && ompSessionFileIn(own, resumeSessionId) ? own : undefined;
     state.file = undefined;
     state.error = false;
-    // --resume carries on this desk's own conversation; --config keeps OMP from opening the folder's
-    // last one instead, which would be whatever was talked about last there.
-    return { args: ompArgs(args, { extension: setup.extension, overlay: setup.overlay, sessionDir: state.own, sessionId: resumeSessionId, model: info.model, effort: info.effort, prompt }), rotateToken: true };
+    // --session-dir files this desk's conversation in the project's own OMP folder, so it reads as one
+    // of that project's sessions and not, as one folder per worktree did, as another working
+    // directory's; --resume carries on this desk's own by id, and --config keeps OMP from opening the
+    // folder's last one instead, which would be whatever was talked about last there.
+    return { args: ompArgs(args, { extension: setup.extension, overlay: setup.overlay, sessionDir: setup.sessionDir, sessionId: resumeSessionId, model: info.model, effort: info.effort, prompt }), rotateToken: true };
   },
   bootHint: 'Open the terminal: complete OMP login or project setup',
   // Resuming a conversation OMP no longer has ("Session ... not found") exits before it ever starts.
@@ -86,18 +90,14 @@ export const omp: ProviderAdapter<OmpState, OmpSetup> = {
     scan(h) {
       const { info, state } = h;
       if (!info.sessionId) return;
-      const root = state.own ?? (state.sessions ? path.join(state.sessions, 'sessions') : undefined);
+      const root = state.sessions ? path.join(state.sessions, 'sessions') : undefined;
       if (!root) return;
-      let target: string | undefined;
-      if (state.own) {
-        target = ompSessionFileIn(state.own, info.sessionId);
-      } else {
-        if (state.file?.id !== info.sessionId) {
-          const found = ompSessionFile(root, info.sessionId);
-          state.file = found ? { id: info.sessionId, path: found } : undefined;
-        }
-        target = state.file?.path;
+      // Its conversation is filed in the project's own folder, under the id it is saved by.
+      if (state.file?.id !== info.sessionId) {
+        const found = ompSessionFile(root, info.sessionId);
+        state.file = found ? { id: info.sessionId, path: found } : undefined;
       }
+      const target = state.file?.path;
       if (!target) return;
       const usage = state.usage.read(target, root);
       if (usage && JSON.stringify(usage) !== JSON.stringify(info.usage)) {

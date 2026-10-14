@@ -3,15 +3,17 @@
 // Esc puts it back where you found it. Nothing here draws a window: you look, you pick up, you walk.
 
 import * as THREE from 'three';
-import { FLOOR } from '../../../shared/layout';
-import { change, placements, type Placed, type Placements } from '../../../shared/placement';
-import { applyPiece, pieceOf, placedPieces, type Piece, type Room } from '../../world/office/placed';
+import { FLOOR, LOFT, WALL_HEIGHT } from '../../../shared/layout';
+import { change, hasSeat, liftBy, placements, resizeBy, scaleOf, type Placed, type Placements } from '../../../shared/placement';
+import { applyPiece, pieceOf, placedPieces, QUARTER, type Piece, type Room } from '../../world/office/placed';
 import { textSprite } from '../../world/toon';
 
 /** A quarter of a metre: fine enough to line a shelf up with a board, coarse enough to stay on the grid. */
 const SNAP = 0.25;
 /** How far past the floor's edge a piece may still stand. */
 const MARGIN = 0.4;
+/** How far in front of you a thing picked off the catalog lands. */
+const AHEAD = 2.2;
 /** The middle of the screen: what you're looking at, in first person or in third. */
 const CENTRE = new THREE.Vector2(0, 0);
 
@@ -31,6 +33,13 @@ export class Carrying {
   private held: Piece | null = null;
   /** Where the piece you're carrying was when you picked it up, for Esc. */
   private from: Placed | null = null;
+  /**
+   * The height the piece in your hands is being carried across: the one it had when you took it, so that
+   * raising or lowering it with the keys leaves its place across the room alone (see `destination`). A
+   * seat's furniture is carried on its own height instead, and there is none of this when your hands are
+   * empty.
+   */
+  private carriedY: number | null = null;
   private marker = new THREE.Mesh(
     new THREE.PlaneGeometry(1.4, 1.4),
     new THREE.MeshBasicMaterial({ color: '#ffd166', transparent: true, opacity: 0.45, depthWrite: false }),
@@ -71,6 +80,26 @@ export class Carrying {
     return this.aimedAt?.distance ?? Infinity;
   }
 
+  /**
+   * Where a thing picked off the catalog lands (see ui.ts and world/office/catalog.ts): a couple of
+   * metres in front of you, on the room's grid and inside the floor's edge, at the height of the floor
+   * you're standing on (up on the loft, on the loft's own floor), turned a quarter turn to face you.
+   */
+  spotAhead(pos: THREE.Vector3, facing: number): { x: number; y: number; z: number; rotY: number } {
+    const x = this.snap(pos.x + Math.sin(facing) * AHEAD, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN);
+    const z = this.snap(pos.z + Math.cos(facing) * AHEAD, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN);
+    const turn = (((facing + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    return { x, y: pos.y > LOFT.y / 2 ? LOFT.y : 0, z, rotY: Math.round(turn / QUARTER) * QUARTER };
+  }
+
+  /** Takes a piece the catalog just added in hand, so it can be put where it goes straight away. */
+  hold(piece: Piece): void {
+    this.held = piece;
+    this.from = { ...piece.at };
+    this.carriedY = piece.at.y ?? null;
+    this.deps.changed();
+  }
+
   /** Into the room's furniture, and out again. */
   toggle(): void {
     if (this.moving) this.stop();
@@ -96,6 +125,7 @@ export class Carrying {
     this.place(piece, this.from, false);
     this.held = null;
     this.from = null;
+    this.carriedY = null;
   }
 
   /** Every frame: what you're looking at, or where the piece in your hands is going. */
@@ -103,18 +133,8 @@ export class Carrying {
     if (!this.moving) return;
     this.raycaster.setFromCamera(CENTRE, this.camera);
     if (this.held) {
-      // Carry it over a plane the look-ray actually meets: looking down, the floor it stands on (a couch
-      // in the loft follows the loft's floor); looking up, the height it hangs at (a board two metres up,
-      // with your eye below it). The other plane is never reached from your eye, and the piece would sit
-      // there and not move at all.
-      const floorY = this.held.colliders.reduce((y, box) => Math.max(y, box.bottom ?? 0), 0);
-      const hangY = this.held.parts[0]!.position.y;
-      this.floor.constant = -(this.raycaster.ray.direction.y < 0 ? floorY : hangY);
-      const at = this.raycaster.ray.intersectPlane(this.floor, this.at);
-      if (!at) return;
-      const x = this.snap(at.x, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN);
-      const z = this.snap(at.z, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN);
-      this.place(this.held, { ...this.held.at, x, z, hidden: false }, false);
+      const to = this.destination(this.held);
+      if (to) this.place(this.held, { ...this.held.at, ...to, hidden: false }, false);
       return;
     }
     const at = this.lookingAt();
@@ -122,6 +142,51 @@ export class Carrying {
     this.aimedAt = at;
     this.mark(at?.piece ?? null, at ? 'E to pick it up' : '');
     if (changed) this.deps.changed();
+  }
+
+  /**
+   * Where the piece in your hands goes: its place on the room's 25 cm grid, on the height it is being
+   * carried across — the height it had when you picked it up (`carriedY`), so raising it on the keys or
+   * the wheel doesn't also walk it across the room. A piece of the room's own is carried on the floor it
+   * stands on, looking down, and on the height it hangs at looking up: it is where its builder put it,
+   * and nothing here changes it.
+   *
+   * The plane the look-ray meets is what puts the piece down exactly where you are looking, at any
+   * distance. A height your eye never crosses — looking up at something standing on the floor — leaves
+   * it where it is, which is why a piece is carried by looking at the ground.
+   */
+  private destination(piece: Piece): { x: number; z: number } | null {
+    const { origin, direction } = this.raycaster.ray;
+    // A piece whose height is the editor's (see `adjustable`) is carried on the height it had when you
+    // picked it up, so raising it doesn't also walk it across the room. A seat keeps the height the room
+    // built it at: it is carried on the floor it stands on, looking down, and on the height it hangs at,
+    // looking up.
+    const height = hasSeat(piece.id)
+      ? direction.y < 0
+        ? this.standingAt(piece)
+        : piece.parts[0]!.position.y
+      : this.carriedY ?? piece.at.y;
+    if (height === undefined || (height - origin.y) * direction.y <= 0) return null;
+    this.floor.constant = -height;
+    const at = this.raycaster.ray.intersectPlane(this.floor, this.at);
+    if (!at) return null;
+    return {
+      x: this.snap(at.x, FLOOR.minX + MARGIN, FLOOR.maxX - MARGIN),
+      z: this.snap(at.z, FLOOR.minZ + MARGIN, FLOOR.maxZ - MARGIN),
+    };
+  }
+
+  /** The height a piece of the room's own stands at: the bottom of what it fills, which is the floor it
+   *  was built on. */
+  private standingAt(piece: Piece): number {
+    return piece.colliders.reduce((y, box) => Math.max(y, box.bottom ?? 0), 0);
+  }
+
+  /** The highest a thing may be left standing: the room's ceiling less its own height, so a tall model
+   *  held up over the loft doesn't end up standing through the roof. */
+  private ceilingFor(piece: Piece): number {
+    const tall = piece.colliders.reduce((h, box) => Math.max(h, (box.top ?? 0) - (box.bottom ?? 0)), 0);
+    return Math.max(0, WALL_HEIGHT - tall);
   }
 
   /** The piece under what you're looking at, if there is one, and how far off it is. */
@@ -139,8 +204,15 @@ export class Carrying {
     if (!piece) return false;
     this.held = piece;
     this.from = { ...piece.at };
+    this.carriedY = piece.at.y ?? null;
     this.deps.changed();
     return true;
+  }
+
+  /** Writes the room down as it stands (see layout.set): what putting a piece down does, and what
+   *  adding one off the catalog does, so a new piece is saved even if nobody touches it. */
+  save(): void {
+    this.deps.save(placements());
   }
 
   /** Puts down what you're carrying, where you're looking, and writes it down. */
@@ -149,7 +221,8 @@ export class Carrying {
     if (!piece) return false;
     this.held = null;
     this.from = null;
-    this.deps.save(placements());
+    this.carriedY = null;
+    this.save();
     this.deps.changed();
     return true;
   }
@@ -162,6 +235,56 @@ export class Carrying {
     return true;
   }
 
+  /**
+   * Whether what you're carrying is yours to adjust — its size, and the height it stands at. Everything
+   * the room declares is, except a seat's own furniture (a desk, a station, a cushion, a couch): the
+   * office hires into that place and walks around it, so a desk half its size would be a seat nobody
+   * could sit at and one up in the air a place nobody could reach (see hasSeat).
+   */
+  get adjustable(): boolean {
+    return !!this.held && !hasSeat(this.held.id);
+  }
+
+  /** A press of the size keys goes up (`dir` > 0) or down, while you carry it: it grows about its own
+   *  middle, so it stays where you're putting it and keeps standing on the height it is at. */
+  resize(dir: number): boolean {
+    const piece = this.held;
+    if (!piece || !this.adjustable) return false;
+    this.place(piece, { ...piece.at, scale: resizeBy(scaleOf(piece.at), dir) }, false);
+    this.deps.changed();
+    return true;
+  }
+
+  /**
+   * A step up (`dir` > 0) or down — the `+` and `-` keys, while you carry it: a quarter of a metre a
+   * step, never under the floor or through the ceiling above it (see ceilingFor). It keeps its place
+   * across the room, and where you leave it is where it stays — nothing in this room falls.
+   */
+  raise(dir: number): boolean {
+    const piece = this.held;
+    if (!piece || !this.adjustable) return false;
+    this.place(piece, { ...piece.at, y: liftBy(piece.at.y ?? 0, dir, this.ceilingFor(piece)) }, false);
+    this.deps.changed();
+    return true;
+  }
+
+  /** How big what you're carrying is, for the hint bar to say (1 when it's as it came). */
+  get size(): number {
+    return this.held ? scaleOf(this.held.at) : 1;
+  }
+
+  /** How high it is, for the hint bar to say (0 when it stands on the floor). */
+  get height(): number {
+    return this.held?.at.y ?? 0;
+  }
+
+  /** Which way it faces, in degrees clockwise from the way it was built: a quarter turn at a time, so it
+   *  reads as 0, 90, 180, 270. */
+  get turned(): number {
+    const rotY = this.held?.at.rotY ?? 0;
+    return ((((rotY - (this.held?.base.rotY ?? 0)) * 180) / Math.PI) % 360 + 360) % 360;
+  }
+
   /** Out of the room for good: it's saved as gone, and the colliders and its use-point go with it. */
   takeAway(): boolean {
     const piece = this.held;
@@ -169,12 +292,14 @@ export class Carrying {
     this.place(piece, { ...piece.at, hidden: true }, true);
     this.held = null;
     this.from = null;
+    this.carriedY = null;
     this.deps.save(placements());
     this.deps.changed();
     return true;
   }
 
-  /** A piece standing in the room again, from the panel's ✕ or from a saved file that said so. */
+  /** A piece standing in the room again, from the catalog's "put back" list: where it was, as big and as
+   *  high as it was left (see the layout-editor window). */
   bringBack(piece: Piece): void {
     this.place(piece, { ...piece.at, hidden: false }, true);
     this.deps.save(placements());

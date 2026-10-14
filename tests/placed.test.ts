@@ -10,6 +10,12 @@ import { setPlacements } from '../src/shared/placement.js';
 import { applyPiece, clearPieces, placed, placedPieces } from '../src/client/world/office/placed.js';
 import type { Collider } from '../src/client/world/types.js';
 
+/** A measurement, compared the way the room's own arithmetic deserves: a tenth of a millimetre is the
+ *  size of nobody's furniture. */
+function near(got: number, want: number): void {
+  assert.ok(Math.abs(got - want) < 1e-9, `${got} is not ${want}`);
+}
+
 test('a quarter turn turns a piece on the spot, not about where it was built', () => {
   setPlacements(null);
   clearPieces();
@@ -58,4 +64,143 @@ test('a board goes wherever you carry it, and keeps the height it hangs at', () 
   placed(group, 'test-board', { x: -9.84, z: -12.92, rotY: 0 });
   applyPiece(placedPieces()[0], { x: 2.5, z: -4, rotY: 0, hidden: false });
   assert.deepEqual([group.position.x, group.position.y, group.position.z], [2.5, 2.1, -4]);
+});
+
+test('a piece made bigger grows on its own spot, standing on the floor, with what you walk into', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  group.position.set(2, 0, -1);
+  // A pot two thirds of a metre across standing on the floor, the way footprint() writes one.
+  const box: Collider = { minX: 1.7, maxX: 2.3, minZ: -1.3, maxZ: -0.7, bottom: 0, top: 0.5 };
+  placed(group, 'add-1', { x: 2, z: -1 }, [box]);
+  const piece = placedPieces()[0];
+
+  applyPiece(piece, { x: 2, z: -1, rotY: 0, scale: 2, hidden: false });
+  // The object itself, twice the size, with its middle still on the spot it was put.
+  near(group.scale.x, 2);
+  assert.deepEqual([group.position.x, group.position.z], [2, -1]);
+  // Twice as wide and twice as tall, and no further off the floor than it was.
+  near(box.minX, 1.4);
+  near(box.maxX, 2.6);
+  near(box.bottom!, 0);
+  near(box.top!, 1);
+
+  // Down to the size it came: exactly that size, on the spot it grew about.
+  applyPiece(piece, { x: 2, z: -1, rotY: 0, scale: 1, hidden: false });
+  near(group.scale.x, 1);
+  near(box.minX, 1.7);
+  near(box.maxX, 2.3);
+  near(box.top!, 0.5);
+
+  // Twice at the same size grows nothing twice: it is the size, not the turning of the wheel, that
+  // says how big the piece is.
+  applyPiece(piece, { x: 2, z: -1, rotY: 0, scale: 1.5, hidden: false });
+  applyPiece(piece, { x: 2, z: -1, rotY: 0, scale: 1.5, hidden: false });
+  near(group.scale.x, 1.5);
+  // Half again as wide about its middle: a third of a metre out becomes 45 cm out.
+  near(box.maxX, 2.45);
+});
+
+test('a piece carried up into the air stays there, with what you walk into', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  group.position.set(4, 0, -3);
+  const box: Collider = { minX: 3.7, maxX: 4.3, minZ: -3.3, maxZ: -2.7, bottom: 0, top: 0.5 };
+  placed(group, 'add-1', { x: 4, y: 0, z: -3 }, [box], undefined, true);
+  const piece = placedPieces()[0];
+  assert.equal(piece.at.y, 0, 'it starts on the floor its spot says');
+
+  // Lifted two metres: the object and its box go up, and it is still over the same spot.
+  applyPiece(piece, { x: 4, y: 2, z: -3, rotY: 0, hidden: false });
+  near(group.position.y, 2);
+  near(box.bottom!, 2);
+  near(box.top!, 2.5);
+  assert.deepEqual([group.position.x, group.position.z], [4, -3]);
+
+  // Left up there, nothing brings it down: the height is where it was left, not where it was built.
+  applyPiece(piece, { x: 4, y: 2, z: -3, rotY: 0, hidden: false });
+  near(group.position.y, 2);
+
+  // Grown while it hangs, it grows about the height it stands at, not about the floor below it.
+  applyPiece(piece, { x: 4, y: 2, z: -3, rotY: 0, scale: 2, hidden: false });
+  near(box.bottom!, 2);
+  near(box.top!, 3);
+  near(box.maxX, 4.6);
+});
+
+test('a piece of the room\'s own is lifted from the height its builder gave it', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  // A board two metres up on the wall, with the place you press E at on the wall beside it.
+  group.position.set(-9.84, 2.1, -12.92);
+  group.userData.interact = { kind: 'board', x: -9.84, z: -12.4, y: 1.6, radius: 1.8 };
+  placed(group, 'test-board', { x: -9.84, z: -12.92, rotY: 0 });
+  const piece = placedPieces()[0];
+  assert.equal(piece.at.y, 2.1, 'it starts where the room built it');
+
+  // Lifted a metre and a quarter: the board goes up from there, and the place you use it from goes with
+  // it — a board in the air is still the board you press E at.
+  applyPiece(piece, { x: -9.84, z: -12.92, rotY: 0, y: 3.35, hidden: false });
+  near(group.position.y, 3.35);
+  near(piece.interact!.y!, 2.85);
+
+  // And it takes its colliders with it, up and back down.
+  applyPiece(piece, { x: -9.84, z: -12.92, rotY: 0, y: 2.1, hidden: false });
+  near(group.position.y, 2.1);
+  near(piece.interact!.y!, 1.6);
+});
+
+test('a piece moved with no height said keeps the height it stands at', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  // A board on the wall, two metres up, which is where layout.ts builds it.
+  group.position.set(-9.84, 2.1, -12.92);
+  placed(group, 'test-board', { x: -9.84, z: -12.92, rotY: 0 });
+  const piece = placedPieces()[0];
+  assert.equal(piece.at.y, 2.1);
+
+  // The floor's file coming round with no height in it (a piece of the room's own that nobody has
+  // lifted): the board is carried across the room and keeps the two metres it stands at — which the
+  // next lift is measured from, or half a metre up would be two and a half metres up.
+  applyPiece(piece, { x: 2, z: -4, rotY: 0, hidden: false });
+  near(group.position.y, 2.1);
+  assert.equal(piece.at.y, 2.1);
+  applyPiece(piece, { x: 2, z: -4, rotY: 0, y: 2.6, hidden: false });
+  near(group.position.y, 2.6);
+});
+
+test('a placement that says nothing about a height leaves the piece where it is', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  group.position.set(4, 2, -3);
+  const box: Collider = { minX: 3.7, maxX: 4.3, minZ: -3.3, maxZ: -2.7, bottom: 2, top: 2.5 };
+  placed(group, 'add-1', { x: 4, y: 2, z: -3 }, [box], undefined, true);
+
+  // Moving it across the room without saying a height — the floor's file coming round again is exactly
+  // this — is not the floor: it keeps the two metres it was left at, collider and all.
+  applyPiece(placedPieces()[0], { x: 6, z: -1, rotY: 0, hidden: false });
+  assert.deepEqual([group.position.x, group.position.y, group.position.z], [6, 2, -1]);
+  near(box.bottom!, 2);
+  near(box.top!, 2.5);
+});
+
+test('a piece grows about its own middle while it is being carried somewhere else', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  const box: Collider = { minX: -0.3, maxX: 0.3, minZ: -0.3, maxZ: 0.3, bottom: 0, top: 0.4 };
+  placed(group, 'add-2', { x: 0, z: 0 }, [box]);
+  // Moved and grown in one go, the way the editor does it every frame: the collider follows the piece
+  // to where it is now, and is as big as it is now, not as big as it was where it stood before.
+  applyPiece(placedPieces()[0], { x: 5, z: -2, rotY: 0, scale: 3, hidden: false });
+  assert.deepEqual([group.position.x, group.position.z], [5, -2]);
+  near(box.minX, 5 - 0.9);
+  near(box.maxX, 5 + 0.9);
+  near(box.minZ, -2 - 0.9);
+  near(box.top!, 1.2);
 });

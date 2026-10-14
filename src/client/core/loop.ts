@@ -5,6 +5,8 @@
  */
 import * as THREE from 'three';
 import { SlowFrames } from '../framerate';
+import { applyGraphics } from './graphics';
+import { framesWatched, phaseTimes, sampleFrame } from './perf';
 import { EYE_HEIGHT } from '../player';
 import { renderCaffeine } from '../features/coffee/meter';
 import type { Ctx } from './context';
@@ -92,8 +94,8 @@ export function installLoop(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'stage
     const ownBody = firstPerson && !ctx.activities.any('takesCamera') && !ctx.activities.any('hidesHands');
     (firstBody ??= new FirstPersonBody(me.rig)).set(ownBody, camera);
     me.root.visible = ownBody || ctx.activities.any('takesCamera') || (!firstPerson && camera.position.distanceTo(headPos.set(player.pos.x, player.pos.y + 1.3, player.pos.z)) > 1.5);
-    // In a car, your hands are on the wheel, out of sight.
-    if (firstPerson && !ctx.activities.any('hidesHands')) hands.update(dt, t, { yaw: player.camYaw, pitch: player.lookPitch, walkPhase: player.walkPhase, walking: player.moving && player.grounded, airborne: !player.grounded, jitter: player.effects.jitter, grip });
+    // In a car, your hands are on the wheel, out of sight. Hidden (see Settings), they're not moved at all: nothing draws them.
+    if (firstPerson && ctx.settings.hands && !ctx.activities.any('hidesHands')) hands.update(dt, t, { yaw: player.camYaw, pitch: player.lookPitch, walkPhase: player.walkPhase, walking: player.moving && player.grounded, airborne: !player.grounded, jitter: player.effects.jitter, grip });
     // What you're doing widens the view (down a pole) or narrows it (at the oche or the line), and once
     // it's set, may take it over (the telescope) or streak its edges (down a pole): see ctx.view.
     const fov = ctx.view.fov(FOV);
@@ -186,22 +188,26 @@ export function installLoop(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'stage
     ctx.view.draw(f, drawScene);
   }
 
-  /** The scene, then your hands on top of it. */
+  /** The scene, then your hands on top of it (unless they're hidden, see Settings). */
   function drawScene() {
     const { player, hands, sky, camera, renderer } = ctx;
-    const { effect, scene } = parts.stage;
+    const { effect, scene, sun } = parts.stage;
+    // The two Graphics settings that need the buffer and the shaders made again are applied here, once per
+    // change (see core/graphics.ts). The outlines are a pass over the frame, so they are one branch.
+    applyGraphics(renderer, [scene, hands.scene], sun, ctx.settings);
+    const draw = (s: THREE.Scene, c: THREE.Camera) => (ctx.settings.outlines ? effect.render(s, c) : renderer.render(s, c));
     const firstPerson = player.view === 'first';
     const unhide = firstBody?.hideExtras();
-    effect.render(scene, camera);
+    draw(scene, camera);
     unhide?.();
-    // Not while something has the screen to itself (the telescope, the boss's monitor or the arcade up close), where they'd cover it.
-    if (firstPerson && !ctx.view.covered() && !ctx.activities.any('hidesHands')) {
+    // Not when they're hidden (see Settings), nor while something has the screen to itself (the telescope, the boss's monitor or the arcade up close), where they'd cover it.
+    if (firstPerson && ctx.settings.hands && !ctx.view.covered() && !ctx.activities.any('hidesHands')) {
       // Hands go on top of everything, so they never clip into a desk you walk up to. They have
       // lights of their own, turned down to match wherever you're standing.
       renderer.clearDepth();
       hands.setLight(sky.lightAt(camera.position));
       sky.shading(false);
-      effect.render(hands.scene, hands.camera);
+      draw(hands.scene, hands.camera);
       sky.shading(true);
     }
   }
@@ -216,7 +222,11 @@ export function frameLoop(ctx: Ctx, loading: { drew(): void }): (ts?: number) =>
   function frame(ts?: number) {
     timer.update(ts);
     const delta = timer.getDelta();
-    ctx.ticks.run({ delta, dt: Math.min(delta, 0.1), t: timer.getElapsed(), now: performance.now() });
+    const tick = { delta, dt: Math.min(delta, 0.1), t: timer.getElapsed(), now: performance.now() };
+    // The frame's own work is timed phase by phase only while someone is watching it being measured.
+    if (framesWatched()) ctx.ticks.run(tick, phaseTimes());
+    else ctx.ticks.run(tick);
+    sampleFrame(delta * 1000);
     loading.drew();
     requestAnimationFrame(frame);
   }

@@ -10,6 +10,13 @@ if (argv[0] === 'prune') {
   const { prune } = await import('./prune.js');
   process.exit(await prune(argv.slice(1)));
 }
+// Each command's module is loaded only when it's the one asked for, so starting the office pulls in
+// nothing it doesn't use (as prune, accounts, setup and tunnel above and below: the command is a runtime
+// choice, so a static import cannot be the one that fits).
+if (argv[0] === 'reduce-models') {
+  const { reduceModels } = await import('./reduce-models.js');
+  process.exit(await reduceModels(argv.slice(1)));
+}
 if (argv[0] === 'accounts') {
   const { accountsCommand } = await import('./accounts.js');
   process.exit(accountsCommand(argv.slice(1)));

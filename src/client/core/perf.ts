@@ -1,0 +1,195 @@
+/**
+ * Where a frame's time goes: the numbers the Graphics settings page shows (see ui/settings.ts), and the
+ * only honest answer to "why is the office slow?".
+ *
+ * A frame is two different costs. One is what it draws — the ink outlines, the shadow map, the drawing
+ * buffer's pixels (see core/graphics.ts). The other is the office's own work every frame: moving you,
+ * the workers, the sky, the smoke, the boards. Which of the two dominates is a fact about the machine and
+ * about what is going on in it, and no amount of reading the code settles it.
+ *
+ * It measures only while someone is looking, because timing every phase is a little work per frame and an
+ * office is not made faster by asking it how slow it is.
+ */
+import type { TickPhase } from './registry';
+
+/** What a frame costs, averaged over a second or so: one frame's own time jumps about too much to read. */
+export interface FrameCost {
+  /** Frames per second the browser is actually giving. */
+  fps: number;
+  /** The whole frame in milliseconds, as the browser spaces them out. */
+  frame: number;
+  /** The frame's own work, phase by phase, the biggest first. Phases under 0.05 ms are left out. */
+  phases: { phase: TickPhase; ms: number }[];
+  /** The named pieces of work inside those phases (see span), the biggest first. */
+  spans: { name: string; ms: number }[];
+  /** What's left outside that work: waiting for the browser, its own layout and drawing, other tabs. */
+  elsewhere: number;
+  /** The worst single frame in this window, in milliseconds: a hitch is a frame, not an average. */
+  worst: number;
+}
+
+/** How many frames one reading averages: about half a second at 60 a second. Short, so a hitch shows up in it. */
+export const FRAME_WINDOW = 30;
+
+let watching = false;
+let frames = 0;
+let frameSum = 0;
+/** The worst single frame the browser gave us, which is what a hitch actually feels like. */
+let worstFrame = 0;
+const sums = new Map<TickPhase, number>();
+/** The named pieces inside those phases, summed over the same window (see span). */
+const spanSums = new Map<string, number>();
+/** The frame being timed now, which the loop fills in (see phaseTimes). */
+const current = new Map<TickPhase, number>();
+let last: FrameCost | null = null;
+let worst: FrameCost | null = null;
+let overlay: HTMLElement | null = null;
+let overlayTimer: number | undefined;
+/** Where a reading goes while someone is watching, and when the last one went (see onReading). */
+let reading: ((cost: FrameCost, worst: FrameCost) => void) | null = null;
+let sentAt = 0;
+
+/**
+ * Starts or stops measuring, and shows or hides the strip on screen (see setOverlay). Calling it with the
+ * state it's already in does nothing: a reading is about now, and it is not thrown away by asking again.
+ */
+export function watchFrames(on: boolean, strip = false): void {
+  setOverlay(on && strip);
+  if (watching === on) return;
+  watching = on;
+  frames = 0;
+  frameSum = 0;
+  worstFrame = 0;
+  sums.clear();
+  spanSums.clear();
+  current.clear();
+  last = null;
+  worst = null;
+  paintOverlay();
+}
+
+export function framesWatched(): boolean {
+  return watching;
+}
+
+/** The map this frame's phases are timed into, emptied first: the loop hands it to Ticks.run. */
+export function phaseTimes(): Map<TickPhase, number> {
+  current.clear();
+  return current;
+}
+
+/**
+ * Times one named piece of work inside a phase while someone is watching, and runs it either way.
+ *
+ * A phase can hide several jobs of very different cost, and which one is the slow one is not something to
+ * be reasoned out — the aim tick, for instance, both casts a ray through the room and repaints a board's
+ * canvas. Nothing is timed at all when nobody is watching, so this costs nothing in ordinary play.
+ */
+export function span<T>(name: string, fn: () => T): T {
+  if (!watching) return fn();
+  const at = performance.now();
+  try {
+    return fn();
+  } finally {
+    spanSums.set(name, (spanSums.get(name) ?? 0) + (performance.now() - at));
+  }
+}
+
+/** One frame measured: how long the browser gave it, and what its own work took (which the loop has put in the map). */
+export function sampleFrame(frameMs: number): void {
+  if (!watching) return;
+  frames++;
+  frameSum += frameMs;
+  worstFrame = Math.max(worstFrame, frameMs);
+  for (const [phase, ms] of current) sums.set(phase, (sums.get(phase) ?? 0) + ms);
+  if (frames < FRAME_WINDOW) return;
+  const n = frames;
+  const mean = frameSum / n;
+  const own = [...sums.values()].reduce((a, b) => a + b, 0) / n;
+  const cost: FrameCost = {
+    fps: 1000 / mean,
+    frame: mean,
+    phases: [...sums]
+      .map(([phase, ms]) => ({ phase, ms: ms / n }))
+      .filter((p) => p.ms >= 0.05)
+      .sort((a, b) => b.ms - a.ms),
+    spans: [...spanSums]
+      .map(([name, ms]) => ({ name, ms: ms / n }))
+      .filter((s) => s.ms >= 0.05)
+      .sort((a, b) => b.ms - a.ms),
+    elsewhere: Math.max(0, mean - own),
+    worst: worstFrame,
+  };
+  last = cost;
+  if (!worst || cost.frame > worst.frame) worst = cost;
+  // At most one reading a second goes out, and only if anything is listening for it.
+  if (reading && performance.now() - sentAt > 1000) {
+    sentAt = performance.now();
+    reading(cost, worst);
+  }
+  frames = 0;
+  frameSum = 0;
+  worstFrame = 0;
+  sums.clear();
+  spanSums.clear();
+  paintOverlay();
+}
+
+/** The last reading, or null while nothing has been measured yet (or nobody is watching: see watchFrames). */
+export function frameCost(): FrameCost | null {
+  return last;
+}
+
+/** The worst reading since measuring started: what the office looks like when it stutters, not on average. */
+export function worstCost(): FrameCost | null {
+  return worst;
+}
+
+/**
+ * What to do with each new reading, while someone is watching. The Graphics settings page uses it to write
+ * the number down where it can be looked at from the machine rather than asked of whoever is looking at a
+ * slow screen (see server/http/routes/perf.ts); nothing is sent when there is no such callback.
+ */
+export function onReading(cb: ((cost: FrameCost, worst: FrameCost) => void) | null): void {
+  reading = cb;
+}
+
+/**
+ * The strip on screen while the measurement is kept on so it can be read while you play (see the Graphics
+ * settings: settings are no use if you have to stand still to read them). It takes no clicks, so it never
+ * gets between you and the office.
+ */
+function setOverlay(on: boolean): void {
+  if (on) {
+    if (overlay || typeof document === 'undefined') return;
+    overlay = document.createElement('div');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.style.cssText =
+      'position:fixed;left:10px;bottom:10px;z-index:60;pointer-events:none;padding:6px 10px;border-radius:9px;' +
+      'background:rgba(14,14,20,.74);color:#fff;font:700 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;';
+    document.body.append(overlay);
+    overlayTimer = setInterval(paintOverlay, 400);
+    paintOverlay();
+    return;
+  }
+  clearInterval(overlayTimer);
+  overlayTimer = undefined;
+  overlay?.remove();
+  overlay = null;
+}
+
+/** What the strip says: the frame now, and the worst one since it started — the two are different questions. */
+function paintOverlay(): void {
+  if (!overlay) return;
+  if (!last) {
+    overlay.textContent = 'measuring…';
+    return;
+  }
+  const line = (c: FrameCost) => {
+    const phases = c.phases.slice(0, 3).map((p) => `${p.phase} ${p.ms.toFixed(1)}`).join(' · ') || 'nothing in it';
+    const inner = c.spans.length ? ` (${c.spans.slice(0, 3).map((s) => `${s.name} ${s.ms.toFixed(1)}`).join(' · ')})` : '';
+    return `${c.frame.toFixed(1)} ms · ${c.fps.toFixed(0)}/s — ${phases}${inner}`;
+  };
+  const hitched = worst && worst.frame > last.frame * 1.15;
+  overlay.textContent = hitched ? `now  ${line(last)}\nworst ${line(worst!)} (${worst!.worst} ms one frame)` : `now  ${line(last)}`;
+}

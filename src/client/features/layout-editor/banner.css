@@ -21,3 +21,37 @@
 .room-banner.hidden {
   display: none;
 }
+
+/*
+ * The two things a piece has, each with a step down and a step up beside what it is now. The sign itself
+ * never takes the mouse — you look straight through it — so only the buttons do.
+ */
+.room-banner-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 12px;
+  pointer-events: auto;
+}
+.room-banner-buttons.hidden {
+  display: none;
+}
+.room-banner-buttons .what {
+  font-weight: 800;
+  opacity: 0.75;
+}
+.room-banner-buttons .step {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.room-banner-buttons .read {
+  min-width: 4.2em;
+  font-weight: 900;
+  text-align: center;
+}
+.room-banner-buttons .btn {
+  padding: 0 7px;
+  font-size: 13px;
+  line-height: 1.6;
+}

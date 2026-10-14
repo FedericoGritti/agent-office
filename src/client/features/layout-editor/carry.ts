@@ -245,10 +245,9 @@ export class Carrying {
   }
 
   /**
-   * A step up (`dir` > 0) or down — a press of PgUp/PgDn, or a turn of the wheel, while you carry it: a
-   * quarter of a metre a step, never under the floor or through the ceiling above it (see ceilingFor).
-   * It keeps its place across the room, and where you leave it is where it stays — nothing in this room
-   * falls.
+   * A step up (`dir` > 0) or down — the `+` and `-` keys, while you carry it: a quarter of a metre a
+   * step, never under the floor or through the ceiling above it (see ceilingFor). It keeps its place
+   * across the room, and where you leave it is where it stays — nothing in this room falls.
    */
   raise(dir: number): boolean {
     const piece = this.held;

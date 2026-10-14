@@ -43,7 +43,7 @@ in the room at two metres, and turned on the spot.
 | `walls`, `shell`, `elevator`, `garageLift`, `wing`, `stack`, `tower`, `plug`, `clearOfStairs` | the room itself | ✘ |
 | `downstairs` (`cars`, `street`, `green`, `scenic`), `tee`, `hoop` | the street, the garage and the things out there | ✘ not this room |
 
-Anything with a **✔** can also be lifted and resized (**PgUp**/**PgDn**, **−**/**+**) — the room's own
+Anything with a **✔** can also be lifted and resized (**−**/**+**, **scroll**) — the room's own
 furniture as much as what the catalog adds — except the pieces that say a seat comes with them (a desk, a
 cushion, a couch): those keep the height and the size the room builds them at, for the reason below.
 
@@ -52,8 +52,7 @@ cushion, a couch): those keep the height and the size the room builds them at, f
 **C** while you're arranging opens the catalog — `src/shared/catalog.ts` is the list, and
 `src/client/world/office/catalog.ts` builds each one. Picking a thing puts it in the room two metres in
 front of you, on the same 25 cm grid, in your hands to place: **R** turns it, **E** puts it down where
-you look, **PgUp**/**PgDn** (or the scroll wheel) lift it and lower it, **−**/**+** make it bigger or
-smaller, **Canc** takes it away.
+you look, **−**/**+** lift it and lower it, **scroll** makes it bigger or smaller, **Canc** takes it away.
 
 | In the catalog | What it is |
 | --- | --- |
@@ -70,17 +69,20 @@ additions: `kind` says what it is. The other two are any piece's: `y` says how h
 on the loft's floor has the same `x` and `z` as the meeting room underneath it, and one the editor lifted
 keeps the height it was left at — and `scale` says how big it is when it isn't the size it was built at.
 
-**Anything you can pick up can be resized and lifted; a seat's own furniture can't.** Press **=** (or
-**−**) while you carry a piece and it grows or shrinks — a hundredth of what it came as at the smallest,
-a hundred times at the largest, a tenth a press — and **PgUp**/**PgDn** (or the scroll wheel) raise and
-lower it a quarter of a metre a step. It grows about its own middle and the height it stands at, and goes
-straight up and down where it stands, so it stays where you're putting it; what you walk into grows with
-it and goes up with it, and the place you use it from goes up too, so a board lifted two metres is still
-the board you press E at. Left up there it stays up there, because nothing in this room falls. It stops at
-the room's floor and at the ceiling above it, less the thing's own height, so a tall model held up over
-the loft doesn't end up standing through the roof. The sign at the top says both
-(`Carrying Monstera (130% · 3.25 m up)`), and both are saved with everything else: they come back that
-way for everyone on the floor, and after a restart.
+**Anything you can pick up can be resized and lifted; a seat's own furniture can't.** Scroll while you
+carry a piece and it grows or shrinks — a hundredth of what it came as at the smallest, a hundred times
+at the largest, a tenth a notch — and **−**/**+** raise and lower it a quarter of a metre a step (`=` is
+the `+` key on most keyboards, and the `-` and `+` characters work wherever they are). It grows about its
+own middle and the height it stands at, and goes straight up and down where it stands, so it stays where
+you're putting it; what you walk into grows with it and goes up with it, and the place you use it from
+goes up too, so a board lifted two metres is still the board you press E at. The sign at the top carries a
+**−**/**+** pair for each — the size and the height beside them — and a click is one step and no more,
+which is what a scroll can't promise; a button needs a cursor, so in first person, where the mouse is
+captured, it is the keys that do it. Left up there it stays up there, because nothing in this room falls.
+It stops at the room's floor and at the ceiling above it, less the thing's own height, so a tall model
+held up over the loft doesn't end up standing through the roof. The sign says how big it is and how high
+on those buttons, and both are saved with everything else: they come back that way for everyone on the
+floor, and after a restart.
 
 Anything with a seat — a desk, a station, a cushion, a couch — is where the room's plan is measured: that
 is the place the office hires into and the walk map goes round. Moving one writes the seat as well as the

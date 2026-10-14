@@ -18,23 +18,24 @@ import { Carrying } from './carry';
 import { openCatalog } from './ui';
 
 export function installLayoutEditor(ctx: Ctx) {
-  const banner = makeBanner();
+  const banner = makeBanner({
+    size: (dir) => void carrying.resize(dir),
+    lift: (dir) => void carrying.raise(dir),
+  });
 
-  /** What the sign and the hint bar say: the mode, what you're carrying, and what the keys do now. */
+  /** What the sign says, and what its buttons are about: the mode, what you're carrying, how big it is
+   *  and how high (see features/layout-editor/banner.ts). */
   function refresh(): void {
     const held = carrying.carrying;
     if (!carrying.on) banner.hide();
-    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)}${heldSaid()} — E puts it down · R turns it${carrying.adjustable ? ' · scroll or PgUp/PgDn up and down · −/+ sizes it' : ''} · Canc takes it away · Esc puts it back`);
-    else banner.set('🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish');
+    else if (held)
+      banner.set({
+        text: `🛠️ Carrying ${labelFor(held.id)} — E puts it down · R turns it${carrying.adjustable ? ' · scroll sizes it · −/+ up and down' : ''} · Canc takes it away · Esc puts it back`,
+        // A piece with a seat has no size or height of its own to change, so the sign carries no buttons.
+        ...(carrying.adjustable ? { piece: { size: carrying.size, height: carrying.height } } : {}),
+      });
+    else banner.set({ text: '🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish' });
     ctx.hint.invalidate();
-  }
-
-  /** How big what you're carrying is and how high it is, when either is worth saying (see Carrying). */
-  function heldSaid(): string {
-    const bits: string[] = [];
-    if (carrying.size !== 1) bits.push(`${Math.round(carrying.size * 100)}%`);
-    if (carrying.height > 0.005) bits.push(`${carrying.height.toFixed(2)} m up`);
-    return bits.length ? ` (${bits.join(' · ')})` : '';
   }
 
   const carrying = new Carrying(ctx.office, ctx.camera, {
@@ -115,20 +116,15 @@ export function installLayoutEditor(ctx: Ctx) {
       carrying.turn(e.shiftKey);
       return true;
     }
-    if (e.code === 'PageUp' || e.code === 'PageDown') {
-      // Up and down is a key press and the wheel (see below), and not the aim: your look is for walking
-      // the room, and a piece that followed it would rise every time you glanced at a board. A piece of
-      // the room's own has no height of its own to change, so the key isn't the editor's there at all.
+    if (e.code === 'Minus' || e.code === 'Equal' || e.key === '-' || e.key === '+') {
+      // Up and down is a button, not the wheel: a scroll can run away with a piece, and these two are on
+      // every keyboard — `-` lowers it, `+` raises it. Read by the character as well as by the key, so a
+      // layout that puts `+` somewhere else (or a numeric keypad) still works. The wheel is for the size
+      // (see below). A piece of the room's own with a seat has no height of its own to change, so the
+      // keys aren't the editor's there at all.
       if (!carrying.adjustable) return false;
       e.preventDefault();
-      carrying.raise(e.code === 'PageUp' ? 1 : -1);
-      return true;
-    }
-    if (e.code === 'Minus' || e.code === 'BracketLeft' || e.code === 'Equal' || e.code === 'BracketRight') {
-      // The size, on the same keys a picture on a wall goes up and down by (see features/hanging).
-      if (!carrying.adjustable) return false;
-      e.preventDefault();
-      carrying.resize(e.code === 'Equal' || e.code === 'BracketRight' ? 1 : -1);
+      carrying.raise(e.code === 'Equal' || e.key === '+' ? 1 : -1);
       return true;
     }
     if (e.code === 'Delete' || e.code === 'Backspace') {
@@ -146,11 +142,11 @@ export function installLayoutEditor(ctx: Ctx) {
   function hint(el: HTMLElement): void {
     const held = carrying.carrying;
     el.replaceChildren(
-      hintTitle(held ? `🧰 Carrying ${labelFor(held.id)}${heldSaid()}` : '🧰 Arranging the room'),
+      hintTitle(held ? `🧰 Carrying ${labelFor(held.id)}` : '🧰 Arranging the room'),
       aside(held ? 'It follows your look; E puts it down' : 'Look at a piece and press E to pick it up'),
       key('C', 'Catalog'),
       key('R', 'Quarter turn'),
-      ...(carrying.adjustable ? [key('Scroll / PgUp·PgDn', 'Up / down'), key('− / +', 'Size')] : []),
+      ...(carrying.adjustable ? [key('Scroll', 'Size'), key('− / +', 'Up / down')] : []),
       key('Canc', 'Take it away'),
       key('Esc', held ? 'Put it back' : 'Stop'),
     );
@@ -179,17 +175,18 @@ export function installLayoutEditor(ctx: Ctx) {
     },
   });
 
-  // The wheel raises and lowers what you're carrying, instead of zooming the camera: the height is a
-  // button (PgUp/PgDn) and the wheel both (see `raise`). On window, in the capture phase, so it runs
-  // before the player's own handler on the canvas; anything else — an empty hand, the room's own
-  // furniture — passes straight through to the camera.
+  // The wheel sizes what you're carrying, instead of zooming the camera: a tenth a notch, and a scroll
+  // is what a size wants. Up and down is the two keys instead (see press) — a scroll running away with a
+  // piece leaves it a metre off, and the keys are exact. On window, in the capture phase, so it runs
+  // before the player's own handler on the canvas; anything else — an empty hand, a seat's furniture —
+  // passes straight through to the camera.
   window.addEventListener(
     'wheel',
     (e) => {
       if (e.target !== ctx.canvas || !carrying.adjustable) return;
       e.preventDefault();
       e.stopPropagation();
-      carrying.raise(e.deltaY < 0 ? 1 : -1);
+      carrying.resize(e.deltaY < 0 ? 1 : -1);
     },
     { capture: true, passive: false },
   );

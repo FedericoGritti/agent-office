@@ -11,12 +11,16 @@ import type { CoreState } from '../core/ctx';
 import type { Parts } from '../core/parts';
 import { interactionAvailable, type DeskKey } from '../interaction';
 import { span } from '../core/perf';
+import { coarseMeshes } from '../core/raycast';
 import { EYE_HEIGHT } from '../player';
 import { store } from '../state';
 import { modalOpen, toast } from '../ui/dom';
 import type { Interactable } from '../world/types';
 
 export type PointerParts = Pick<Parts, 'worlds' | 'rooftop' | 'place' | 'you' | 'boards' | 'cards' | 'seating' | 'hoops' | 'emotes' | 'hanging' | 'telescope' | 'hintbar'>;
+
+/** How often the heavy models the ray meets are looked for again (see sweepHeavyMeshes). */
+const SWEEP_MS = 2000;
 
 /** Listens for the mouse over the canvas, registers the aim tick ('aim'), and takes the player's clicks. */
 export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
@@ -91,14 +95,32 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
   raycaster.far = 20;
   const CROSSHAIR = new THREE.Vector2(0, 0);
   const eye = new THREE.Vector3();
+  /** What the ray is cast through, and how often the heavy models in it are looked for again. */
+  function rayRoots(): THREE.Object3D[] {
+    const roof = core.upTop ? parts.rooftop.roof() : null;
+    if (roof) return roof.pickables;
+    return inOffice() ? [office.group, ...ctx.usables.pickables()] : ctx.world().pickables;
+  }
+  let sweptAt = -SWEEP_MS;
+
+  /**
+   * A model with tens of thousands of triangles costs three about a millisecond per thousand of them, every
+   * frame the ray meets it (see core/raycast.ts). Swept again now and then rather than once, because the
+   * room gains pieces while you're in it.
+   */
+  function sweepHeavyMeshes() {
+    const now = performance.now();
+    if (now - sweptAt < SWEEP_MS) return;
+    sweptAt = now;
+    span('sweep', () => coarseMeshes(rayRoots()));
+  }
 
   /** What the ray through `ndc` lands on first, whether it is within reach (plus `slack` meters), and where it hit. */
   function aimedAt(ndc: THREE.Vector2, slack = 0): { it: Interactable; near: boolean; hit: THREE.Intersection } | null {
     raycaster.setFromCamera(ndc, camera);
     eye.set(player.pos.x, player.pos.y + EYE_HEIGHT, player.pos.z);
     // (Workers standing in line in the castle carry their spot's interactable: see Court.)
-    const roof = parts.rooftop.roof();
-    for (const hit of raycaster.intersectObjects(core.upTop && roof ? roof.pickables : inOffice() ? [office.group, ...ctx.usables.pickables()] : ctx.world().pickables, true)) {
+    for (const hit of raycaster.intersectObjects(rayRoots(), true)) {
       let it: Interactable | undefined;
       let shown = true;
       for (let o: THREE.Object3D | null = hit.object; o; o = o.parent) {
@@ -163,6 +185,7 @@ export function installPointer(ctx: Ctx, core: CoreState, parts: PointerParts) {
   // What you're pointing at (first person) or standing at (third), and what the hint bar says about it.
   ctx.ticks.add('aim', () => {
     const { seating, hoops } = parts;
+    sweepHeavyMeshes();
     const firstPerson = player.view === 'first';
     aimedNote = null;
     aimedArrow = null;

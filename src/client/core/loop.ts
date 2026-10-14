@@ -5,6 +5,7 @@
  */
 import * as THREE from 'three';
 import { SlowFrames } from '../framerate';
+import { applyGraphics } from './graphics';
 import { EYE_HEIGHT } from '../player';
 import { renderCaffeine } from '../features/coffee/meter';
 import type { Ctx } from './context';
@@ -189,10 +190,14 @@ export function installLoop(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'stage
   /** The scene, then your hands on top of it (unless they're hidden, see Settings). */
   function drawScene() {
     const { player, hands, sky, camera, renderer } = ctx;
-    const { effect, scene } = parts.stage;
+    const { effect, scene, sun } = parts.stage;
+    // The two Graphics settings that need the buffer and the shaders made again are applied here, once per
+    // change (see core/graphics.ts). The outlines are a pass over the frame, so they are one branch.
+    applyGraphics(renderer, [scene, hands.scene], sun, ctx.settings);
+    const draw = (s: THREE.Scene, c: THREE.Camera) => (ctx.settings.outlines ? effect.render(s, c) : renderer.render(s, c));
     const firstPerson = player.view === 'first';
     const unhide = firstBody?.hideExtras();
-    effect.render(scene, camera);
+    draw(scene, camera);
     unhide?.();
     // Not when they're hidden (see Settings), nor while something has the screen to itself (the telescope, the boss's monitor or the arcade up close), where they'd cover it.
     if (firstPerson && ctx.settings.hands && !ctx.view.covered() && !ctx.activities.any('hidesHands')) {
@@ -201,7 +206,7 @@ export function installLoop(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'stage
       renderer.clearDepth();
       hands.setLight(sky.lightAt(camera.position));
       sky.shading(false);
-      effect.render(hands.scene, hands.camera);
+      draw(hands.scene, hands.camera);
       sky.shading(true);
     }
   }

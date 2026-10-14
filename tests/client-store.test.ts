@@ -223,12 +223,18 @@ test('what the browser remembers keeps its keys and shapes', () => {
   assert.deepEqual(state.lastSpot(), { floor: 'f1', name: 'F', x: 1, y: 2, z: 3, facing: 4 });
   assert.ok(storage.has('agent-office.spot'));
   const settings = state.loadSettings();
-  assert.deepEqual(settings, { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: state.HUD_DEFAULTS, pins: [] });
-  state.saveSettings({ ...settings, volume: 2, view: 'third', needsYouSound: 'remind', hands: true });
+  assert.deepEqual(settings, { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: state.HUD_DEFAULTS, pins: [], outlines: true, shadows: true, resolution: 2 });
+  state.saveSettings({ ...settings, volume: 2, view: 'third', needsYouSound: 'remind', hands: true, outlines: false, shadows: false, resolution: 1 });
   assert.equal(state.loadSettings().volume, 1);
   assert.equal(state.loadSettings().view, 'third');
   assert.equal(state.loadSettings().needsYouSound, 'remind');
   assert.equal(state.loadSettings().hands, true);
+  assert.equal(state.loadSettings().outlines, false);
+  assert.equal(state.loadSettings().shadows, false);
+  assert.equal(state.loadSettings().resolution, 1);
+  // A resolution the office doesn't offer (a file edited by hand) is left at the sharpest.
+  state.saveSettings({ ...settings, resolution: 9 as never });
+  assert.equal(state.loadSettings().resolution, 2);
   // A setting saved as something the office doesn't know goes back to how it starts.
   state.saveSettings({ ...settings, needsYouSound: 'loud' as never });
   assert.equal(state.loadSettings().needsYouSound, 'once');

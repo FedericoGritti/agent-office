@@ -23,10 +23,11 @@ const THEME_LABEL: Record<ThemePick, string> = { auto: '📅 By the calendar', h
 const WEBHOOK_NAME: Record<WebhookKind, string> = { slack: 'Slack', discord: 'Discord', other: 'a webhook' };
 
 /** The categories down the side of ⚙️ Settings. */
-export type SettingsPane = 'you' | 'sound' | 'notify' | 'building' | 'workers';
+export type SettingsPane = 'you' | 'graphics' | 'sound' | 'notify' | 'building' | 'workers';
 
 const PANES: { id: SettingsPane; icon: string; label: string; blurb: string }[] = [
   { id: 'you', icon: '🧍', label: 'You', blurb: 'How you look, how you see the office, and how you’re signed in.' },
+  { id: 'graphics', icon: '🖼️', label: 'Graphics', blurb: 'What the office draws, and how hard it has to work to draw it.' },
   { id: 'sound', icon: '🔊', label: 'Sound & voice', blurb: 'How loud the office is for you, and how voice chat works.' },
   { id: 'notify', icon: '🔔', label: 'Notifications', blurb: 'Hear about a worker that needs someone, or finished, while you’re somewhere else.' },
   { id: 'building', icon: '🏢', label: 'Building', blurb: 'The map, the decorations, the sky, the dog, and where new floors are cloned.' },
@@ -120,6 +121,9 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const musicRow = volumeRow('Jukebox volume', 'music', 'musicMuted');
   // Your own hands, held up in front of you in first person, or out of the way.
   const handsRow = choiceRow('Your hands in first person', [[true, '🙌 Show them'], [false, '🙈 Hide them']], () => settings.hands, (hands) => change({ hands }));
+  const outlinesRow = choiceRow('Outlines', [[true, '🖊️ On'], [false, 'Off']], () => settings.outlines, (outlines) => change({ outlines }));
+  const shadowsRow = choiceRow('Shadows', [[true, '🌤️ On'], [false, 'Off']], () => settings.shadows, (shadows) => change({ shadows }));
+  const resolutionRow = choiceRow('Resolution', [[2, 'Full'], [1.5, '1.5×'], [1, '1×']], () => settings.resolution, (resolution) => change({ resolution }));
 
   // The swish of the book's pages at the bookshelf, on or off.
   const pagesRow = choiceRow('Page turns at the bookshelf', [[true, '📖 On'], [false, 'Off']], () => settings.pageTurns, (pageTurns) => change({ pageTurns }));
@@ -450,6 +454,12 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       setting('Camera view', 'you', seg, note),
       setting('Your hands in first person', 'you', handsRow, h('p.setting-note', {}, 'Your own hands, held up in front of you looking through your own eyes. Hide them and the view is the office and your body below you, with nothing in the way — the ball, the club and the rest still work the same.')),
       setting('Signed in', null, h('div.volume', {}, signOut), h('p.setting-note', {}, account ? `As ${account.name}, with your own account (${account.role}).` : 'With the shared office password.')),
+    ],
+    graphics: [
+      setting('Outlines', 'you', outlinesRow, h('p.setting-note', {}, 'The ink line round everything, which is the office’s own look — and the whole room drawn a second time, every frame. Off, a slow room costs about half as much to draw and looks a little flatter.')),
+      setting('Shadows', 'you', shadowsRow, h('p.setting-note', {}, 'The sun’s shadows: a map 2048 across, drawn again every frame, and looked up for every pixel of the room. Off, the room is lit flat and costs less — most of all where there is a lot in view.')),
+      setting('Resolution', 'you', resolutionRow, h('p.setting-note', {}, 'How many pixels the office draws for each pixel of your screen. Full is the sharpest and the most work; 1× draws a quarter of the pixels and is hard to tell from it on a dense screen. A slow frame here is usually this, or the outlines.')),
+      h('p.setting-note', {}, 'These are yours alone, kept in this browser. The office itself already offers the 2D view when frames stay slow for ten seconds — accepting it is the surest way out.'),
     ],
     sound: [
       setting('Office sounds', 'you', soundRow, h('p.setting-note', {}, 'Workers typing, footsteps, the coffee machine, birds and rain outside, the dog, the ding when a worker is done and the alarm when one needs you. Voice chat isn’t affected.')),

@@ -67,6 +67,12 @@ export interface Settings {
   hud: Record<HudPanel, boolean>;
   /** The ☰ menu's actions you pinned to the top bar, by id. */
   pins: string[];
+  /** The ink line round everything: the office's own look, and a second pass over the whole scene (see core/graphics.ts). */
+  outlines: boolean;
+  /** The sun's shadows, drawn into a map on every frame. */
+  shadows: boolean;
+  /** How many pixels the office draws per pixel of the screen: the most the device offers, up to this. */
+  resolution: number;
 }
 
 const SETTINGS_KEY = 'agent-office.settings';
@@ -129,7 +135,7 @@ export function rememberSpot(s: Spot) {
 }
 
 export function loadSettings(): Settings {
-  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [] };
+  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [], outlines: true, shadows: true, resolution: 2 };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null');
     if (saved?.view === 'first' || saved?.view === 'third') s.view = saved.view;
@@ -144,6 +150,10 @@ export function loadSettings(): Settings {
     if (NEEDS_YOU_SOUNDS.includes(saved?.needsYouSound)) s.needsYouSound = saved.needsYouSound;
     for (const k of Object.keys(s.hud) as HudPanel[]) if (typeof saved?.hud?.[k] === 'boolean') s.hud[k] = saved.hud[k];
     if (Array.isArray(saved?.pins)) s.pins = saved.pins.filter((p: unknown): p is string => typeof p === 'string').slice(0, 30);
+    if (typeof saved?.outlines === 'boolean') s.outlines = saved.outlines;
+    if (typeof saved?.shadows === 'boolean') s.shadows = saved.shadows;
+    // A resolution nobody offers (a file edited by hand) is left at the sharpest.
+    if (typeof saved?.resolution === 'number' && saved.resolution >= 0.5 && saved.resolution <= 2) s.resolution = saved.resolution;
   } catch {
     // storage blocked
   }

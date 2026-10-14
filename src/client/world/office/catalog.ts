@@ -204,6 +204,11 @@ export function applyCatalog(room: AdditionRoom, floor: string): void {
       applyPiece(have, { x: it.x, y: it.y, z: it.z, rotY: it.rotY, scale: it.scale, hidden: it.deleted }, room);
       continue;
     }
+    // A piece taken out of the room is not built at all: a model that isn't in the room shouldn't be
+    // fetched, read and held in memory, and a floor's file can hold dozens of them (see "put back
+    // something cancelled"). What the room has already built is put away just below; what it hasn't, it
+    // builds when you put it back (see features/layout-editor).
+    if (it.deleted) continue;
     // A model that has to come over the network is built when it arrives, and a second file arriving in
     // the meantime doesn't ask for it again.
     if (building.has(it.id)) continue;

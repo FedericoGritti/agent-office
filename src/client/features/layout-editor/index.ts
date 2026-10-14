@@ -4,7 +4,7 @@
  * 25 cm grid. E puts it down (and it's saved), R turns it a quarter, Canc takes it out of the room, Esc
  * puts it back where you found it. The hint bar says all of that as you go.
  */
-import { labelFor, nextSpawnId, placements, setPlacements, spawn, type Placements } from '../../../shared/placement';
+import { labelFor, nextSpawnId, placements, setPlacements, spawn, spawned, type Placements } from '../../../shared/placement';
 import type { CatalogKind } from '../../../shared/catalog';
 import { MODEL_ADD_PATH, externalKind, kindLabel, type AdditionKind, type ModelSource } from '../../../shared/model-sources';
 import type { Ctx } from '../../core/context';
@@ -12,7 +12,7 @@ import { aside, hintTitle, key } from '../../core/hint';
 import { store } from '../../state';
 import { toast } from '../../ui/dom';
 import { buildAddition, declareAddition, applyCatalog, updateCatalog } from '../../world/office/catalog';
-import { applyPlacements, placedPieces } from '../../world/office/placed';
+import { applyPiece, applyPlacements, placedPieces } from '../../world/office/placed';
 import { makeBanner } from './banner';
 import { Carrying } from './carry';
 import { openCatalog } from './ui';
@@ -100,10 +100,33 @@ export function installLayoutEditor(ctx: Ctx) {
   /** What the room declares but this floor's file has taken away: the list behind the catalog's "put
    *  back" button, and the only way back for what can't be copied yet (see Carrying.bringBack). */
   function gone(): { id: string; label: string }[] {
-    return placedPieces()
+    const out = placedPieces()
       .filter((piece) => piece.at.hidden)
-      .map((piece) => ({ id: piece.id, label: labelFor(piece.id) }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+      .map((piece) => ({ id: piece.id, label: labelFor(piece.id) }));
+    // Additions the room took out and never built — nothing is fetched or held for something that isn't
+    // in the room (see world/office/catalog) — listed from the file, and built when they're put back.
+    for (const it of spawned()) if (it.deleted && !out.some((g) => g.id === it.id)) out.push({ id: it.id, label: labelFor(it.id) });
+    return out.sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  /**
+   * Puts back an addition the room had taken out and never built: nothing is fetched or held for a model
+   * that isn't in the room (see world/office/catalog), so this is where one is built again — on the spot
+   * the file names, as big as it was — and then saved, so it is nobody's cancelled piece any more.
+   */
+  async function putBackOne(id: string): Promise<void> {
+    const it = spawned().find((s) => s.id === id);
+    const floor = store.floor;
+    if (!it || !floor) return;
+    const at = { x: it.x, y: it.y, z: it.z, rotY: it.rotY };
+    const built = await buildAddition(it.kind, id, at, floor);
+    if (!built) {
+      toast(`${kindLabel(it.kind)} couldn't be put back — it may not be downloaded any more`);
+      return;
+    }
+    applyPiece(declareAddition(built, id, at, ctx.office), { ...at, scale: it.scale, hidden: false }, ctx.office);
+    carrying.save();
+    refresh();
   }
 
   /** The keys while you're arranging: E takes and puts, and the rest work on what you're carrying. */
@@ -124,6 +147,7 @@ export function installLayoutEditor(ctx: Ctx) {
         restore: (id) => {
           const piece = placedPieces().find((p) => p.id === id);
           if (piece) carrying.bringBack(piece);
+          else void putBackOne(id);
         },
       });
       return true;

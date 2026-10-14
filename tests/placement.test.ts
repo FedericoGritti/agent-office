@@ -91,6 +91,9 @@ test('a piece the editor adds is its own entry: what it is, and where it stands'
   change('add-1', { x: 2.25, z: -3.5 }, { x: 2.25, z: -3.5, rotY: 0, hidden: true });
   assert.deepEqual(placements()['add-1'], { kind: 'monstera', x: 2.25, z: -3.5, rotY: 0, deleted: true });
   assert.equal(nextSpawnId(), 'add-2');
+  // And it is still listed: the room builds nothing for a piece it has taken out, so this list — deleted
+  // entries and all — is what the "put back" button reads and what it builds from (world/office/catalog).
+  assert.equal(spawned().find((p) => p.id === 'add-1')?.deleted, true);
 });
 
 test('an added piece stands only where the file says', () => {

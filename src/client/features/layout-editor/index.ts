@@ -4,14 +4,14 @@
  * 25 cm grid. E puts it down (and it's saved), R turns it a quarter, Canc takes it out of the room, Esc
  * puts it back where you found it. The hint bar says all of that as you go.
  */
-import { labelFor, nextSpawnId, placements, setPlacements, spawn, spawned, type Placements } from '../../../shared/placement';
+import { forget, isAddition, labelFor, nextSpawnId, placements, setPlacements, spawn, spawned, type Placements } from '../../../shared/placement';
 import type { CatalogKind } from '../../../shared/catalog';
 import { MODEL_ADD_PATH, externalKind, kindLabel, type AdditionKind, type ModelSource } from '../../../shared/model-sources';
 import type { Ctx } from '../../core/context';
 import { aside, hintTitle, key } from '../../core/hint';
 import { store } from '../../state';
 import { toast } from '../../ui/dom';
-import { buildAddition, declareAddition, applyCatalog, updateCatalog } from '../../world/office/catalog';
+import { buildAddition, declareAddition, discardAddition, applyCatalog, updateCatalog } from '../../world/office/catalog';
 import { applyPiece, applyPlacements, placedPieces } from '../../world/office/placed';
 import { makeBanner } from './banner';
 import { Carrying } from './carry';
@@ -21,6 +21,9 @@ export function installLayoutEditor(ctx: Ctx) {
   const banner = makeBanner({
     size: (dir) => void carrying.resize(dir),
     lift: (dir) => void carrying.raise(dir),
+    // A quarter turn each way, the same as R and Shift+R: a button is one step, and in third person a
+    // button is what there is (see banner.ts).
+    turn: (dir) => void carrying.turn(dir < 0),
   });
 
   /** What the sign says, and what its buttons are about: the mode, what you're carrying, how big it is
@@ -31,8 +34,9 @@ export function installLayoutEditor(ctx: Ctx) {
     else if (held)
       banner.set({
         text: `🛠️ Carrying ${labelFor(held.id)} — E puts it down · R turns it${carrying.adjustable ? ' · scroll sizes it · −/+ up and down' : ''} · Canc takes it away · Esc puts it back`,
-        // A piece with a seat has no size or height of its own to change, so the sign carries no buttons.
-        ...(carrying.adjustable ? { piece: { size: carrying.size, height: carrying.height } } : {}),
+        // A piece with a seat has no size, height or facing of its own to change: a desk or a couch keeps
+        // the way the room built it (see room.md), so the sign carries no buttons.
+        ...(carrying.adjustable ? { piece: { size: carrying.size, height: carrying.height, turned: carrying.turned } } : {}),
       });
     else banner.set({ text: '🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish' });
     ctx.hint.invalidate();
@@ -99,14 +103,28 @@ export function installLayoutEditor(ctx: Ctx) {
 
   /** What the room declares but this floor's file has taken away: the list behind the catalog's "put
    *  back" button, and the only way back for what can't be copied yet (see Carrying.bringBack). */
-  function gone(): { id: string; label: string }[] {
+  function gone(): { id: string; label: string; forgettable: boolean }[] {
+    // A piece of the room's own cannot be forgotten: it is kept out of the room by being cancelled, and
+    // forgotten it would only be built again (see forget in shared/placement).
     const out = placedPieces()
       .filter((piece) => piece.at.hidden)
-      .map((piece) => ({ id: piece.id, label: labelFor(piece.id) }));
+      .map((piece) => ({ id: piece.id, label: labelFor(piece.id), forgettable: isAddition(piece.id) }));
     // Additions the room took out and never built — nothing is fetched or held for something that isn't
     // in the room (see world/office/catalog) — listed from the file, and built when they're put back.
-    for (const it of spawned()) if (it.deleted && !out.some((g) => g.id === it.id)) out.push({ id: it.id, label: labelFor(it.id) });
+    for (const it of spawned()) if (it.deleted && !out.some((g) => g.id === it.id)) out.push({ id: it.id, label: labelFor(it.id), forgettable: true });
     return out.sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  /**
+   * Forgets a cancelled piece for good: out of the room, and its line out of the floor's file, so nothing
+   * puts it back and the list stops naming it (see discardAddition and forget). Cancelling keeps a thing
+   * within reach; this is the way to say it will never be wanted again.
+   */
+  function forgetOne(id: string): void {
+    discardAddition(id, ctx.office);
+    if (!forget(id)) return;
+    carrying.save();
+    refresh();
   }
 
   /**
@@ -144,6 +162,7 @@ export function installLayoutEditor(ctx: Ctx) {
         add,
         addModel,
         gone,
+        forget: forgetOne,
         restore: (id) => {
           const piece = placedPieces().find((p) => p.id === id);
           if (piece) carrying.bringBack(piece);

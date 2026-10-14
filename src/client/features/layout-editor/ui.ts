@@ -16,7 +16,8 @@ export interface CatalogOptions {
   addModel(source: ModelSource, id: string): Promise<void>;
   /** What the floor's file has taken out of the room, to put back: the one way a Canc pressed by mistake
    *  is undone, and the only way back for the furniture that can't be copied yet (see Carrying.bringBack). */
-  gone(): { id: string; label: string }[];
+  gone(): { id: string; label: string; forgettable: boolean }[];
+  forget(id: string): void;
   restore(id: string): void;
 }
 
@@ -89,12 +90,22 @@ export function openCatalog(opts: CatalogOptions): void {
     back.replaceChildren(
       ...(gone.length
         ? [
-            h('p.setting-note', {}, 'What the floor’s file has taken out of the room. Click one to put it back where it was, as big and as high as it was left.'),
+            h('p.setting-note', {}, 'What the floor’s file has taken out of the room. Click one to put it back where it was, as big and as high as it was left — or press its ✕ to forget it for good: it leaves the room and the file, and nothing brings it back. A piece of the room’s own has no ✕: cancelling is what keeps it out.'),
             h(
               'ul.svc-list.cat-grid',
               {},
               ...gone.map((piece) => {
                 const li = h('li', { tabindex: 0, role: 'button', title: `Put the ${piece.label} back` }, h('div.svc-main', {}, h('div.svc-title', {}, piece.label)));
+                if (piece.forgettable) {
+                  const cross = h('button.btn', { type: 'button', title: `Forget the ${piece.label} for good — it leaves the room and the floor’s file`, 'aria-label': `Forget the ${piece.label} for good` }, '✕');
+                  cross.addEventListener('click', (e) => {
+                    // Not the row's own click: this one is not a way back.
+                    e.stopPropagation();
+                    opts.forget(piece.id);
+                    drawBack();
+                  });
+                  li.append(cross);
+                }
                 const pick = () => {
                   opts.restore(piece.id);
                   drawBack();

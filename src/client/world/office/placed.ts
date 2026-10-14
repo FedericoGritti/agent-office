@@ -286,6 +286,21 @@ function setIn<T>(list: T[], items: readonly T[], inside: boolean): void {
   }
 }
 
+/**
+ * Takes a piece out of the room for good: out of the scene, out of what's in the way, out of what you can
+ * use, and out of the room's own list of pieces — so what is saved next no longer names it.
+ *
+ * Cancelling is not this: a cancelled piece stays where it is, hidden, and can be put back. What is
+ * discarded cannot (see forget in shared/placement, which takes its line out of the file).
+ */
+export function discardPiece(piece: Piece, room: Room): void {
+  setIn(room.colliders, piece.colliders, false);
+  if (piece.interact) setIn(room.interactables, [piece.interact], false);
+  for (const part of piece.parts) part.parent?.remove(part);
+  const at = pieces.indexOf(piece);
+  if (at >= 0) pieces.splice(at, 1);
+}
+
 /** Puts every piece the room declared where the saved file says: an addition of the editor's only
  *  where *this* floor's file has it (see placeAdded), the rest wherever layout.ts put them. */
 export function applyPlacements(room: Room): void {

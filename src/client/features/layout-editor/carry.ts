@@ -267,6 +267,13 @@ export class Carrying {
     return this.held?.at.y ?? 0;
   }
 
+  /** Which way it faces, in degrees clockwise from the way it was built: a quarter turn at a time, so it
+   *  reads as 0, 90, 180, 270. */
+  get turned(): number {
+    const rotY = this.held?.at.rotY ?? 0;
+    return ((((rotY - (this.held?.base.rotY ?? 0)) * 180) / Math.PI) % 360 + 360) % 360;
+  }
+
   /** Out of the room for good: it's saved as gone, and the colliders and its use-point go with it. */
   takeAway(): boolean {
     const piece = this.held;

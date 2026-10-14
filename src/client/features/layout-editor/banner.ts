@@ -16,6 +16,8 @@ export interface BannerPiece {
   size: number;
   /** How high it stands, in metres (see Carrying.height). */
   height: number;
+  /** Which way it faces, in degrees clockwise from the way it was built (see Carrying.turned). */
+  turned: number;
 }
 
 export interface BannerWants {
@@ -24,10 +26,11 @@ export interface BannerWants {
   piece?: BannerPiece;
 }
 
-/** What its buttons do: one step down (`dir` < 0) or up, for the size and for the height. */
+/** What its buttons do: one step down (`dir` < 0) or up, for the size, the height and the facing. */
 export interface BannerSteps {
   size(dir: number): void;
   lift(dir: number): void;
+  turn(dir: number): void;
 }
 
 export interface Banner {
@@ -38,17 +41,18 @@ export interface Banner {
 }
 
 /** A step down and a step up about a reading, the way a size and a height are both best said: `− 130% +`. */
-function step(lower: string, higher: string, down: () => void, up: () => void): { el: HTMLElement; read: HTMLElement } {
+function step(lower: string, higher: string, down: () => void, up: () => void, sides: [string, string] = ['−', '+']): { el: HTMLElement; read: HTMLElement } {
   const read = h('span.read');
   const button = (side: string, title: string, run: () => void) => h('button.btn', { onclick: run, title }, side);
-  return { read, el: h('span.step', {}, button('−', lower, down), read, button('+', higher, up)) };
+  return { read, el: h('span.step', {}, button(sides[0], lower, down), read, button(sides[1], higher, up)) };
 }
 
 export function makeBanner(steps: BannerSteps): Banner {
   const text = h('span.text');
+  const facing = step('A quarter turn to the left', 'A quarter turn to the right', () => steps.turn(-1), () => steps.turn(1), ['⟲', '⟳']);
   const size = step('Smaller', 'Bigger', () => steps.size(-1), () => steps.size(1));
   const height = step('Lower', 'Higher', () => steps.lift(-1), () => steps.lift(1));
-  const buttons = h('span.room-banner-buttons.hidden', {}, h('span.what', {}, 'Size'), size.el, h('span.what', {}, 'Up'), height.el);
+  const buttons = h('span.room-banner-buttons.hidden', {}, h('span.what', {}, 'Turn'), facing.el, h('span.what', {}, 'Size'), size.el, h('span.what', {}, 'Up'), height.el);
   const el = h('div.room-banner.hidden', {}, text, buttons);
   document.body.append(el);
   return {
@@ -56,6 +60,8 @@ export function makeBanner(steps: BannerSteps): Banner {
       text.textContent = wants.text;
       buttons.classList.toggle('hidden', !wants.piece);
       if (wants.piece) {
+        // The facing is a quarter turn at a time, so it reads as the degrees it has gone round.
+        facing.read.textContent = `${Math.round(wants.piece.turned)}°`;
         size.read.textContent = `${Math.round(wants.piece.size * 100)}%`;
         // On the floor is the one height worth saying in words: the rest are metres up.
         height.read.textContent = wants.piece.height > 0.005 ? `${wants.piece.height.toFixed(2)} m` : 'floor';

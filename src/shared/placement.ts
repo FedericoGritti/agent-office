@@ -264,6 +264,26 @@ export function spawned(): SpawnedPiece[] {
   return out;
 }
 
+/** Whether this id is something the editor added — its entry in the file names a kind — rather than a
+ *  piece the room declares for itself. */
+export function isAddition(id: string): boolean {
+  return !!saved[id]?.kind;
+}
+
+/**
+ * Forgets a piece the room has taken out, for good: its line leaves the file, so nothing puts it back and
+ * the list behind "put back something cancelled" stops naming it.
+ *
+ * Only for what the editor added. A piece of the room's own is kept out of the room by being cancelled:
+ * forget that one and its own builder puts it back where it has always stood, which is the opposite of
+ * what was asked (see change and place).
+ */
+export function forget(id: string): boolean {
+  if (!isAddition(id)) return false;
+  delete saved[id];
+  return true;
+}
+
 /** The names the editor gives what it adds, as `add-1`, `add-2`… */
 const SPAWN_ID = /^add-(\d+)$/;
 

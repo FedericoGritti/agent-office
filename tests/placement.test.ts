@@ -3,7 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LIFT_STEP, SCALE_MAX, SCALE_MIN, change, clampScale, hasSeat, labelFor, liftBy, nextSpawnId, place, placeAdded, placements, resizeBy, sanitize, scaleOf, setPlacements, spawn, spawned } from '../src/shared/placement.js';
+import { LIFT_STEP, SCALE_MAX, SCALE_MIN, change, clampScale, forget, hasSeat, isAddition, labelFor, liftBy, nextSpawnId, place, placeAdded, placements, resizeBy, sanitize, scaleOf, setPlacements, spawn, spawned } from '../src/shared/placement.js';
 
 const BASE = { x: -16.63, z: -12.56, rotY: 0 } as const;
 const TURNED = { x: -2, z: -4, rotY: Math.PI } as const;
@@ -94,6 +94,16 @@ test('a piece the editor adds is its own entry: what it is, and where it stands'
   // And it is still listed: the room builds nothing for a piece it has taken out, so this list — deleted
   // entries and all — is what the "put back" button reads and what it builds from (world/office/catalog).
   assert.equal(spawned().find((p) => p.id === 'add-1')?.deleted, true);
+
+  // Forgotten for good, it stops being listed and stops being saved: it can never come back.
+  assert.equal(forget('add-1'), true);
+  assert.deepEqual(spawned(), []);
+  assert.deepEqual(placements()['add-1'], undefined);
+
+  // A piece of the room's own is not something to forget: cancelling is what keeps it out of the room, and
+  // a file without its line is a file that puts it straight back where it has always stood.
+  assert.equal(isAddition('gong'), false);
+  assert.equal(forget('gong'), false);
 });
 
 test('an added piece stands only where the file says', () => {

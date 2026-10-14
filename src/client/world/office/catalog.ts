@@ -15,7 +15,7 @@ import { spawned } from '../../../shared/placement';
 import { noOutline } from '../../core/outline';
 import { mesh, roundedBox, toon } from '../toon';
 import { buildExternal } from './external';
-import { applyPiece, footprint, placed, type AdditionRoom, type Built, type Piece, type Spot } from './placed';
+import { applyPiece, discardPiece, footprint, placed, type AdditionRoom, type Built, type Piece, type Spot } from './placed';
 import { PALETTE } from './materials';
 import { coffeeTable, plant, pouf, type PlantSpecies } from './props';
 
@@ -188,6 +188,22 @@ export function declareAddition(built: Built, id: string, at: Spot, room: Additi
 export async function addAddition(kind: AdditionKind, id: string, at: Spot, room: AdditionRoom, floor: string): Promise<Piece | null> {
   const built = await buildAddition(kind, id, at, floor);
   return built ? declareAddition(built, id, at, room) : null;
+}
+
+/**
+ * Takes an addition out of the room for good: it stops being followed, and whatever was built of it leaves
+ * the scene (see discardPiece in placed.ts). An addition the room never built — it builds nothing for a
+ * piece it has taken out — has nothing to take out, and this says so.
+ */
+export function discardAddition(id: string, room: AdditionRoom): boolean {
+  building.delete(id);
+  const piece = standing.get(id);
+  if (!piece) return false;
+  standing.delete(id);
+  const at = animated.findIndex((a) => a.piece === piece);
+  if (at >= 0) animated.splice(at, 1);
+  discardPiece(piece, room);
+  return true;
 }
 
 /**

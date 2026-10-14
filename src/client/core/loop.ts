@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { SlowFrames } from '../framerate';
 import { applyGraphics } from './graphics';
+import { framesWatched, phaseTimes, sampleFrame } from './perf';
 import { EYE_HEIGHT } from '../player';
 import { renderCaffeine } from '../features/coffee/meter';
 import type { Ctx } from './context';
@@ -221,7 +222,11 @@ export function frameLoop(ctx: Ctx, loading: { drew(): void }): (ts?: number) =>
   function frame(ts?: number) {
     timer.update(ts);
     const delta = timer.getDelta();
-    ctx.ticks.run({ delta, dt: Math.min(delta, 0.1), t: timer.getElapsed(), now: performance.now() });
+    const tick = { delta, dt: Math.min(delta, 0.1), t: timer.getElapsed(), now: performance.now() };
+    // The frame's own work is timed phase by phase only while someone is watching it being measured.
+    if (framesWatched()) ctx.ticks.run(tick, phaseTimes());
+    else ctx.ticks.run(tick);
+    sampleFrame(delta * 1000);
     loading.drew();
     requestAnimationFrame(frame);
   }

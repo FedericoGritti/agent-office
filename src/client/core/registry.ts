@@ -198,8 +198,21 @@ export class Ticks {
     return listAt(this.phases, phase).add({ fn });
   }
 
-  run(f: Frame): void {
-    for (const phase of TICK_PHASES) for (const e of this.phases.get(phase)?.items ?? []) e.fn(f);
+  /**
+   * Runs the frame. With `times`, each phase is timed into it (see core/perf.ts, which only asks for this
+   * while someone is looking at the Graphics settings): without it, nothing at all is measured.
+   */
+  run(f: Frame, times?: Map<TickPhase, number>): void {
+    for (const phase of TICK_PHASES) {
+      const list = this.phases.get(phase)?.items ?? [];
+      if (!times) {
+        for (const e of list) e.fn(f);
+        continue;
+      }
+      const at = performance.now();
+      for (const e of list) e.fn(f);
+      times.set(phase, (times.get(phase) ?? 0) + (performance.now() - at));
+    }
   }
 }
 

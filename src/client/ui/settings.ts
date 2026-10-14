@@ -8,6 +8,7 @@ import { THEME_PICKS } from '../../shared/theme';
 import { mapChoices } from '../../shared/maps';
 import { dogSetting } from './settings-dog';
 import { h, openModal, timeAgo } from './dom';
+import { frameCost, framesWatched, watchFrames } from '../core/perf';
 import { agentFields, choiceLabel, officeChoice } from './provider';
 import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { outsideSetting } from './settings-sky';
@@ -124,6 +125,25 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const outlinesRow = choiceRow('Outlines', [[true, '🖊️ On'], [false, 'Off']], () => settings.outlines, (outlines) => change({ outlines }));
   const shadowsRow = choiceRow('Shadows', [[true, '🌤️ On'], [false, 'Off']], () => settings.shadows, (shadows) => change({ shadows }));
   const resolutionRow = choiceRow('Resolution', [[2, 'Full'], [1.5, '1.5×'], [1, '1×']], () => settings.resolution, (resolution) => change({ resolution }));
+
+  // The live cost of a frame (core/perf.ts). It measures only while this page is open — watching is work
+  // of its own — and it goes on measuring until the window is closed, so the numbers move as you try the
+  // three rows above.
+  const costRow = (() => {
+    const el = h('p.setting-note', {}, 'Measuring…');
+    const tick = setInterval(() => {
+      if (!framesWatched()) {
+        clearInterval(tick);
+        el.textContent = 'Open this page to measure.';
+        return;
+      }
+      const cost = frameCost();
+      if (!cost) return;
+      const work = cost.phases.slice(0, 4).map((p) => `${p.phase} ${p.ms.toFixed(1)}`).join(' · ') || 'nothing measurable';
+      el.textContent = `Frame ${cost.frame.toFixed(1)} ms · ${cost.fps.toFixed(0)} a second. The frame's own work: ${work}. ${cost.elsewhere.toFixed(1)} ms elsewhere (the browser drawing the page, layout, other tabs).`;
+    }, 500);
+    return el;
+  })();
 
   // The swish of the book's pages at the bookshelf, on or off.
   const pagesRow = choiceRow('Page turns at the bookshelf', [[true, '📖 On'], [false, 'Off']], () => settings.pageTurns, (pageTurns) => change({ pageTurns }));
@@ -460,6 +480,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       setting('Shadows', 'you', shadowsRow, h('p.setting-note', {}, 'The sun’s shadows: a map 2048 across, drawn again every frame, and looked up for every pixel of the room. Off, the room is lit flat and costs less — most of all where there is a lot in view.')),
       setting('Resolution', 'you', resolutionRow, h('p.setting-note', {}, 'How many pixels the office draws for each pixel of your screen. Full is the sharpest and the most work; 1× draws a quarter of the pixels and is hard to tell from it on a dense screen. A slow frame here is usually this, or the outlines.')),
       h('p.setting-note', {}, 'These are yours alone, kept in this browser. The office itself already offers the 2D view when frames stay slow for ten seconds — accepting it is the surest way out.'),
+      setting('What a frame costs', 'you', costRow, h('p.setting-note', {}, 'Measured while this page is open, so nothing is slowed down by measuring it. Read it with the three above at Full and then turned down: if the frame time hardly moves, what the office costs is its own work every frame — the workers, the sky, the smoke — and not what it draws, and no drawing setting will fix it. The biggest phases are named first.')),
     ],
     sound: [
       setting('Office sounds', 'you', soundRow, h('p.setting-note', {}, 'Workers typing, footsteps, the coffee machine, birds and rain outside, the dog, the ding when a worker is done and the alarm when one needs you. Voice chat isn’t affected.')),
@@ -499,6 +520,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   }
   const show = (id: SettingsPane) => {
     lastPane = id;
+    // The Graphics page is the only one that measures: nothing is timed while nobody is reading it.
+    watchFrames(id === 'graphics');
     for (const [t, tab] of tabs) {
       tab.classList.toggle('on', t === id);
       tab.setAttribute('aria-selected', String(t === id));
@@ -532,6 +555,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const modal = openModal(el, {
     doing: '⚙️ in settings',
     onClose: () => {
+      watchFrames(false);
       offNotify();
       offDog();
       offTheme();

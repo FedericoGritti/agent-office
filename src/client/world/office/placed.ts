@@ -202,7 +202,11 @@ function turnBox(box: Collider, piece: Piece, x: number, z: number, drot: number
 export function applyPiece(piece: Piece, at: Placed, room?: Room): void {
   const dx = at.x - piece.at.x;
   const dz = at.z - piece.at.z;
-  const dy = (at.y ?? 0) - (piece.at.y ?? 0);
+  // A placement that says nothing about a height isn't asking for the floor: it is one of the room's own
+  // pieces, which has no height of its own to move (see Placed.y), or a caller that is only moving the
+  // piece across the room. Either way the piece keeps the height it has — which is what a thing left up
+  // in the air needs, since the floor's file comes round on every save.
+  const dy = at.y === undefined ? 0 : at.y - (piece.at.y ?? 0);
   const drot = at.rotY - piece.at.rotY;
   const s = scaleOf(at);
   const grow = s / scaleOf(piece.at);

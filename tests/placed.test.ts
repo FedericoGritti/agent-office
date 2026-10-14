@@ -130,6 +130,22 @@ test('a piece carried up into the air stays there, with what you walk into', () 
   near(box.maxX, 4.6);
 });
 
+test('a placement that says nothing about a height leaves the piece where it is', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  group.position.set(4, 2, -3);
+  const box: Collider = { minX: 3.7, maxX: 4.3, minZ: -3.3, maxZ: -2.7, bottom: 2, top: 2.5 };
+  placed(group, 'add-1', { x: 4, y: 2, z: -3 }, [box], undefined, true);
+
+  // Moving it across the room without saying a height — the floor's file coming round again is exactly
+  // this — is not the floor: it keeps the two metres it was left at, collider and all.
+  applyPiece(placedPieces()[0], { x: 6, z: -1, rotY: 0, hidden: false });
+  assert.deepEqual([group.position.x, group.position.y, group.position.z], [6, 2, -1]);
+  near(box.bottom!, 2);
+  near(box.top!, 2.5);
+});
+
 test('a piece grows about its own middle while it is being carried somewhere else', () => {
   setPlacements(null);
   clearPieces();

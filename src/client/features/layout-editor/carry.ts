@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { FLOOR, LOFT } from '../../../shared/layout';
-import { change, placements, type Placed, type Placements } from '../../../shared/placement';
+import { change, placements, resizeBy, scaleOf, type Placed, type Placements } from '../../../shared/placement';
 import { applyPiece, pieceOf, placedPieces, QUARTER, type Piece, type Room } from '../../world/office/placed';
 import { textSprite } from '../../world/toon';
 
@@ -176,6 +176,30 @@ export class Carrying {
     if (!piece) return false;
     this.place(piece, { ...piece.at, rotY: piece.at.rotY + (back ? -1 : 1) * (Math.PI / 2) }, false);
     return true;
+  }
+
+  /**
+   * Whether what you're carrying can be resized: only a piece the catalog added, whose file is the
+   * whole of it. The room's own furniture is furniture because of where it was measured — a desk's seat
+   * and use-point are the room's plan, not the desk's size (see docs/room.md).
+   */
+  get resizable(): boolean {
+    return !!this.held?.added;
+  }
+
+  /** One turn of the wheel goes up (`dir` > 0) or down, while you carry it: it grows about its own
+   *  middle, so it stays where you're putting it and keeps standing on the floor it's on. */
+  resize(dir: number): boolean {
+    const piece = this.held;
+    if (!piece || !piece.added) return false;
+    this.place(piece, { ...piece.at, scale: resizeBy(scaleOf(piece.at), dir) }, false);
+    this.deps.changed();
+    return true;
+  }
+
+  /** How big what you're carrying is, for the hint bar to say (1 when it's as it came). */
+  get size(): number {
+    return this.held ? scaleOf(this.held.at) : 1;
   }
 
   /** Out of the room for good: it's saved as gone, and the colliders and its use-point go with it. */

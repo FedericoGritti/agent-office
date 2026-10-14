@@ -5,7 +5,7 @@
 // colliders and its use-point with it (see features/layout-editor for the hands that do this).
 
 import * as THREE from 'three';
-import { place, placeAdded, type Base, type Placed } from '../../../shared/placement';
+import { place, placeAdded, scaleOf, type Base, type Placed } from '../../../shared/placement';
 import type { Collider, Interactable } from '../types';
 
 /** The room a piece joins: the lists its colliders and its use-point go in (see Site in fixture.ts). */
@@ -67,6 +67,10 @@ export interface Piece {
 /** Every piece the room has declared, in the order they were built. */
 const pieces: Piece[] = [];
 const byPart = new WeakMap<THREE.Object3D, Piece>();
+/** What each part measured when it was built: what a piece grows *from*, so turning the wheel up and
+ *  down again comes back to exactly the size it started at. (A part nobody built is its own base.)
+ */
+const baseScale = new WeakMap<THREE.Object3D, THREE.Vector3>();
 
 /** Forgets the room that was built before: a floor's pieces are declared as it is built. */
 export function clearPieces(): void {
@@ -94,6 +98,7 @@ export function addToPiece(id: string, part: THREE.Object3D): void {
   if (!piece) return;
   piece.parts.push(part);
   byPart.set(part, piece);
+  baseScale.set(part, part.scale.clone());
 }
 
 /** Takes it off again, for one being built anew: a piece keeps no part nobody owns. */
@@ -135,7 +140,10 @@ export function placed(
     at: { x: base.x, z: base.z, rotY: base.rotY ?? 0, hidden: false },
   };
   pieces.push(piece);
-  for (const part of list) byPart.set(part, piece);
+  for (const part of list) {
+    byPart.set(part, piece);
+    baseScale.set(part, part.scale.clone());
+  }
   // Straight away, so a piece the file took out never joins the room's colliders or what you can use.
   if (room) applyPiece(piece, added ? placeAdded(id, base) : place(id, base), room);
   return piece;
@@ -181,19 +189,31 @@ function turnBox(box: Collider, piece: Piece, x: number, z: number, drot: number
  * Puts a piece where its placement says: the parts and their colliders turn and move as one, and a piece
  * that was deleted leaves the room — hidden, out of the room's colliders, and out of what you can use.
  * Called as the room is built (see buildOffice) and again by the editor while you drag.
+ *
+ * A piece may also come back a different size (see features/layout-editor): the parts grow about the
+ * piece's own middle — so a bigger pot sits on the same spot and still stands on the floor — and its
+ * colliders grow with them, since a fountain twice the size is also twice as much to walk into.
  */
 export function applyPiece(piece: Piece, at: Placed, room?: Room): void {
   const dx = at.x - piece.at.x;
   const dz = at.z - piece.at.z;
   const drot = at.rotY - piece.at.rotY;
+  const s = scaleOf(at);
+  const grow = s / scaleOf(piece.at);
   const hiding = at.hidden !== piece.at.hidden;
   for (const part of piece.parts) {
     turn(part, piece, dx, dz, drot);
+    if (grow !== 1) rescale(part, s);
     if (hiding) part.visible = !at.hidden;
   }
-  if (dx || dz || drot) {
-    for (const box of piece.colliders) turnBox(box, piece, dx, dz, drot);
-    if (piece.interact) {
+  if (dx || dz || drot || grow !== 1) {
+    for (const box of piece.colliders) {
+      if (dx || dz || drot) turnBox(box, piece, dx, dz, drot);
+      if (grow !== 1) growBox(box, at.x, at.z, grow);
+    }
+    // A use-point belongs to the room's own furniture, which is never resized (see Placement.scale):
+    // what moves here is its place.
+    if (piece.interact && (dx || dz || drot)) {
       const x = piece.interact.x - piece.at.x;
       const z = (piece.interact.z ?? 0) - piece.at.z;
       piece.interact.x = piece.at.x + x * Math.cos(drot) + z * Math.sin(drot) + dx;
@@ -205,6 +225,25 @@ export function applyPiece(piece: Piece, at: Placed, room?: Room): void {
     if (piece.interact) setIn(room.interactables, [piece.interact], !at.hidden);
   }
   piece.at = at;
+}
+
+/** A part, set to `s` times the size it was built at — always from that size, never from wherever it
+ *  last ended up, so a piece turned up and back down again is exactly the size it came. */
+function rescale(part: THREE.Object3D, s: number): void {
+  let base = baseScale.get(part);
+  if (!base) baseScale.set(part, (base = part.scale.clone()));
+  part.scale.copy(base).multiplyScalar(s);
+}
+
+/** A collider's box, grown about the middle of the piece and the floor it stands on: wider, but no
+ *  taller off the ground, which is what standing on the same spot means. */
+function growBox(box: Collider, cx: number, cz: number, by: number): void {
+  box.minX = cx + (box.minX - cx) * by;
+  box.maxX = cx + (box.maxX - cx) * by;
+  box.minZ = cz + (box.minZ - cz) * by;
+  box.maxZ = cz + (box.maxZ - cz) * by;
+  const bottom = box.bottom ?? 0;
+  if (box.top !== undefined) box.top = bottom + (box.top - bottom) * by;
 }
 
 /** Whether the room's own list still holds these: taken out for a deleted piece, put back for one that

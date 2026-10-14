@@ -31,6 +31,13 @@ export interface Placement {
    * from layout.ts, so this entry is the piece's whole self rather than a change to a base.
    */
   kind?: AdditionKind;
+  /**
+   * How big the piece is, as a multiple of the size it was built at — 1, or nothing at all, when it's
+   * as it came. Only an addition carries one: the room's own furniture is where its seats, its use-points
+   * and the walk map round it are measured, and those don't move when a desk is made smaller (see
+   * docs/room.md).
+   */
+  scale?: number;
   /** Taken out of the room: built by nobody, and remembered as gone. */
   deleted?: boolean;
 }
@@ -43,6 +50,8 @@ export interface Placed {
   x: number;
   z: number;
   rotY: number;
+  /** How big it is: nothing said means 1 (see scaleOf). Only an addition is ever anything else. */
+  scale?: number;
   /** Gone: the builder leaves it out of the room entirely. */
   hidden: boolean;
 }
@@ -52,6 +61,31 @@ export interface Base {
   x: number;
   z: number;
   rotY?: number;
+}
+
+/** The smallest and largest a piece may be made: a quarter of what it came as is a trinket, and four
+ *  times it is a building. */
+export const SCALE_MIN = 0.25;
+export const SCALE_MAX = 4;
+/** How much one turn of the wheel changes it: the same tenth the pictures on the walls go up by. */
+const SCALE_STEP = 1.1;
+
+/** A size brought inside the limits: the only thing written to a file, or applied to a piece. One that
+ *  isn't a number at all is the size it came — never a NaN in a transform, which would take the whole
+ *  piece's matrix with it. */
+export function clampScale(n: number): number {
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(SCALE_MAX, Math.max(SCALE_MIN, n));
+}
+
+/** How big a piece is as it stands: what its placement says, or 1 when it says nothing. */
+export function scaleOf(at: { scale?: number }): number {
+  return clampScale(at.scale ?? 1);
+}
+
+/** One turn of the wheel: bigger (`dir` > 0) or smaller, never past the limits. */
+export function resizeBy(scale: number, dir: number): number {
+  return clampScale(scale * (dir > 0 ? SCALE_STEP : 1 / SCALE_STEP));
 }
 
 /** What each piece is called on the panel. A piece without an entry goes by its id. */
@@ -153,6 +187,7 @@ export function place(id: string, base: Base): Placed {
     x: num(p?.x) ?? base.x,
     z: num(p?.z) ?? base.z,
     rotY: num(p?.rotY) ?? base.rotY ?? 0,
+    scale: scaleOf({ scale: num(p?.scale) }),
     hidden: p?.deleted === true,
   };
 }
@@ -163,7 +198,7 @@ export function place(id: string, base: Base): Placed {
  * where the file says, so a floor whose file hasn't got it never had it.
  */
 export function placeAdded(id: string, base: Base): Placed {
-  if (!saved[id]?.kind) return { x: base.x, z: base.z, rotY: base.rotY ?? 0, hidden: true };
+  if (!saved[id]?.kind) return { x: base.x, z: base.z, rotY: base.rotY ?? 0, scale: 1, hidden: true };
   return place(id, base);
 }
 
@@ -176,6 +211,8 @@ export interface SpawnedPiece {
   y: number;
   z: number;
   rotY: number;
+  /** How big it is (see Placement.scale): 1 when the file doesn't say. */
+  scale: number;
   /** Taken away again: the room builds nothing, and the file keeps the note that it was. */
   deleted: boolean;
 }
@@ -189,7 +226,7 @@ export function spawned(): SpawnedPiece[] {
     const x = num(p.x);
     const z = num(p.z);
     if (!kind || !isAdditionKind(kind) || x === undefined || z === undefined) continue;
-    out.push({ id, kind, x, y: num(p.y) ?? 0, z, rotY: num(p.rotY) ?? 0, deleted: p.deleted === true });
+    out.push({ id, kind, x, y: num(p.y) ?? 0, z, rotY: num(p.rotY) ?? 0, scale: scaleOf(p), deleted: p.deleted === true });
   }
   return out;
 }
@@ -228,6 +265,11 @@ export function change(id: string, base: Base, at: Placed): Placements {
   if (added) {
     p.kind = added;
     if (num(was?.y) !== undefined) p.y = was!.y;
+    // Only an addition is ever resized (see Placement.scale), and only what differs is written: back
+    // at the size it came, the field goes. Compared as it would be written, so the wheel's own rounding
+    // (up three notches and down three again is 1.0000000000000002) leaves no trace.
+    const scale = roundScale(scaleOf(at));
+    if (scale !== 1) p.scale = scale;
   }
   if (added || Math.abs(at.x - base.x) > 0.005) p.x = round(at.x);
   if (added || Math.abs(at.z - base.z) > 0.005) p.z = round(at.z);
@@ -244,6 +286,11 @@ export function change(id: string, base: Base, at: Placed): Placements {
 /** A quarter of a centimeter is a fine enough place for anything in this room. */
 function round(n: number): number {
   return Math.round(n * 400) / 400;
+}
+
+/** A size, written out: a thousandth is finer than any wheel turn can ask for. */
+function roundScale(n: number): number {
+  return Math.round(n * 1000) / 1000;
 }
 
 /**
@@ -266,6 +313,13 @@ export function sanitize(file: unknown): Placements {
       const added: Placement = { kind: p.kind, x, z, rotY: rotY !== undefined && Math.abs(rotY) < 100 ? rotY : 0 };
       const y = num(p.y);
       if (y !== undefined && Math.abs(y) < 100) added.y = y;
+      // A size is a number like the others: one out of the limits is brought to the nearest end, rather
+      // than dropping the whole piece.
+      const scale = num(p.scale);
+      if (scale !== undefined) {
+        const s = roundScale(clampScale(scale));
+        if (s !== 1) added.scale = s;
+      }
       if (p.deleted === true) added.deleted = true;
       out[id] = added;
       continue;

@@ -24,9 +24,14 @@ export function installLayoutEditor(ctx: Ctx) {
   function refresh(): void {
     const held = carrying.carrying;
     if (!carrying.on) banner.hide();
-    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)} — E puts it down · R turns it · Canc takes it away · Esc puts it back`);
+    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)}${sizeSaid()} — E puts it down · R turns it${carrying.resizable ? ' · scroll sizes it' : ''} · Canc takes it away · Esc puts it back`);
     else banner.set('🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish');
     ctx.hint.invalidate();
+  }
+
+  /** How big what you're carrying is, when it's not the size it came (see Carrying.size). */
+  function sizeSaid(): string {
+    return carrying.resizable && carrying.size !== 1 ? ` (${Math.round(carrying.size * 100)}%)` : '';
   }
 
   const carrying = new Carrying(ctx.office, ctx.camera, {
@@ -122,10 +127,11 @@ export function installLayoutEditor(ctx: Ctx) {
   function hint(el: HTMLElement): void {
     const held = carrying.carrying;
     el.replaceChildren(
-      hintTitle(held ? `🧰 Carrying ${labelFor(held.id)}` : '🧰 Arranging the room'),
+      hintTitle(held ? `🧰 Carrying ${labelFor(held.id)}${sizeSaid()}` : '🧰 Arranging the room'),
       aside(held ? 'It follows your look; E puts it down' : 'Look at a piece and press E to pick it up'),
       key('C', 'Catalog'),
       key('R', 'Quarter turn'),
+      ...(carrying.resizable ? [key('Scroll', 'Size')] : []),
       key('Canc', 'Take it away'),
       key('Esc', held ? 'Put it back' : 'Stop'),
     );
@@ -153,4 +159,19 @@ export function installLayoutEditor(ctx: Ctx) {
       refresh();
     },
   });
+
+  // The wheel sizes what you're carrying, instead of zooming the camera: the same gesture the pictures
+  // on the walls go up by (see features/hanging). On window, in the capture phase, so it runs before the
+  // player's own handler on the canvas; anything else — an empty hand, the room's own furniture — passes
+  // straight through to the camera.
+  window.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.target !== ctx.canvas || !carrying.resizable) return;
+      e.preventDefault();
+      e.stopPropagation();
+      carrying.resize(e.deltaY < 0 ? 1 : -1);
+    },
+    { capture: true, passive: false },
+  );
 }

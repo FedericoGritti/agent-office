@@ -3,18 +3,18 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { change, labelFor, nextSpawnId, place, placeAdded, placements, sanitize, setPlacements, spawn, spawned } from '../src/shared/placement.js';
+import { SCALE_MAX, SCALE_MIN, change, clampScale, labelFor, nextSpawnId, place, placeAdded, placements, resizeBy, sanitize, scaleOf, setPlacements, spawn, spawned } from '../src/shared/placement.js';
 
 const BASE = { x: -16.63, z: -12.56, rotY: 0 } as const;
 const TURNED = { x: -2, z: -4, rotY: Math.PI } as const;
 
 test('a piece stands where layout.ts puts it until something moves it', () => {
   setPlacements(null);
-  assert.deepEqual(place('jukebox', BASE), { x: BASE.x, z: BASE.z, rotY: 0, hidden: false });
+  assert.deepEqual(place('jukebox', BASE), { x: BASE.x, z: BASE.z, rotY: 0, scale: 1, hidden: false });
   assert.deepEqual(place('whiteboard', TURNED).rotY, Math.PI);
 
   setPlacements({ jukebox: { x: 1.5 } });
-  assert.deepEqual(place('jukebox', BASE), { x: 1.5, z: BASE.z, rotY: 0, hidden: false });
+  assert.deepEqual(place('jukebox', BASE), { x: 1.5, z: BASE.z, rotY: 0, scale: 1, hidden: false });
   // The piece nobody saved is untouched.
   assert.deepEqual(place('whiteboard', TURNED).x, TURNED.x);
 });
@@ -73,7 +73,7 @@ test('a piece the editor adds is its own entry: what it is, and where it stands'
   spawn('add-1', 'monstera', { x: 2.25, y: 0, z: -3.5, rotY: 0 });
   // The ground floor needs no height said out loud.
   assert.deepEqual(placements(), { 'add-1': { kind: 'monstera', x: 2.25, z: -3.5, rotY: 0 } });
-  assert.deepEqual(spawned(), [{ id: 'add-1', kind: 'monstera', x: 2.25, y: 0, z: -3.5, rotY: 0, deleted: false }]);
+  assert.deepEqual(spawned(), [{ id: 'add-1', kind: 'monstera', x: 2.25, y: 0, z: -3.5, rotY: 0, scale: 1, deleted: false }]);
   assert.equal(labelFor('add-1'), '🌿 Monstera');
   assert.equal(nextSpawnId(), 'add-2');
 
@@ -99,7 +99,7 @@ test('an added piece stands only where the file says', () => {
   assert.equal(place('jukebox', BASE).hidden, false);
 
   spawn('add-1', 'rug', { x: 1, y: 3, z: 2, rotY: 0 });
-  assert.deepEqual(placeAdded('add-1', { x: 0, z: 0 }), { x: 1, z: 2, rotY: 0, hidden: false });
+  assert.deepEqual(placeAdded('add-1', { x: 0, z: 0 }), { x: 1, z: 2, rotY: 0, scale: 1, hidden: false });
   // Up on the loft it stays up there: the file is the only thing that says so.
   assert.equal(spawned()[0]?.y, 3);
 });
@@ -132,4 +132,65 @@ test('an addition can name a model fetched from an online catalog', () => {
   setPlacements(cleaned);
   assert.deepEqual(spawned().map((p) => p.kind), ['polyhaven:ArmChair_01']);
   assert.equal(labelFor('add-1'), 'ArmChair 01');
+});
+
+test('a piece the editor resized keeps its size in the file, and the size it came at is nothing said', () => {
+  setPlacements(null);
+  spawn('add-1', 'fountain', { x: 1, y: 0, z: 2, rotY: 0 });
+  // As it came: the file says nothing about a size, and a piece read back is 1.
+  assert.deepEqual(placements()['add-1'], { kind: 'fountain', x: 1, z: 2, rotY: 0 });
+  assert.equal(place('add-1', { x: 0, z: 0 }).scale, 1);
+  assert.equal(spawned()[0]?.scale, 1);
+
+  // Three notches of the wheel up: the size goes into the file, and comes back out of it.
+  let big = 1;
+  for (let i = 0; i < 3; i++) big = resizeBy(big, 1);
+  assert.equal(Math.round(big * 1000) / 1000, 1.331);
+  change('add-1', { x: 1, z: 2 }, { x: 1, z: 2, rotY: 0, scale: big, hidden: false });
+  assert.equal(placements()['add-1']?.scale, 1.331);
+  assert.equal(scaleOf(place('add-1', { x: 0, z: 0 })), 1.331);
+  assert.equal(spawned()[0]?.scale, 1.331);
+
+  // And three notches down again is the size it came, with nothing left to remember: the wheel's own
+  // arithmetic lands a hair off 1, which the file must not keep.
+  let back = big;
+  for (let i = 0; i < 3; i++) back = resizeBy(back, -1);
+  assert.notEqual(back, 1);
+  change('add-1', { x: 1, z: 2 }, { x: 1, z: 2, rotY: 0, scale: back, hidden: false });
+  assert.equal(placements()['add-1']?.scale, undefined);
+  assert.deepEqual(placements()['add-1'], { kind: 'fountain', x: 1, z: 2, rotY: 0 });
+});
+
+test('a size stops at the ends of what a piece may be made, and the room\'s own furniture has none', () => {
+  let big = 1;
+  let small = 1;
+  for (let i = 0; i < 40; i++) {
+    big = resizeBy(big, 1);
+    small = resizeBy(small, -1);
+  }
+  assert.equal(big, SCALE_MAX);
+  assert.equal(small, SCALE_MIN);
+  assert.equal(clampScale(0), SCALE_MIN);
+  assert.equal(clampScale(Number.NaN), 1, 'a size arithmetic cannot make is the size it came');
+
+  // A size written by hand is brought to the nearest end rather than losing the piece, and one that
+  // isn't a number at all is no size (the piece still stands).
+  const cleaned = sanitize({
+    'add-1': { kind: 'rug', x: 1, z: 2, scale: 100 },
+    'add-2': { kind: 'rug', x: 1, z: 2, scale: 'big' },
+    'add-3': { kind: 'rug', x: 1, z: 2, scale: 0.01 },
+    'add-4': { kind: 'rug', x: 1, z: 2, scale: 1.2000000000000002 },
+  });
+  assert.deepEqual(
+    ['add-1', 'add-2', 'add-3', 'add-4'].map((id) => cleaned[id]?.scale),
+    [SCALE_MAX, undefined, SCALE_MIN, 1.2],
+  );
+
+  // The room's own furniture is only ever where it was measured: a size written for one is not read,
+  // and the editor never writes one.
+  setPlacements(sanitize({ jukebox: { x: 2, scale: 3 } }));
+  assert.deepEqual(placements().jukebox, { x: 2 });
+  assert.equal(place('jukebox', BASE).scale, 1);
+  change('jukebox', BASE, { x: 2, rotY: 0, scale: 3, hidden: false });
+  assert.deepEqual(placements().jukebox, { x: 2 });
 });

@@ -10,6 +10,12 @@ import { setPlacements } from '../src/shared/placement.js';
 import { applyPiece, clearPieces, placed, placedPieces } from '../src/client/world/office/placed.js';
 import type { Collider } from '../src/client/world/types.js';
 
+/** A measurement, compared the way the room's own arithmetic deserves: a tenth of a millimetre is the
+ *  size of nobody's furniture. */
+function near(got: number, want: number): void {
+  assert.ok(Math.abs(got - want) < 1e-9, `${got} is not ${want}`);
+}
+
 test('a quarter turn turns a piece on the spot, not about where it was built', () => {
   setPlacements(null);
   clearPieces();
@@ -58,4 +64,56 @@ test('a board goes wherever you carry it, and keeps the height it hangs at', () 
   placed(group, 'test-board', { x: -9.84, z: -12.92, rotY: 0 });
   applyPiece(placedPieces()[0], { x: 2.5, z: -4, rotY: 0, hidden: false });
   assert.deepEqual([group.position.x, group.position.y, group.position.z], [2.5, 2.1, -4]);
+});
+
+test('a piece made bigger grows on its own spot, standing on the floor, with what you walk into', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  group.position.set(2, 0, -1);
+  // A pot two thirds of a metre across standing on the floor, the way footprint() writes one.
+  const box: Collider = { minX: 1.7, maxX: 2.3, minZ: -1.3, maxZ: -0.7, bottom: 0, top: 0.5 };
+  placed(group, 'add-1', { x: 2, z: -1 }, [box]);
+  const piece = placedPieces()[0];
+
+  applyPiece(piece, { x: 2, z: -1, rotY: 0, scale: 2, hidden: false });
+  // The object itself, twice the size, with its middle still on the spot it was put.
+  near(group.scale.x, 2);
+  assert.deepEqual([group.position.x, group.position.z], [2, -1]);
+  // Twice as wide and twice as tall, and no further off the floor than it was.
+  near(box.minX, 1.4);
+  near(box.maxX, 2.6);
+  near(box.bottom!, 0);
+  near(box.top!, 1);
+
+  // Down to the size it came: exactly that size, on the spot it grew about.
+  applyPiece(piece, { x: 2, z: -1, rotY: 0, scale: 1, hidden: false });
+  near(group.scale.x, 1);
+  near(box.minX, 1.7);
+  near(box.maxX, 2.3);
+  near(box.top!, 0.5);
+
+  // Twice at the same size grows nothing twice: it is the size, not the turning of the wheel, that
+  // says how big the piece is.
+  applyPiece(piece, { x: 2, z: -1, rotY: 0, scale: 1.5, hidden: false });
+  applyPiece(piece, { x: 2, z: -1, rotY: 0, scale: 1.5, hidden: false });
+  near(group.scale.x, 1.5);
+  // Half again as wide about its middle: a third of a metre out becomes 45 cm out.
+  near(box.maxX, 2.45);
+});
+
+test('a piece grows about its own middle while it is being carried somewhere else', () => {
+  setPlacements(null);
+  clearPieces();
+  const group = new THREE.Object3D();
+  const box: Collider = { minX: -0.3, maxX: 0.3, minZ: -0.3, maxZ: 0.3, bottom: 0, top: 0.4 };
+  placed(group, 'add-2', { x: 0, z: 0 }, [box]);
+  // Moved and grown in one go, the way the editor does it every frame: the collider follows the piece
+  // to where it is now, and is as big as it is now, not as big as it was where it stood before.
+  applyPiece(placedPieces()[0], { x: 5, z: -2, rotY: 0, scale: 3, hidden: false });
+  assert.deepEqual([group.position.x, group.position.z], [5, -2]);
+  near(box.minX, 5 - 0.9);
+  near(box.maxX, 5 + 0.9);
+  near(box.minZ, -2 - 0.9);
+  near(box.top!, 1.2);
 });

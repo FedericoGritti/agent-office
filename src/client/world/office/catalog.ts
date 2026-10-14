@@ -183,7 +183,7 @@ export function applyCatalog(room: AdditionRoom, floor: string): void {
     wanted.add(it.id);
     const have = standing.get(it.id);
     if (have) {
-      applyPiece(have, { x: it.x, z: it.z, rotY: it.rotY, hidden: it.deleted }, room);
+      applyPiece(have, { x: it.x, z: it.z, rotY: it.rotY, scale: it.scale, hidden: it.deleted }, room);
       continue;
     }
     // A model that has to come over the network is built when it arrives, and a second file arriving in

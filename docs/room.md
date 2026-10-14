@@ -48,7 +48,7 @@ in the room at two metres, and turned on the spot.
 **C** while you're arranging opens the catalog — `src/shared/catalog.ts` is the list, and
 `src/client/world/office/catalog.ts` builds each one. Picking a thing puts it in the room two metres in
 front of you, on the same 25 cm grid, in your hands to place: **R** turns it, **E** puts it down where
-you look, **Canc** takes it away.
+you look, **scroll** makes it bigger or smaller while you carry it, **Canc** takes it away.
 
 | In the catalog | What it is |
 | --- | --- |
@@ -60,9 +60,23 @@ you look, **Canc** takes it away.
 An addition is a piece of furniture like any other — it has a footprint, the editor carries and turns
 it, and `Canc` takes it away with its colliders. What is different is that it has no position in
 `layout.ts` to fall back on: it stands exactly where the file says and **nowhere** when the file hasn't
-got it, so an addition made on one floor doesn't turn up on another. Two more fields, and only for
-additions: `kind` says what it is, and `y` says how high it stands — a pot up on the loft's floor has
-the same `x` and `z` as the meeting room underneath it.
+got it, so an addition made on one floor doesn't turn up on another. Three more fields, and only for
+additions: `kind` says what it is, `y` says how high it stands — a pot up on the loft's floor has the
+same `x` and `z` as the meeting room underneath it — and `scale` says how big it is when it isn't the
+size it was built at.
+
+**A thing you added can be resized; the room's own furniture can't.** Scroll while you carry one and it
+grows or shrinks — a quarter of what it came as at the smallest, four times at the largest, a tenth a
+notch — about its own middle and the floor it stands on, so it stays where you're putting it and never
+leaves the ground, and what you walk into grows with it. The sign at the top says how big it is
+(`Carrying Monstera (130%)`), and the size is saved with everything else: it comes back that size for
+everyone on the floor and after a restart.
+
+Only an addition is resizable because the room's own furniture is where the room's *plan* is measured: a
+desk's seat, the chairs round the meeting table, a jukebox's use-point and the walk map round them are
+numbers the office hires workers into and walks by — a desk half its size would be a seat nobody could
+sit at. An addition has no seat and no use-point; it is furniture and nothing else, so its size is
+nobody's business but yours.
 
 Nothing with a seat is in the catalog, and not for lack of furniture: see the next section.
 

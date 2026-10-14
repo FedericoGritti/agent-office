@@ -72,10 +72,11 @@ export interface Base {
   y?: number;
 }
 
-/** The smallest and largest a piece may be made: a tenth of what it came as is a trinket, and ten times
- *  it is a monument — wide enough to build with, bounded enough that the room stays a room. */
-export const SCALE_MIN = 0.1;
-export const SCALE_MAX = 10;
+/** The smallest and largest a piece may be made: a hundredth of what it came as is a speck, and a
+ *  hundred times it is a monument — four decades of room to build in, bounded so a piece is still a
+ *  piece (and so the walk map round it still means something). */
+export const SCALE_MIN = 0.01;
+export const SCALE_MAX = 100;
 /** How much one turn of the wheel changes it: the same tenth the pictures on the walls go up by. */
 const SCALE_STEP = 1.1;
 

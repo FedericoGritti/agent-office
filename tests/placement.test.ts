@@ -201,23 +201,26 @@ test('a thing you added can be left up in the air, and the file remembers how hi
 });
 
 test('a size stops at the ends of what a piece may be made, and the room\'s own furniture has none', () => {
+  // However many presses it takes to get there (the ends are the code's to choose): it stops at them.
   let big = 1;
   let small = 1;
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 200; i++) {
     big = resizeBy(big, 1);
     small = resizeBy(small, -1);
   }
   assert.equal(big, SCALE_MAX);
   assert.equal(small, SCALE_MIN);
+  assert.equal(resizeBy(big, 1), SCALE_MAX, 'one more press at the top and it is still the largest');
+  assert.equal(resizeBy(small, -1), SCALE_MIN, 'and one more at the bottom still the smallest');
   assert.equal(clampScale(0), SCALE_MIN);
   assert.equal(clampScale(Number.NaN), 1, 'a size arithmetic cannot make is the size it came');
 
   // A size written by hand is brought to the nearest end rather than losing the piece, and one that
   // isn't a number at all is no size (the piece still stands).
   const cleaned = sanitize({
-    'add-1': { kind: 'rug', x: 1, z: 2, scale: 100 },
+    'add-1': { kind: 'rug', x: 1, z: 2, scale: 1e6 },
     'add-2': { kind: 'rug', x: 1, z: 2, scale: 'big' },
-    'add-3': { kind: 'rug', x: 1, z: 2, scale: 0.01 },
+    'add-3': { kind: 'rug', x: 1, z: 2, scale: 0.000001 },
     'add-4': { kind: 'rug', x: 1, z: 2, scale: 1.2000000000000002 },
   });
   assert.deepEqual(

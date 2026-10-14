@@ -24,7 +24,7 @@ export function installLayoutEditor(ctx: Ctx) {
   function refresh(): void {
     const held = carrying.carrying;
     if (!carrying.on) banner.hide();
-    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)}${heldSaid()} — E puts it down · R turns it${carrying.adjustable ? ' · scroll sizes it · PgUp/PgDn up and down' : ''} · Canc takes it away · Esc puts it back`);
+    else if (held) banner.set(`🛠️ Carrying ${labelFor(held.id)}${heldSaid()} — E puts it down · R turns it${carrying.adjustable ? ' · scroll or PgUp/PgDn up and down · −/+ sizes it' : ''} · Canc takes it away · Esc puts it back`);
     else banner.set('🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish');
     ctx.hint.invalidate();
   }
@@ -116,12 +116,19 @@ export function installLayoutEditor(ctx: Ctx) {
       return true;
     }
     if (e.code === 'PageUp' || e.code === 'PageDown') {
-      // Up and down is a key press and not the aim (your look is for walking the room, and a piece that
-      // followed it would rise every time you glanced at a board). A piece of the room's own has no
-      // height of its own to change, so the key isn't the editor's there at all.
+      // Up and down is a key press and the wheel (see below), and not the aim: your look is for walking
+      // the room, and a piece that followed it would rise every time you glanced at a board. A piece of
+      // the room's own has no height of its own to change, so the key isn't the editor's there at all.
       if (!carrying.adjustable) return false;
       e.preventDefault();
       carrying.raise(e.code === 'PageUp' ? 1 : -1);
+      return true;
+    }
+    if (e.code === 'Minus' || e.code === 'BracketLeft' || e.code === 'Equal' || e.code === 'BracketRight') {
+      // The size, on the same keys a picture on a wall goes up and down by (see features/hanging).
+      if (!carrying.adjustable) return false;
+      e.preventDefault();
+      carrying.resize(e.code === 'Equal' || e.code === 'BracketRight' ? 1 : -1);
       return true;
     }
     if (e.code === 'Delete' || e.code === 'Backspace') {
@@ -143,7 +150,7 @@ export function installLayoutEditor(ctx: Ctx) {
       aside(held ? 'It follows your look; E puts it down' : 'Look at a piece and press E to pick it up'),
       key('C', 'Catalog'),
       key('R', 'Quarter turn'),
-      ...(carrying.adjustable ? [key('Scroll', 'Size'), key('PgUp/PgDn', 'Up / down')] : []),
+      ...(carrying.adjustable ? [key('Scroll / PgUp·PgDn', 'Up / down'), key('− / +', 'Size')] : []),
       key('Canc', 'Take it away'),
       key('Esc', held ? 'Put it back' : 'Stop'),
     );
@@ -172,17 +179,17 @@ export function installLayoutEditor(ctx: Ctx) {
     },
   });
 
-  // The wheel sizes what you're carrying, instead of zooming the camera: the same gesture the pictures
-  // on the walls go up by (see features/hanging). On window, in the capture phase, so it runs before the
-  // player's own handler on the canvas; anything else — an empty hand, the room's own furniture — passes
-  // straight through to the camera.
+  // The wheel raises and lowers what you're carrying, instead of zooming the camera: the height is a
+  // button (PgUp/PgDn) and the wheel both (see `raise`). On window, in the capture phase, so it runs
+  // before the player's own handler on the canvas; anything else — an empty hand, the room's own
+  // furniture — passes straight through to the camera.
   window.addEventListener(
     'wheel',
     (e) => {
       if (e.target !== ctx.canvas || !carrying.adjustable) return;
       e.preventDefault();
       e.stopPropagation();
-      carrying.resize(e.deltaY < 0 ? 1 : -1);
+      carrying.raise(e.deltaY < 0 ? 1 : -1);
     },
     { capture: true, passive: false },
   );

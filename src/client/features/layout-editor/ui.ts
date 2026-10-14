@@ -1,9 +1,11 @@
-// The catalog: what the editor can put in the room — the office's own things (shared/catalog), and
-// models fetched from an online catalog (shared/model-sources, one section per source). Picking one puts it in
-// the room in front of you and closes the window, so it can be carried and put down straight away.
+// The catalog: what the editor can put in the room — the office's own furniture (shared/catalog), which
+// the room builds then and there, and models fetched from an online catalog (shared/model-sources). The
+// two are two different things, so the window keeps them in two panes with a tab each: the room's own
+// things are a shelf you pick from, and the online ones are searched and fetched. Picking one puts it in
+// the room in front of you, so it can be carried and put down straight away.
 
 import './ui.css';
-import { CATALOG, CATALOG_KINDS, type CatalogKind } from '../../../shared/catalog';
+import { CATALOG, CATALOG_KINDS, type CatalogEntry, type CatalogKind } from '../../../shared/catalog';
 import { MODEL_SEARCH_PATH, MODEL_SOURCES, MODEL_SOURCE_IDS, type ModelInfo, type ModelSource } from '../../../shared/model-sources';
 import { h, openModal } from '../../ui/dom';
 
@@ -12,8 +14,8 @@ import { h, openModal } from '../../ui/dom';
 export interface CatalogOptions {
   add(kind: CatalogKind): Promise<void>;
   addModel(source: ModelSource, id: string): Promise<void>;
-  /** What the floor's file has taken out of the room — its own furniture as much as what was put in
-   *  from here — to be put back (see Carrying.bringBack). */
+  /** What the floor's file has taken out of the room, to put back: the one way a Canc pressed by mistake
+   *  is undone, and the only way back for the furniture that can't be copied yet (see Carrying.bringBack). */
   gone(): { id: string; label: string }[];
   restore(id: string): void;
 }
@@ -22,65 +24,103 @@ export function openCatalog(opts: CatalogOptions): void {
   /** Set once the window exists: what a row calls when what it picked is in the room. */
   let close = () => {};
 
-  // What is gone, at the top of the window: the room's own whiteboard, a board, the television, a plant
-  // somebody cancelled by mistake, or a model taken out — one click each to stand them where they were,
-  // as big and as high as they were left. Redrawn after every one, so several can come back in a row.
-  const back = h('section.cat-source.hidden');
-  function drawBack(): void {
-    const gone = opts.gone();
-    back.classList.toggle('hidden', gone.length === 0);
-    if (!gone.length) return;
-    back.replaceChildren(
-      h('h3', {}, '↩️ Gone from the room'),
-      h('p.setting-note', {}, 'What the file has taken out. Click one to put it back where it was, as big and as high as it was left.'),
-      h(
-        'ul.svc-list.cat-grid',
-        {},
-        ...gone.map((piece) => {
-          const li = h('li', { tabindex: 0, role: 'button', title: `Put the ${piece.label} back` }, h('div.svc-main', {}, h('div.svc-title', {}, piece.label)));
-          const pick = () => {
-            opts.restore(piece.id);
-            drawBack();
-          };
-          li.addEventListener('click', pick);
-          li.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              pick();
-            }
-          });
-          return li;
-        }),
-      ),
+  const trouble = h('p.setting-note.bad');
+
+  // --- The room's own furniture: a dozen things, in groups, with a box to narrow them down.
+  const filter = h('input.cat-search', { type: 'search', placeholder: 'plant, rug, cushion…', 'aria-label': 'Search the room’s own furniture' });
+  const shelf = h('div.cat-own');
+  function drawShelf(): void {
+    const want = filter.value.trim().toLowerCase();
+    const hits = CATALOG_KINDS.map((kind) => ({ kind, entry: CATALOG[kind] as CatalogEntry })).filter(
+      ({ entry }) => !want || `${entry.label} ${entry.blurb} ${entry.group}`.toLowerCase().includes(want),
+    );
+    // In groups, each under the heading it names, in the order the catalog happens to list them.
+    const groups = new Map<string, HTMLElement>();
+    for (const { kind, entry } of hits) {
+      let list = groups.get(entry.group);
+      if (!list) groups.set(entry.group, (list = h('ul.svc-list.cat-grid')));
+      list.append(ownRow(kind, entry, opts, () => close(), trouble));
+    }
+    shelf.replaceChildren(
+      ...(hits.length
+        ? [...groups].map(([group, list]) => h('section.cat-group', {}, h('h3', {}, group), list))
+        : [h('p.setting-note', {}, 'Nothing by that name.')]),
     );
   }
-  drawBack();
-
-  const trouble = h('p.setting-note.bad');
-  const list = h(
-    'ul.svc-list.cat-grid',
+  filter.addEventListener('input', drawShelf);
+  drawShelf();
+  const own = h(
+    'div.cat-pane',
     {},
-    ...CATALOG_KINDS.map((kind) => {
-      const entry = CATALOG[kind];
-      const li = h(
-        'li',
-        { tabindex: 0, role: 'button', title: `Put a ${entry.label} in the room` },
-        h('div.svc-main', {}, h('div.svc-title', {}, entry.label), h('div.svc-meta', {}, entry.blurb)),
-      );
-      const pick = () =>
-        void opts.add(kind).then(close, (err: Error) => {
-          trouble.textContent = err.message;
-        });
-      li.addEventListener('click', pick);
-      li.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          pick();
-        }
-      });
-      return li;
-    }),
+    h('p.setting-note', {}, 'The room builds a copy of any of these, wherever you want it — as many as you want. They are furniture: nothing here is a seat the office hires into.'),
+    h('div.cat-search-row', {}, filter),
+    shelf,
   );
+
+  // --- The online catalogs, one section each. They are only asked when this pane is opened: nothing
+  // goes over the network because a window was opened.
+  const online = h('div.cat-pane.hidden');
+  let askedOnline = false;
+
+  const tab = (text: string, open: () => void) => {
+    const el = h('button.btn.cat-tab', { type: 'button', onclick: open }, text);
+    return el;
+  };
+  const ownTab = tab('🧰 The office’s own', () => show('own'));
+  const onlineTab = tab('🌐 Online catalogs', () => show('online'));
+  function show(which: 'own' | 'online'): void {
+    const mine = which === 'own';
+    own.classList.toggle('hidden', !mine);
+    online.classList.toggle('hidden', mine);
+    ownTab.classList.toggle('on', mine);
+    onlineTab.classList.toggle('on', !mine);
+    if (mine || askedOnline) return;
+    askedOnline = true;
+    online.replaceChildren(...MODEL_SOURCE_IDS.map((source) => section(source, opts, () => close())));
+  }
+
+  // --- What was cancelled by mistake: not what the window is for, so it stays behind one button at the
+  // bottom and out of the way — but it is there, and it costs one click. It is also the only way back for
+  // the furniture that cannot be copied yet (the whiteboard, the television and the other screens).
+  const back = h('section.cat-back-list.hidden');
+  const backMore = h('button.btn.cat-back', { type: 'button' }, '↩️ Put back something cancelled…');
+  function drawBack(): void {
+    const gone = opts.gone();
+    back.replaceChildren(
+      ...(gone.length
+        ? [
+            h('p.setting-note', {}, 'What the floor’s file has taken out of the room. Click one to put it back where it was, as big and as high as it was left.'),
+            h(
+              'ul.svc-list.cat-grid',
+              {},
+              ...gone.map((piece) => {
+                const li = h('li', { tabindex: 0, role: 'button', title: `Put the ${piece.label} back` }, h('div.svc-main', {}, h('div.svc-title', {}, piece.label)));
+                const pick = () => {
+                  opts.restore(piece.id);
+                  drawBack();
+                };
+                li.addEventListener('click', pick);
+                li.addEventListener('keydown', (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    pick();
+                  }
+                });
+                return li;
+              }),
+            ),
+          ]
+        : [h('p.setting-note', {}, 'Nothing has been taken out of the room.')]),
+    );
+    backMore.classList.toggle('hidden', gone.length === 0);
+  }
+  // The button is only there when there is something behind it (see drawBack: it hides itself on an empty
+  // list), and the list itself only when it is asked for.
+  backMore.addEventListener('click', () => {
+    drawBack();
+    back.classList.remove('hidden');
+  });
+  drawBack();
 
   const el = h(
     'div.modal.catalog',
@@ -89,16 +129,35 @@ export function openCatalog(opts: CatalogOptions): void {
     h(
       'div.body',
       {},
-      h('p.setting-note', {}, 'What goes in the room. It lands in front of you: R turns it a quarter, E puts it down where you look, Canc takes it away again.'),
-      back,
-      list,
+      h('div.cat-tabs', {}, ownTab, onlineTab),
+      own,
+      online,
       trouble,
-      ...MODEL_SOURCE_IDS.map((source) => section(source, opts, () => close())),
+      backMore,
+      back,
     ),
   );
   const modal = openModal(el);
+  show('own');
   close = () => modal.close();
-  setTimeout(() => (list.querySelector('li[tabindex="0"]') as HTMLElement | null)?.focus(), 30);
+  setTimeout(() => filter.focus(), 30);
+}
+
+/** One thing the room's own catalog holds: what it is, what it is like, and a click to put one down. */
+function ownRow(kind: CatalogKind, entry: CatalogEntry, opts: CatalogOptions, close: () => void, trouble: HTMLElement): HTMLElement {
+  const li = h('li', { tabindex: 0, role: 'button', title: `Put a ${entry.label} in the room` }, h('div.svc-main', {}, h('div.svc-title', {}, entry.label), h('div.svc-meta', {}, entry.blurb)));
+  const pick = () =>
+    void opts.add(kind).then(close, (err: Error) => {
+      trouble.textContent = err.message;
+    });
+  li.addEventListener('click', pick);
+  li.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      pick();
+    }
+  });
+  return li;
 }
 
 /**
@@ -110,7 +169,7 @@ function section(source: ModelSource, opts: CatalogOptions, close: () => void): 
   const info = MODEL_SOURCES[source];
   const query = h('input.cat-search', { type: 'search', placeholder: 'chair, lamp, rock, plant…', 'aria-label': `Search ${info.name}` });
   const search = h('button.btn', { type: 'button' }, 'Search');
-  const results = h('div.cat-results');
+  const results = h('div.cat-results', {}, h('p.setting-note', {}, `Search ${info.name} for what you are after — a chair, a lamp, a rock — or search with the box empty to see what they hold.`));
   /** Which search is the last one asked: a slow answer to an old question doesn't overwrite a new one. */
   let asked = 0;
 
@@ -140,8 +199,6 @@ function section(source: ModelSource, opts: CatalogOptions, close: () => void): 
       void look();
     }
   });
-  // What they have, without anyone typing anything: the most reached-for models first.
-  void look();
 
   return h(
     'section.cat-source',
@@ -180,7 +237,6 @@ function row(source: ModelSource, m: ModelInfo, opts: CatalogOptions, close: () 
   add.addEventListener('click', async () => {
     add.disabled = true;
     add.textContent = 'Fetching…';
-    note.textContent = '';
     try {
       await opts.addModel(source, m.id);
       close();

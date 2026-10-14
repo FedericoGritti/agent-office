@@ -280,7 +280,8 @@ export class Carrying {
     return true;
   }
 
-  /** A piece standing in the room again, from the panel's ✕ or from a saved file that said so. */
+  /** A piece standing in the room again, from the catalog's "put back" list: where it was, as big and as
+   *  high as it was left (see the layout-editor window). */
   bringBack(piece: Piece): void {
     this.place(piece, { ...piece.at, hidden: false }, true);
     this.deps.save(placements());

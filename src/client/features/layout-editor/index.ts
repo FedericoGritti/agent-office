@@ -97,8 +97,8 @@ export function installLayoutEditor(ctx: Ctx) {
     await stand(externalKind(source, id));
   }
 
-  /** What the room declares but this floor's file has taken away, to be put back: a whiteboard
-   *  cancelled by mistake is one click from standing again (see openCatalog and Carrying.bringBack). */
+  /** What the room declares but this floor's file has taken away: the list behind the catalog's "put
+   *  back" button, and the only way back for what can't be copied yet (see Carrying.bringBack). */
   function gone(): { id: string; label: string }[] {
     return placedPieces()
       .filter((piece) => piece.at.hidden)

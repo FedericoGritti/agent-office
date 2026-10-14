@@ -59,13 +59,28 @@ you look, **−**/**+** lift it and lower it, **scroll** makes it bigger or smal
 | 🌿 Monstera, 🪴 Snake plant, 🌳 Ficus, 🌵 Succulent | the room's four pot plant species, one each, at the size they read best (the same model, `plants.glb`) |
 | 🧶 Rug, 🟪 Round rug | a soft rug and a round one, the colour taken from the piece's own number so no two come out alike |
 | 🛋️ Coffee table | the lounge's round table, for a second one anywhere |
+| 🪀 Cushion, mint · sun · blush | a floor cushion, the lounge's own pouf in three colours: a corner to throw yourself into, or a ring of them round a table |
 | ⛲ Fountain | a stone basin with water, a bowl on a column above it and that bowl's water falling back into the basin: built in code, out of cylinders, and the one thing in the room that moves on its own |
 
-**C** is also where the room's losses are. The window opens with **↩️ Gone from the room** — everything
-the floor's file has taken out, the office's own furniture (a whiteboard, a board, the television, a pot
-plant) as much as anything put in from a catalog — and a click puts each one back where it was, as big and
-as high as it was left. Nothing is lost for good by a **Canc** pressed once too often; a piece that is
-standing isn't on the list, because there is nothing to bring back.
+A shelf isn't everything the room has, and the reason is worth knowing: the television, the whiteboard,
+the four boards, the machine monitor and the figures boards are **one of a kind**, because the feature
+that draws them draws one screen. A copy of a screen would be a screen nobody paints. Making them
+replicable is one step per feature — its own file learns to paint every screen of its kind — and until
+that is done they are not on the shelf. Nor is anything with a seat: a desk or a couch the office's list
+hasn't got is a place nobody can be hired into, which is why a cushion here is furniture and not a place
+to sit.
+
+The window has two tabs, because there are two kinds of thing in it. **🧰 The office's own** is what the
+room can build then and there — a shelf of groups (🪴 Plants, 🪡 Floor and tables, 🪀 Cushions, ⛲ Water),
+with a box to narrow it down — and picking one builds a copy in front of you: as many as you like, of
+anything on the shelf. **🌐 Online catalogs** is searched and fetched (see below), and nothing goes over
+the network until that tab is opened.
+
+One button at the bottom, **↩️ Put back something cancelled…**, opens a list of what the floor's file has
+taken out of the room — click one and it stands where it was, as big and as high as it was left. It is
+kept out of the way because it isn't what the window is for, but it is the one way back for a **Canc**
+pressed by mistake, and for now the only way back at all for the furniture that can't be copied yet (the
+screens: a cancelled whiteboard is a whiteboard there is no second one of).
 
 An addition is a piece of furniture like any other — it has a footprint, the editor carries and turns
 it, and `Canc` takes it away with its colliders. What is different is that it has no position in

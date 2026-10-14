@@ -17,7 +17,7 @@ import { mesh, roundedBox, toon } from '../toon';
 import { buildExternal } from './external';
 import { applyPiece, footprint, placed, type AdditionRoom, type Built, type Piece, type Spot } from './placed';
 import { PALETTE } from './materials';
-import { coffeeTable, plant, type PlantSpecies } from './props';
+import { coffeeTable, plant, pouf, type PlantSpecies } from './props';
 
 /** Every addition standing in the room, by id, so a file arriving twice builds each one once. */
 const standing = new Map<string, Piece>();
@@ -61,6 +61,21 @@ function roundRug(radius: number): (id: string, at: Spot) => Built {
     const disc = new THREE.CircleGeometry(radius, 28).rotateX(-Math.PI / 2);
     const group = mesh(disc, cloth, at.x, at.y + 0.011, at.z, false);
     return { group, colliders: [] };
+  };
+}
+
+/**
+ * A floor cushion: the lounge's pouf in a colour of its own, on the footprint the room's own cushions
+ * have. It is furniture and nothing else — the office's seats are its own list, and a cushion that
+ * isn't on it is one nobody is hired into (see docs/room.md) — so it is a cushion to look at, and to
+ * put wherever a cushion looks right.
+ */
+function cushion(color: string): (id: string, at: Spot) => Built {
+  return (_id, at) => {
+    const group = pouf(color);
+    group.position.set(at.x, at.y, at.z);
+    group.rotation.y = at.rotY;
+    return { group, colliders: [footprint(at.x, at.z, 1, 1, at.rotY, at.y, 0.42)] };
   };
 }
 
@@ -134,6 +149,9 @@ const BUILDERS: Record<CatalogKind, (id: string, at: Spot) => Built> = {
   rug: rugOf(3.2, 2.4, 0.5),
   'round-rug': roundRug(1.5),
   'coffee-table': table,
+  'cushion-mint': cushion('#06d6a0'),
+  'cushion-sun': cushion('#ffd166'),
+  'cushion-blush': cushion('#ffc6ff'),
   fountain,
 };
 

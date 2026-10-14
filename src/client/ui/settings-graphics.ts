@@ -5,7 +5,8 @@
 // setting whose number doesn't move is a setting that isn't doing anything (see docs/how-it-works.md).
 
 import type { Settings } from '../state';
-import { frameCost, framesWatched } from '../core/perf';
+import { store } from '../state';
+import { frameCost, framesWatched, onReading } from '../core/perf';
 import { h } from './dom';
 import { choiceRow, setting } from './settings-rows';
 
@@ -34,6 +35,27 @@ export function graphicsRows(settings: Settings, change: (some: Partial<Settings
     }, 500);
     return el;
   })();
+
+  // While the strip is on, each reading also goes to the office, which writes it down on the floor: the
+  // number is then read from the machine instead of asked of whoever is watching a slow screen (see
+  // server/http/routes/perf.ts). Nothing is sent while the measurement is off.
+  onReading((cost, worst) => {
+    const floor = store.floor ?? '';
+    void fetch(`/api/perf?floor=${encodeURIComponent(floor)}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        at: new Date().toISOString(),
+        graphics: { outlines: settings.outlines, shadows: settings.shadows, resolution: settings.resolution },
+        view: settings.view,
+        now: cost,
+        worst,
+      }),
+    }).catch(() => {
+      // Offline, or the office is restarting: a reading that didn't arrive is not worth a word on screen.
+    });
+  });
 
   return [
     setting('Outlines', 'you', outlinesRow, h('p.setting-note', {}, 'The ink line round everything, which is the office’s own look — and the whole room drawn a second time, every frame. Off, a slow room costs about half as much to draw and looks a little flatter.')),

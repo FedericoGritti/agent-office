@@ -45,6 +45,9 @@ let last: FrameCost | null = null;
 let worst: FrameCost | null = null;
 let overlay: HTMLElement | null = null;
 let overlayTimer: number | undefined;
+/** Where a reading goes while someone is watching, and when the last one went (see onReading). */
+let reading: ((cost: FrameCost, worst: FrameCost) => void) | null = null;
+let sentAt = 0;
 
 /**
  * Starts or stops measuring, and shows or hides the strip on screen (see setOverlay). Calling it with the
@@ -119,6 +122,11 @@ export function sampleFrame(frameMs: number): void {
   };
   last = cost;
   if (!worst || cost.frame > worst.frame) worst = cost;
+  // At most one reading a second goes out, and only if anything is listening for it.
+  if (reading && performance.now() - sentAt > 1000) {
+    sentAt = performance.now();
+    reading(cost, worst);
+  }
   frames = 0;
   frameSum = 0;
   worstFrame = 0;
@@ -135,6 +143,15 @@ export function frameCost(): FrameCost | null {
 /** The worst reading since measuring started: what the office looks like when it stutters, not on average. */
 export function worstCost(): FrameCost | null {
   return worst;
+}
+
+/**
+ * What to do with each new reading, while someone is watching. The Graphics settings page uses it to write
+ * the number down where it can be looked at from the machine rather than asked of whoever is looking at a
+ * slow screen (see server/http/routes/perf.ts); nothing is sent when there is no such callback.
+ */
+export function onReading(cb: ((cost: FrameCost, worst: FrameCost) => void) | null): void {
+  reading = cb;
 }
 
 /**

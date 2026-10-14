@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FRAME_WINDOW, frameCost, framesWatched, phaseTimes, sampleFrame, span, watchFrames, worstCost } from '../src/client/core/perf.js';
+import { FRAME_WINDOW, frameCost, framesWatched, onReading, phaseTimes, sampleFrame, span, watchFrames, worstCost } from '../src/client/core/perf.js';
 
 /** One frame as the loop measures it: the phases its own work took, and how long the browser gave it. */
 function frame(ms: number, phases: Record<string, number> = {}) {
@@ -94,4 +94,19 @@ test('a named piece inside a phase is timed, and runs whether or not anyone is w
   );
   assert.ok(cost.spans[0].ms >= 0.5, `a millisecond of work read as ${cost.spans[0].ms} ms`);
   watchFrames(false);
+});
+
+test('a reading is handed out to whoever is listening, and only while it is being watched', () => {
+  const heard: number[] = [];
+  onReading((cost) => heard.push(cost.frame));
+  watchFrames(false);
+  watchFrames(true);
+  for (let i = 0; i < FRAME_WINDOW; i++) frame(30);
+  // One window in a second at most: two windows straight after each other are one reading.
+  for (let i = 0; i < FRAME_WINDOW; i++) frame(30);
+  assert.deepEqual(heard, [30]);
+  watchFrames(false);
+  for (let i = 0; i < FRAME_WINDOW; i++) frame(30);
+  assert.deepEqual(heard, [30]);
+  onReading(null);
 });

@@ -8,6 +8,7 @@ import { fileRoutes } from './files.js';
 import { githubRoutes } from './github.js';
 import { modelRoutes } from './model-sources.js';
 import { pageRoutes } from './pages.js';
+import { perfReport } from './perf.js';
 import { searchRoutes } from './search.js';
 import { serviceRoutes } from './services.js';
 
@@ -38,6 +39,8 @@ export const routes: readonly Route[] = [
   searchRoutes.search,
   serviceRoutes.forwards,
   githubRoutes.github,
+  // What a browser measured about its own frames, while someone has that measurement switched on.
+  perfReport,
   // The online catalogs of models: the two exact paths first, then the folders they come down into.
   modelRoutes.search,
   modelRoutes.add,

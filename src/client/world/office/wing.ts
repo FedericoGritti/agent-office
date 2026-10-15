@@ -6,6 +6,7 @@ import { wingWindows } from '../tower';
 import type { Collider, DeskView, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE, box, type Looks } from './materials';
+import { accent } from './paint';
 import { pendant } from './props';
 import { buildDesk } from './seats';
 import { wallRun, wetPane, windowIn } from './shell';
@@ -54,7 +55,8 @@ export function buildWing(group: THREE.Group, colliders: Collider[], interactabl
     const row = i + 1;
     const z = wingRowZ(row);
     const extras = new THREE.Group();
-    extras.add(mesh(roundedBox(3.4, 0.02, WING.row - 1, 0.5), toon(PALETTE.rugs[(row + 1) % PALETTE.rugs.length]), midX, 0.011, z, false));
+    const slot = (row + 1) % PALETTE.rugs.length;
+    extras.add(mesh(roundedBox(3.4, 0.02, WING.row - 1, 0.5), accent(slot, PALETTE.rugs[slot]), midX, 0.011, z, false));
     const lamp = pendant(WALL_HEIGHT - 4.05);
     lamp.position.set(midX, 4.05, z);
     extras.add(lamp);

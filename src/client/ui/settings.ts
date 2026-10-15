@@ -14,7 +14,8 @@ import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { outsideSetting } from './settings-sky';
 import { choiceRow, setting } from './settings-rows';
 import { graphicsRows } from './settings-graphics';
-import { lookRows } from './settings-look';
+import { paletteRows } from './settings-palette';
+import { shadingRows } from './settings-shading';
 
 const VIEWS: [ViewMode, string, string][] = [
   ['first', '👀 First person', 'See through your own eyes. Click the office to look around with the mouse and click things to use them. Esc frees the mouse.'],
@@ -26,11 +27,12 @@ const THEME_LABEL: Record<ThemePick, string> = { auto: '📅 By the calendar', h
 const WEBHOOK_NAME: Record<WebhookKind, string> = { slack: 'Slack', discord: 'Discord', other: 'a webhook' };
 
 /** The categories down the side of ⚙️ Settings. */
-export type SettingsPane = 'you' | 'graphics' | 'sound' | 'notify' | 'building' | 'workers';
+export type SettingsPane = 'you' | 'graphics' | 'palette' | 'sound' | 'notify' | 'building' | 'workers';
 
 const PANES: { id: SettingsPane; icon: string; label: string; blurb: string }[] = [
   { id: 'you', icon: '🧍', label: 'You', blurb: 'How you look, how you see the office, and how you’re signed in.' },
   { id: 'graphics', icon: '🖼️', label: 'Graphics', blurb: 'What the office draws, and how hard it has to work to draw it.' },
+  { id: 'palette', icon: '🎨', label: 'Palette', blurb: 'The colours the room and everything in it are painted from.' },
   { id: 'sound', icon: '🔊', label: 'Sound & voice', blurb: 'How loud the office is for you, and how voice chat works.' },
   { id: 'notify', icon: '🔔', label: 'Notifications', blurb: 'Hear about a worker that needs someone, or finished, while you’re somewhere else.' },
   { id: 'building', icon: '🏢', label: 'Building', blurb: 'The map, the decorations, the sky, the dog, and where new floors are cloned.' },
@@ -452,7 +454,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       setting('Your hands in first person', 'you', handsRow, h('p.setting-note', {}, 'Your own hands, held up in front of you looking through your own eyes. Hide them and the view is the office and your body below you, with nothing in the way — the ball, the club and the rest still work the same.')),
       setting('Signed in', null, h('div.volume', {}, signOut), h('p.setting-note', {}, account ? `As ${account.name}, with your own account (${account.role}).` : 'With the shared office password.')),
     ],
-    graphics: [...graphicsRows(settings, change), ...lookRows(settings, change)],
+    graphics: [...graphicsRows(settings, change), ...shadingRows(settings, change)],
+    palette: paletteRows(settings, change),
     sound: [
       setting('Office sounds', 'you', soundRow, h('p.setting-note', {}, 'Workers typing, footsteps, the coffee machine, birds and rain outside, the dog, the ding when a worker is done and the alarm when one needs you. Voice chat isn’t affected.')),
       setting('When a worker needs you', 'you', alarmRow, h('p.setting-note', {}, 'An alarm the moment a worker stops to ask you something or wants a permission. Keep reminding me rings it again, softly, every 30 seconds until someone opens that worker’s terminal. It’s as loud as the office sounds are.')),

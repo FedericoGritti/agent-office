@@ -6,6 +6,7 @@ import { mesh, roundedBox, toon } from '../toon';
 import type { Collider, DeskView, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE, box } from './materials';
+import { accent } from './paint';
 import { wallBoard } from './props';
 import { chair } from './seats';
 import type { Door } from './shell';
@@ -24,7 +25,7 @@ function buildMeetingSeat(def: DeskDef, index: number): DeskView {
   seatAnchor.rotation.y = Math.PI;
   seatAnchor.scale.setScalar(0.82);
   group.add(seatAnchor);
-  const ch = chair(['#2b2d42', '#ef476f', '#118ab2', '#06d6a0', '#ffd166'][index % 5]);
+  const ch = chair(accent(index % 5, ['#2b2d42', '#ef476f', '#118ab2', '#06d6a0', '#ffd166'][index % 5]));
   ch.position.set(0, 0, 0.85);
   group.add(ch);
   // A merge's dance party: up on its chair rather than the table, where the laptops are close together.

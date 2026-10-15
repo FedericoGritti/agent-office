@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mesh, roundedBox, toon } from '../toon';
 import { palette, piece } from '../models';
 import { PALETTE } from './materials';
+import { accent } from './paint';
 
 // The office's furnishings: the potted plants, the desks' knick-knacks and the lounge's furniture (all
 // modelled in Blender), the pendant lamps and the framed boards on the walls. The lab (lab/props.ts), the
@@ -63,8 +64,8 @@ export const DESK_BOOKS = ['books_upright', 'books_leaning', 'books_stack'] as c
  * to +x. The body is the old code-built mug's size (0.06 round at the top, 0.12 tall). If the model didn't
  * load, an empty group.
  */
-export function deskMug(color: string): THREE.Object3D {
-  const body = toon(color);
+export function deskMug(color: string | THREE.Material): THREE.Object3D {
+  const body = typeof color === 'string' ? toon(color) : color;
   return piece('desk_props', 'mug', (name) => (name === 'Mug' ? body : paintDeskProp(name)));
 }
 
@@ -86,8 +87,8 @@ const LOUNGE_COLORS = { Sofa: '#5b8def', WoodDark: '#8a5a3b', Wood: PALETTE.wood
 const paintLounge = palette(LOUNGE_COLORS);
 
 /** A pillow or a pouf, its Cloth in `color`. */
-function upholstered(part: 'pillow' | 'pouf', color: string): THREE.Object3D {
-  const cloth = toon(color);
+function upholstered(part: 'pillow' | 'pouf', color: string | THREE.Material): THREE.Object3D {
+  const cloth = typeof color === 'string' ? toon(color) : color;
   return piece('lounge', part, (name) => (name === 'Cloth' ? cloth : paintLounge(name)));
 }
 
@@ -100,11 +101,13 @@ function upholstered(part: 'pillow' | 'pouf', color: string): THREE.Object3D {
 export function loungeCouch(): THREE.Group {
   const g = new THREE.Group();
   g.add(piece('lounge', 'sofa', paintLounge));
-  for (const [x, color] of [
-    [0.6, '#ffd166'],
-    [-0.6, '#ef476f'],
-  ] as const) {
-    const pillow = upholstered('pillow', color);
+  for (const [i, [x, color]] of (
+    [
+      [0.6, '#ffd166'],
+      [-0.6, '#ef476f'],
+    ] as const
+  ).entries()) {
+    const pillow = upholstered('pillow', accent(i, color));
     // Standing on the seat, sunk in a little, its top tipped back onto the back cushions.
     pillow.position.set(x, 0.46, -0.08);
     pillow.rotation.x = -0.15;
@@ -114,7 +117,7 @@ export function loungeCouch(): THREE.Group {
 }
 
 /** A floor pouf in `color`, about 1.05 round and 0.4 tall, its origin on the floor under its middle. */
-export function pouf(color: string): THREE.Object3D {
+export function pouf(color: string | THREE.Material): THREE.Object3D {
   return upholstered('pouf', color);
 }
 

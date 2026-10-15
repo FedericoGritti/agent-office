@@ -7,6 +7,7 @@ import { mesh, roundedBox, toon, toonUnique } from '../toon';
 import type { Collider, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE } from './materials';
+import { accent } from './paint';
 import { coffeeTable, floorPlant, loungeCouch, pendant, plant, pouf, wallBoard } from './props';
 import { seatable } from './seats';
 
@@ -32,7 +33,7 @@ export const rugs: Fixture = (site) => {
     [-10.5, 4],
     [-1.5, 4],
   ].forEach(([x, z], i) => {
-    const rug = mesh(roundedBox(6.2, 0.02, 4.6, 0.6), toon(PALETTE.rugs[i]), x, 0.011, z, false);
+    const rug = mesh(roundedBox(6.2, 0.02, 4.6, 0.6), accent(i, PALETTE.rugs[i]), x, 0.011, z, false);
     site.group.add(rug);
     placed(rug, `rug-${i + 1}`, { x, z }, [], site);
   });
@@ -139,7 +140,7 @@ export const lounge: Fixture = (site) => {
   const tableCollider: Collider = { minX: 12.2, maxX: 13.8, minZ: -0.8, maxZ: 0.8, top: 0.46 };
   site.colliders.push(tableCollider);
   placed(table, 'lounge-table', { x: 13, z: 0 }, [tableCollider], site);
-  const rug = mesh(roundedBox(7, 0.02, 7, 1.2), toon('#ffc6ff'), 13.4, 0.011, 0, false);
+  const rug = mesh(roundedBox(7, 0.02, 7, 1.2), accent(3, '#ffc6ff'), 13.4, 0.011, 0, false);
   site.group.add(rug);
   placed(rug, 'lounge-rug', { x: 13.4, z: 0 }, [], site);
 
@@ -151,7 +152,7 @@ export const lounge: Fixture = (site) => {
     ] as const
   ).entries()) {
     const id = `lounge-beanbag-${i + 1}`;
-    const seat = pouf(color);
+    const seat = pouf(accent(i, color));
     const rotY = SEATING_BY_ID.get(id)!.rotY;
     seat.position.set(x, 0, z);
     seat.rotation.y = rotY;

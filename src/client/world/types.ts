@@ -87,9 +87,10 @@ export interface DeskView {
  */
 export interface OfficeHandles {}
 
-/** Your own colours over a floor's palette, one per surface, or null to keep the floor's own. */
+/** A palette's colours over a floor's own, one per surface, or null to keep the floor's. See Palette in palette.ts. */
 export interface LookColors {
   wall: string | null;
+  trim: string | null;
   floor: string | null;
   ceiling: string | null;
 }
@@ -105,9 +106,9 @@ export interface Office extends OfficeHandles {
   /** Paints the walls, their trim and the floor in a floor's colors, so each project looks like itself. */
   setLook(p: FloorPalette): void;
   /**
-   * Your own colours over the floor's palette (Settings → Graphics), which stay on through a floor or
-   * a map change: the walls and the ceiling are tinted, and the floor's planks are painted in the
-   * colour with the grain of the floor's own kept. A null paints the floor's own.
+   * A palette's colours over the floor's own (Settings → Palette), which stay on through a floor or a
+   * map change: the walls, the skirting and the ceiling are painted in them, and the floor's planks are
+   * drawn in the colour with the grain of the floor's own kept. A null paints the floor's own.
    */
   setColors(c: LookColors): void;
   /**

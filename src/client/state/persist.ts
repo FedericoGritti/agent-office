@@ -2,6 +2,7 @@
 // you were last on and the spot you were standing in. Every read and write shrugs off blocked storage.
 
 import { randomLook, sanitizeLook, type Look } from '../../shared/avatar';
+import { readPalette, type Palette } from '../palette';
 
 export interface Profile {
   name: string;
@@ -82,10 +83,8 @@ export interface Settings {
   measure: boolean;
   /** Toon keeps the office's flat bands; smooth shades it like an ordinary lit room (see world/toon.ts). */
   shading: Shading;
-  /** Your own colour over the floor's palette for one surface, or null for the floor's own (see world/office/build.ts). */
-  wallColor: string | null;
-  floorColor: string | null;
-  ceilingColor: string | null;
+  /** The palette the room and everything in it is painted from, or null for each floor's own (see palette.ts). */
+  palette: Palette | null;
 }
 
 const SETTINGS_KEY = 'agent-office.settings';
@@ -148,7 +147,7 @@ export function rememberSpot(s: Spot) {
 }
 
 export function loadSettings(): Settings {
-  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [], outlines: true, shadows: true, resolution: 2, measure: false, shading: 'toon', wallColor: null, floorColor: null, ceilingColor: null };
+  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [], outlines: true, shadows: true, resolution: 2, measure: false, shading: 'toon', palette: null };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null');
     if (saved?.view === 'first' || saved?.view === 'third') s.view = saved.view;
@@ -169,11 +168,8 @@ export function loadSettings(): Settings {
     // A resolution nobody offers (a file edited by hand) is left at the sharpest.
     if (typeof saved?.resolution === 'number' && saved.resolution >= 0.5 && saved.resolution <= 2) s.resolution = saved.resolution;
     if (SHADINGS.includes(saved?.shading)) s.shading = saved.shading;
-    // A colour is what a colour well writes and nothing else: `#rrggbb`, or it is the floor's own.
-    const color = (v: unknown) => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null);
-    s.wallColor = color(saved?.wallColor);
-    s.floorColor = color(saved?.floorColor);
-    s.ceilingColor = color(saved?.ceilingColor);
+    // A stored palette is a file someone can edit: the right colours, or none of it (see palette.ts).
+    s.palette = readPalette(saved?.palette);
   } catch {
     // storage blocked
   }

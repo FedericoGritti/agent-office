@@ -6,6 +6,7 @@ import { mesh, roundedBox, textPlane, toon } from '../toon';
 import type { Collider, DeskView, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE, box } from './materials';
+import { accent } from './paint';
 import { deskBooks, deskMug, plant } from './props';
 
 // Where people sit: the seats you use (see SEATING), the desks, the bean bags, and the post the
@@ -19,9 +20,9 @@ export function seatable(obj: THREE.Object3D, seatId: string, radius: number, in
   obj.userData.interact = it;
 }
 
-export function chair(color: string): THREE.Group {
+export function chair(color: string | THREE.Material): THREE.Group {
   const g = new THREE.Group();
-  const mat = toon(color);
+  const mat = typeof color === 'string' ? toon(color) : color;
   g.add(mesh(roundedBox(0.62, 0.1, 0.58, 0.12), mat, 0, 0.5, 0));
   const back = mesh(roundedBox(0.62, 0.1, 0.6, 0.12), mat, 0, 0.86, 0.27);
   back.rotation.x = Math.PI / 2 - 0.12;
@@ -54,12 +55,15 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   }
   // Modesty panel facing away from the worker
   group.add(mesh(box(width - 0.3, 0.32, 0.03), trimMat, 0, height - 0.26, -depth / 2 + 0.06));
+  // The desk's own accent, which its chair and its mug share (see paint.ts): the palette's, not a
+  // colour of the office's own.
+  const cloth = accent(index % PALETTE.chairs.length, PALETTE.chairs[index % PALETTE.chairs.length]);
   // Little desk decorations. Which desk gets which stays as it is: the holiday present goes in whichever
   // back corner it leaves free (DESK_SPOTS in holiday.ts).
   const deco = index % 3;
   if (deco === 0) {
     // In the chair's color.
-    const mug = deskMug(PALETTE.chairs[index % 6]);
+    const mug = deskMug(cloth);
     mug.position.set(width / 2 - 0.25, height, -0.2);
     group.add(mug);
   } else if (deco === 1) {
@@ -90,7 +94,7 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   stage.position.set(0.72, height - 0.07, 0.18);
   group.add(stage);
 
-  const ch = chair(PALETTE.chairs[index % PALETTE.chairs.length]);
+  const ch = chair(cloth);
   ch.position.set(0, 0, 0.9);
   group.add(ch);
 
@@ -121,7 +125,7 @@ export function buildBeanbag(def: DeskDef, index: number): DeskView {
   group.position.set(def.x, 0, def.z);
   group.rotation.y = def.rotY;
   const bag = new THREE.Group();
-  const cloth = toon(BEANBAG_COLORS[index % BEANBAG_COLORS.length]);
+  const cloth = accent(index, BEANBAG_COLORS[index % BEANBAG_COLORS.length]);
   const seat = mesh(new THREE.SphereGeometry(0.62, 20, 14), cloth, 0, 0.3, 0);
   seat.scale.set(1, 0.52, 1);
   bag.add(seat);

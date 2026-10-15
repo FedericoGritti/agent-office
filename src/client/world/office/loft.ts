@@ -5,6 +5,7 @@ import { mesh, roundedBox, textPlane, toon } from '../toon';
 import type { Collider, DeskView, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE, box, floorTexture, type Looks } from './materials';
+import { accent } from './paint';
 import { floorPlant, pendant, plant } from './props';
 import { chair, seatable, vacancyMarker } from './seats';
 
@@ -128,7 +129,7 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   plate.position.set(0, 0.5, -0.55);
   plate.rotation.y = Math.PI;
   desk.add(plate);
-  const bossChair = chair('#2b2d42');
+  const bossChair = chair(accent(0, '#2b2d42'));
   bossChair.scale.setScalar(1.2);
   bossChair.position.set(0, 0, 1.0);
   desk.add(bossChair);
@@ -166,7 +167,7 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   placed(couch, 'loft-couch', { x: maxX - 0.65, z: cz }, [couchCollider], { colliders, interactables });
   seatable(couch, 'loft-couch', 1.8, interactables);
 
-  const rug = mesh(roundedBox(4.6, 0.02, 3.2, 0.6), toon('#caffbf'), deskX - 0.3, floorY + 0.015, cz + 0.1, false);
+  const rug = mesh(roundedBox(4.6, 0.02, 3.2, 0.6), accent(2, '#caffbf'), deskX - 0.3, floorY + 0.015, cz + 0.1, false);
   group.add(rug);
   placed(rug, 'loft-rug', { x: deskX - 0.3, z: cz + 0.1 }, [], { colliders, interactables });
 

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { WallRect } from '../../../shared/decor';
 import { floorPalette, type FloorPalette } from '../../../shared/floors';
+import { shade } from '../../palette';
 import { street } from '../outside';
 import { cars } from '../../features/cars/world';
 import { scenic } from '../scenic';
@@ -138,21 +139,15 @@ export function buildOffice(): Office {
     if (built.setLevel) levels.push(built.setLevel);
   }
 
-  /** The floor's own palette, and your own colours over it, which both of the calls below paint from. */
+  /** The floor's own palette, and a palette of yours over it, which both of the calls below paint from. */
   let palette = floorPalette(0);
-  let colors: LookColors = { wall: null, floor: null, ceiling: null };
-
-  /** `hex` (a `#rrggbb` a colour well wrote) darkened by `k`, in the sRGB the planks are drawn in. */
-  const shade = (hex: string, k: number) => {
-    const n = parseInt(hex.slice(1), 16);
-    return `#${[16, 8, 0].map((shift) => Math.round(((n >> shift) & 255) * k).toString(16).padStart(2, '0')).join('')}`;
-  };
+  let colors: LookColors = { wall: null, trim: null, floor: null, ceiling: null };
 
   /** The floor's palette with your colours over it, on everything a floor paints its own way. */
   const paint = () => {
     looks.wall.color.set(colors.wall ?? palette.wall);
-    looks.trim.color.set(palette.trim);
-    // A colour of your own keeps the planks' grain: the second row and the seams are the same colour, run darker.
+    looks.trim.color.set(colors.trim ?? palette.trim);
+    // Your colour keeps the planks' grain: the second row and the seams are the same colour, run darker.
     const floor: FloorPalette = colors.floor ? { ...palette, floor: colors.floor, floorAlt: shade(colors.floor, 0.9), seam: shade(colors.floor, 0.72) } : palette;
     for (const t of looks.planks) {
       paintPlanks(t.image as HTMLCanvasElement, floor);

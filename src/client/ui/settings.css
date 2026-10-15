@@ -47,3 +47,10 @@
 .volume input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--ink); background: var(--paper); box-shadow: 0 2px 0 var(--ink); }
 .volume input[type=range]:focus-visible::-webkit-slider-thumb { border-color: var(--accent); }
 .volume.muted input[type=range], .volume.muted .vol-pct { opacity: .45; }
+
+/* Settings → Palette: a scheme to start from, and the colours themselves */
+.seg.schemes { flex-wrap: wrap; }
+.btn.scheme { display: flex; align-items: center; gap: 3px; padding: 5px 8px; font-size: 13px; }
+.btn.scheme i.swatch { display: inline-block; width: 14px; height: 20px; border: 2px solid rgba(43, 45, 66, .35); border-radius: 4px; }
+.settings-pane h5 { margin: 12px 0 2px; font-size: 12px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.settings-pane h5:first-child { margin-top: 0; }

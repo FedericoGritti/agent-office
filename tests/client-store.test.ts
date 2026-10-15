@@ -225,7 +225,7 @@ test('what the browser remembers keeps its keys and shapes', () => {
   assert.deepEqual(state.lastSpot(), { floor: 'f1', name: 'F', x: 1, y: 2, z: 3, facing: 4 });
   assert.ok(storage.has('agent-office.spot'));
   const settings = state.loadSettings();
-  assert.deepEqual(settings, { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: state.HUD_DEFAULTS, pins: [], outlines: true, shadows: true, resolution: 2, measure: false, shading: 'toon', wallColor: null, floorColor: null, ceilingColor: null });
+  assert.deepEqual(settings, { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: state.HUD_DEFAULTS, pins: [], outlines: true, shadows: true, resolution: 2, measure: false, shading: 'toon', palette: null });
   state.saveSettings({ ...settings, volume: 2, view: 'third', needsYouSound: 'remind', hands: true, outlines: false, shadows: false, resolution: 1, measure: true });
   assert.equal(state.loadSettings().volume, 1);
   assert.equal(state.loadSettings().view, 'third');
@@ -241,18 +241,17 @@ test('what the browser remembers keeps its keys and shapes', () => {
   // A setting saved as something the office doesn't know goes back to how it starts.
   state.saveSettings({ ...settings, needsYouSound: 'loud' as never });
   assert.equal(state.loadSettings().needsYouSound, 'once');
-  // The look you picked, and the colours over the floor's palette, come back as they went in.
-  state.saveSettings({ ...settings, shading: 'smooth', wallColor: '#123456', floorColor: '#ABCDEF', ceilingColor: '#0f0f0f' });
+  // The look you picked, and the palette over the floor's own, come back as they went in.
+  const mine = { name: 'Mine', wall: '#123456', trim: '#234567', floor: '#345678', ceiling: '#456789', wood: '#56789a', ink: '#6789ab', desk: '#789abc', plant: '#89abcd', pot: '#9abcde', accents: ['#ABCDEF', '#bcdefa', '#cdefab'] };
+  state.saveSettings({ ...settings, shading: 'smooth', palette: mine });
   assert.equal(state.loadSettings().shading, 'smooth');
-  assert.equal(state.loadSettings().wallColor, '#123456');
-  assert.equal(state.loadSettings().floorColor, '#abcdef');
-  assert.equal(state.loadSettings().ceilingColor, '#0f0f0f');
-  // A colour that isn't one the well could have written is not a colour the room is painted.
-  state.saveSettings({ ...settings, shading: 'flat' as never, wallColor: 'red' as never, floorColor: '#fff' as never, ceilingColor: 12 as never });
+  assert.deepEqual(state.loadSettings().palette, { ...mine, accents: ['#abcdef', '#bcdefa', '#cdefab'] });
+  // A palette that isn't one the office could have written is not a palette the room is painted in.
+  state.saveSettings({ ...settings, shading: 'flat' as never, palette: { ...mine, floor: 'red' } as never });
   assert.equal(state.loadSettings().shading, 'toon');
-  assert.equal(state.loadSettings().wallColor, null);
-  assert.equal(state.loadSettings().floorColor, null);
-  assert.equal(state.loadSettings().ceilingColor, null);
+  assert.equal(state.loadSettings().palette, null);
+  state.saveSettings({ ...settings, palette: { ...mine, accents: ['#abcdef'] } as never });
+  assert.equal(state.loadSettings().palette, null);
   store.apply(welcome());
   assert.equal(state.lastFloor(), 'f1');
 });

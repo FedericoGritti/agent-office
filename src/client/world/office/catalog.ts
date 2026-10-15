@@ -17,6 +17,7 @@ import { mesh, roundedBox, toon } from '../toon';
 import { buildExternal } from './external';
 import { applyPiece, discardPiece, footprint, placed, type AdditionRoom, type Built, type Piece, type Spot } from './placed';
 import { PALETTE } from './materials';
+import { accent } from './paint';
 import { coffeeTable, plant, pouf, type PlantSpecies } from './props';
 
 /** Every addition standing in the room, by id, so a file arriving twice builds each one once. */
@@ -47,7 +48,7 @@ function potted(species: PlantSpecies, scale: number): (id: string, at: Spot) =>
 /** A rug: a soft, flat box to lay on a bare stretch of floor, with no footprint — you walk over it. */
 function rugOf(w: number, d: number, r: number): (id: string, at: Spot) => Built {
   return (id, at) => {
-    const cloth = toon(PALETTE.rugs[idNumber(id) % PALETTE.rugs.length]);
+    const cloth = accent(idNumber(id) % PALETTE.rugs.length, PALETTE.rugs[idNumber(id) % PALETTE.rugs.length]);
     const group = mesh(roundedBox(w, 0.02, d, r), cloth, at.x, at.y + 0.011, at.z, false);
     group.rotation.y = at.rotY;
     return { group, colliders: [] };
@@ -57,7 +58,8 @@ function rugOf(w: number, d: number, r: number): (id: string, at: Spot) => Built
 /** The round rug: a disc the same cloth, laid the same way (see rugOf). */
 function roundRug(radius: number): (id: string, at: Spot) => Built {
   return (id, at) => {
-    const cloth = toon(PALETTE.rugs[(idNumber(id) + 1) % PALETTE.rugs.length]);
+    const slot = (idNumber(id) + 1) % PALETTE.rugs.length;
+    const cloth = accent(slot, PALETTE.rugs[slot]);
     const disc = new THREE.CircleGeometry(radius, 28).rotateX(-Math.PI / 2);
     const group = mesh(disc, cloth, at.x, at.y + 0.011, at.z, false);
     return { group, colliders: [] };
@@ -70,9 +72,9 @@ function roundRug(radius: number): (id: string, at: Spot) => Built {
  * isn't on it is one nobody is hired into (see docs/room.md) — so it is a cushion to look at, and to
  * put wherever a cushion looks right.
  */
-function cushion(color: string): (id: string, at: Spot) => Built {
+function cushion(color: string, slot: number): (id: string, at: Spot) => Built {
   return (_id, at) => {
-    const group = pouf(color);
+    const group = pouf(accent(slot, color));
     group.position.set(at.x, at.y, at.z);
     group.rotation.y = at.rotY;
     return { group, colliders: [footprint(at.x, at.z, 1, 1, at.rotY, at.y, 0.42)] };
@@ -149,9 +151,9 @@ const BUILDERS: Record<CatalogKind, (id: string, at: Spot) => Built> = {
   rug: rugOf(3.2, 2.4, 0.5),
   'round-rug': roundRug(1.5),
   'coffee-table': table,
-  'cushion-mint': cushion('#06d6a0'),
-  'cushion-sun': cushion('#ffd166'),
-  'cushion-blush': cushion('#ffc6ff'),
+  'cushion-mint': cushion('#06d6a0', 1),
+  'cushion-sun': cushion('#ffd166', 2),
+  'cushion-blush': cushion('#ffc6ff', 3),
   fountain,
 };
 

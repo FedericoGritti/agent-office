@@ -103,7 +103,9 @@ export function buildWhiteboard(): WhiteboardStand {
     g.fillStyle = shine;
     g.fillRect(0, 0, W, H);
     if (drawing) {
-      const s = Math.min((W - PAD * 2) / drawing.width, (H - PAD * 2) / drawing.height);
+      // At its own size, out in a corner of the board if it is smaller than it: the same rule as the
+      // picture handed to it (see renderPreview), so what you draw is what the board shows.
+      const s = Math.min((W - PAD * 2) / drawing.width, (H - PAD * 2) / drawing.height, 1);
       const w = drawing.width * s;
       const h = drawing.height * s;
       g.drawImage(drawing, (W - w) / 2, (H - h) / 2, w, h);

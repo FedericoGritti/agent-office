@@ -10,7 +10,7 @@ import { createElement as e } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CaptureUpdateAction, Excalidraw, MainMenu, WelcomeScreen, exportToCanvas, reconcileElements, restoreElements } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
-import type { BinaryFileData, Collaborator, ExcalidrawImperativeAPI, SocketId } from '@excalidraw/excalidraw/types';
+import type { BinaryFileData, Collaborator, ExcalidrawImperativeAPI, NormalizedZoomValue, SocketId } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { RemoteExcalidrawElement } from '@excalidraw/excalidraw/data/reconcile';
 import type { ClientMsg, ServerMsg } from '../../../shared/protocol';
@@ -21,6 +21,8 @@ import { toast } from '../../ui/dom';
 /** How often your changes, and your mouse, go out while you draw. */
 const SEND_MS = 50;
 const POINTER_MS = 40;
+/** 100%: Excalidraw's zoom is a branded number, and this is the one the window opens at most. */
+const FULL_ZOOM = 1 as NormalizedZoomValue;
 /** Keeps each message well under the office socket's 2 MB limit. */
 const BATCH_BYTES = 900_000;
 
@@ -93,8 +95,13 @@ function upload(f: BinaryFileData): Promise<boolean> {
 // ---- The board in the office ------------------------------------------------------------------------
 
 /**
- * The drawing as a picture for the board in the office, as big as fits in `maxW` × `maxH` pixels
- * (small drawings are scaled up, but not blown up past 3×). Null when nothing is drawn.
+ * The drawing as a picture for the board in the office, as big as fits in `maxW` × `maxH` pixels —
+ * shrunk to fit if it is too big, never blown up past its own size. Null when nothing is drawn.
+ *
+ * Not blowing it up is the point: the board is a metre and a half wide at 512 pixels to the metre, so
+ * a drawing's own pixels land on it about the size of marker on a whiteboard. Magnified to fill the
+ * surface, the smallest text Excalidraw has — 16 px, and it offers nothing smaller — reads as a
+ * headline, and drawing smaller than that is not possible.
  */
 export async function renderPreview(elements: readonly WbElement[], maxW: number, maxH: number): Promise<HTMLCanvasElement | null> {
   const live = asExcalidraw(elements.filter((el) => !el.isDeleted));
@@ -106,7 +113,7 @@ export async function renderPreview(elements: readonly WbElement[], maxW: number
     appState: { exportBackground: false, exportWithDarkMode: false },
     exportPadding: 12,
     getDimensions: (w: number, h: number) => {
-      const scale = Math.min(maxW / w, maxH / h, 3);
+      const scale = Math.min(maxW / w, maxH / h, 1);
       return { width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)), scale };
     },
   });
@@ -260,6 +267,11 @@ export function mountWhiteboard(host: HTMLElement, send: (msg: ClientMsg) => voi
   };
 
   const initial = asExcalidraw([...store.whiteboard.values()].sort(byIndex));
+  // Opening a drawing smaller than the window fits it to the window, and that magnifies it: the
+  // smallest text Excalidraw has is 16 px and it offers nothing smaller, so a line of it comes up as a
+  // headline. For this long after opening, a fit that zoomed in is brought back to 100% — after it,
+  // zooming in is the user's own business (see onScrollChange).
+  const settleUntil = performance.now() + 1500;
   const root = createRoot(host);
   root.render(
     e(
@@ -269,6 +281,9 @@ export function mountWhiteboard(host: HTMLElement, send: (msg: ClientMsg) => voi
           api = a;
           void loadFiles(initial).then((got) => got.length && api?.addFiles(got));
           collaboratorsSoon();
+        },
+        onScrollChange: (_x, _y, zoom) => {
+          if (zoom.value > 1 && performance.now() < settleUntil) api?.updateScene({ appState: { zoom: { value: FULL_ZOOM } } });
         },
         initialData: { elements: initial, appState: { viewBackgroundColor: '#ffffff' }, scrollToContent: true },
         onChange: (els) => noteChanges(els),

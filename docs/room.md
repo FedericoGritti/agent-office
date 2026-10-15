@@ -62,10 +62,15 @@ or shrinks sideways, about its own middle, so it stays where it stands; **−**/
 shorter, growing upwards so that the sill the room's row put it on stays. The sign at the top says how
 wide it is and how tall, in metres, and carries a pair of buttons for each.
 
-A step stops where a window stops: never under the smallest hole that is a window — the least the room
-leaves between two of them, 40 cm — never into another window or a doorway, never past the end of its
-wall or through the ceiling. A step that would go there is not taken at all, so the window stays exactly
-as it is and the sign goes on saying what it is.
+A step stops where a window stops: never under the smallest hole that is a window — two rungs of the
+grid, 50 cm, which still leaves the walls the 40 cm they keep between two holes — never into another
+window or a doorway, never past the end of its wall or through the ceiling. A step that would go there is
+not taken at all, so the window stays exactly as it is and the sign goes on saying what it is.
+
+Every window is measured on the room's own 25 cm grid — its place along the wall, its width, its sill and
+its head — the same ladder the furniture moves and grows by, and the one a step sizes a window on. The
+room's own windows are on it, so two of them are the same size and sit on one line, and one put in by
+hand copies a size that is on it; anything off it is a window a few centimetres out of line with the next.
 
 A window can only go where a window can be: inside the ends of its wall, clear of the other windows and
 of the doorways, and off the slab the boss's office stands on. A new one copies the size of the window

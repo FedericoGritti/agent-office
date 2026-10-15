@@ -13,6 +13,7 @@ import {
   removeWindow,
   sanitizeWindows,
   setWindows,
+  SIZE_STEP,
   sizeOn,
   widen,
   WINDOW_DEFS,
@@ -174,9 +175,9 @@ test('a new window takes the size of the row it lands in, and says what it is ca
   setWindows(null);
   // The lounge's own stretch of the west wall, and the east wall's two rows: the boss's office above,
   // the meeting room below.
-  assert.deepEqual(sizeOn('west', 9.5, 1.7), { width: 3, y0: 1.1, y1: 3.3 });
-  assert.deepEqual(sizeOn('east', 11, 1.7), { width: 1.8, y0: 0.9, y1: 2.5 });
-  assert.deepEqual(sizeOn('east', 11, 4.5), { width: 1.8, y0: 3.9, y1: 5.5 });
+  assert.deepEqual(sizeOn('west', 9.5, 1.7), { width: 3, y0: 1, y1: 3.25 });
+  assert.deepEqual(sizeOn('east', 11, 1.7), { width: 1.75, y0: 1, y1: 2.5 });
+  assert.deepEqual(sizeOn('east', 11, 4.5), { width: 1.75, y0: 4, y1: 5.5 });
 
   assert.equal(windowLabel('window-south-2'), 'South window 2');
   assert.equal(windowLabel('loft-east-1'), "Boss's window 1");
@@ -208,8 +209,25 @@ test('a window is widened about its middle and heightened from its sill', () => 
     narrowest = widen(narrowest, -1);
     squat = heighten(squat, -1);
   }
-  assert.equal(narrowest.width, 0.4);
-  assert.equal(exact(squat.y1 - squat.y0), 0.4);
+  assert.equal(narrowest.width, 0.5);
+  assert.equal(exact(squat.y1 - squat.y0), 0.5);
   assert.equal(windowFits(narrowest.wall, narrowest), undefined, 'and what it stops at is a hole the wall takes');
   assert.equal(windowFits(squat.wall, squat), undefined);
+});
+
+test('every window is on the room\'s 25 cm grid, and stays on it when it is sized', () => {
+  const rung = (n: number) => Math.abs(n / SIZE_STEP - Math.round(n / SIZE_STEP)) < 1e-9;
+  for (const w of WINDOW_DEFS) {
+    const parts = [['u', w.u], ['width', w.width], ['sill', w.y0], ['head', w.y1], ['height', w.y1 - w.y0]] as const;
+    for (const [what, at] of parts) assert.ok(rung(at), `${w.id}'s ${what} (${at}) is not a rung of the grid`);
+  }
+  // A window stepped about keeps its place on the ladder, down to the smallest and up again.
+  let at: Opening = { ...WINDOW_DEFS[0]! };
+  for (let i = 0; i < 12; i++) {
+    at = widen(at, i % 3 ? -1 : 1);
+    at = heighten(at, i % 2 ? 1 : -1);
+    for (const [what, n] of [['width', at.width], ['height', at.y1 - at.y0], ['sill', at.y0], ['head', at.y1]] as const) {
+      assert.ok(rung(n), `${what} is ${n} after ${i + 1} steps`);
+    }
+  }
 });

@@ -15,26 +15,31 @@ export interface WindowDef extends Opening {
 /**
  * The windows the room is built with, before anything is moved: the room's own six — three in the south
  * wall, three in the west one — the boss's office's four, the lounge's two and the meeting room's two.
+ *
+ * Every position, width, sill and head is a rung of the room's 25 cm grid (SIZE_STEP): the same ladder the
+ * editor steps a window along by, so two windows are the same size and sit on one line, and one put in by
+ * hand — which takes the size of the nearest window (see sizeOn) — is on it as well. Anything off it is a
+ * window a few centimetres out of line with the next.
  */
 export const WINDOW_DEFS: readonly WindowDef[] = [
-  ...[-14, -9, 1].map((u, i) => ({ id: `window-south-${i + 1}`, wall: 'south' as const, u, width: 3, y0: 1.1, y1: 3.3 })),
-  ...[-9, -3, 3].map((u, i) => ({ id: `window-west-${i + 1}`, wall: 'west' as const, u, width: 3, y0: 1.1, y1: 3.3 })),
+  ...[-14, -9, 1].map((u, i) => ({ id: `window-south-${i + 1}`, wall: 'south' as const, u, width: 3, y0: 1, y1: 3.25 })),
+  ...[-9, -3, 3].map((u, i) => ({ id: `window-west-${i + 1}`, wall: 'west' as const, u, width: 3, y0: 1, y1: 3.25 })),
   // The boss's office: a pair in the south wall either side of its nameplate, a pair in the east one.
-  ...[LOFT.minX + 1.6, LOFT.minX + 7.4].map((u, i) => ({ id: `loft-south-${i + 1}`, wall: 'south' as const, u, width: 2.4, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 })),
-  ...[LOFT.minZ + 1.4, LOFT.minZ + 3.6].map((u, i) => ({ id: `loft-east-${i + 1}`, wall: 'east' as const, u, width: 1.8, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 })),
+  ...[LOFT.minX + 1.5, LOFT.minX + 7.25].map((u, i) => ({ id: `loft-south-${i + 1}`, wall: 'south' as const, u, width: 2.5, y0: LOFT.y + 1, y1: LOFT.y + 2.5 })),
+  ...[LOFT.minZ + 1.25, LOFT.minZ + 3.5].map((u, i) => ({ id: `loft-east-${i + 1}`, wall: 'east' as const, u, width: 1.75, y0: LOFT.y + 1, y1: LOFT.y + 2.5 })),
   // The stretches of wall that had none: the lounge's own two — past the exit door on the west, between
   // the token board and the meeting room on the east — and the meeting room under the boss's office, whose
   // east wall takes a pair below the two it has above it.
-  { id: 'window-west-4', wall: 'west', u: 10, width: 3, y0: 1.1, y1: 3.3 },
-  { id: 'window-east-1', wall: 'east', u: 5.7, width: 3, y0: 1.1, y1: 3.3 },
-  { id: 'meeting-east-1', wall: 'east', u: 9.5, width: 1.8, y0: 0.9, y1: 2.5 },
-  { id: 'meeting-east-2', wall: 'east', u: 11.7, width: 1.8, y0: 0.9, y1: 2.5 },
+  { id: 'window-west-4', wall: 'west', u: 10, width: 3, y0: 1, y1: 3.25 },
+  { id: 'window-east-1', wall: 'east', u: 5.75, width: 3, y0: 1, y1: 3.25 },
+  { id: 'meeting-east-1', wall: 'east', u: 9.25, width: 1.75, y0: 1, y1: 2.5 },
+  { id: 'meeting-east-2', wall: 'east', u: 11.5, width: 1.75, y0: 1, y1: 2.5 },
   // A second row, high up on the three walls of the room itself: over the windows below on the west and
   // south walls, and over the boards and the TV on the east one, where the wall below is taken. Up here
   // nothing is in the way but the ladder, which climbs the pier between two of them.
-  ...[-14, -9, 1].map((u, i) => ({ id: `window-south-${i + 4}`, wall: 'south' as const, u, width: 3, y0: 4.4, y1: 6.2 })),
-  ...[-9, -3, 3].map((u, i) => ({ id: `window-west-${i + 5}`, wall: 'west' as const, u, width: 3, y0: 4.4, y1: 6.2 })),
-  ...[-9, -3, 3].map((u, i) => ({ id: `window-east-${i + 2}`, wall: 'east' as const, u, width: 3, y0: 4.4, y1: 6.2 })),
+  ...[-14, -9, 1].map((u, i) => ({ id: `window-south-${i + 4}`, wall: 'south' as const, u, width: 3, y0: 4.5, y1: 6.25 })),
+  ...[-9, -3, 3].map((u, i) => ({ id: `window-west-${i + 5}`, wall: 'west' as const, u, width: 3, y0: 4.5, y1: 6.25 })),
+  ...[-9, -3, 3].map((u, i) => ({ id: `window-east-${i + 2}`, wall: 'east' as const, u, width: 3, y0: 4.5, y1: 6.25 })),
 ];
 
 /**
@@ -77,6 +82,13 @@ const EDGE = 0.4;
 export const SIZE_STEP = 0.25;
 
 /**
+ * The smallest a window may be made: two rungs of that grid, so a window stepped down to its smallest is
+ * on the grid like every other — and still over `EDGE`, which is what the walls leave between two holes,
+ * so the walls still cut it (see windowFits).
+ */
+const MIN_SIZE = 0.5;
+
+/**
  * The window one step wider (`dir` > 0) or narrower, where it stands along its wall: a hole grows about
  * its own middle, so widening one leaves it where you put it — its wall, sill and head are untouched.
  *
@@ -85,7 +97,7 @@ export const SIZE_STEP = 0.25;
  * window stops, and cannot be stepped down to something the walls would refuse to cut.
  */
 export function widen(at: Opening, dir: number): Opening {
-  return { ...at, width: Math.max(EDGE, round(at.width + dir * SIZE_STEP)) };
+  return { ...at, width: Math.max(MIN_SIZE, round(at.width + dir * SIZE_STEP)) };
 }
 
 /**
@@ -94,7 +106,7 @@ export function widen(at: Opening, dir: number): Opening {
  * on its height as on its width.
  */
 export function heighten(at: Opening, dir: number): Opening {
-  return { ...at, y1: at.y0 + Math.max(EDGE, round(at.y1 - at.y0 + dir * SIZE_STEP)) };
+  return { ...at, y1: at.y0 + Math.max(MIN_SIZE, round(at.y1 - at.y0 + dir * SIZE_STEP)) };
 }
 
 /** What the editor saves for one window: what differs from how the room builds it, or a whole new one. */

@@ -363,7 +363,7 @@ export interface Opening {
  * The way out of the bottom floor: a door in the west wall onto a landing, with stairs down to the
  * street. The floors above have no door there; workers leave them off the balcony (see PARACHUTE).
  */
-export const EXIT_DOOR: Opening = { wall: 'west', u: 6.5, width: 1.4, y0: 0, y1: 2.4 };
+export const EXIT_DOOR: Opening = { wall: 'west', u: 6.5, width: 1.5, y0: 0, y1: 2.5 };
 export const EXIT_STAIRS = {
   maxX: FLOOR.minX - WALL_T,
   minX: FLOOR.minX - WALL_T - 1.6,

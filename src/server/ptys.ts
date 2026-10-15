@@ -44,7 +44,8 @@ export interface Pty {
   readonly pid: number;
   write(data: string): void;
   resize(cols: number, rows: number): void;
-  kill(): void;
+  /** `signal` on a terminal of the office's own process; a hosted one is killed the way the host kills it. */
+  kill(signal?: string): void;
   onData(cb: (data: string) => void): void;
   onExit(cb: (e: PtyExit) => void): void;
 }

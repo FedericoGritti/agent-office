@@ -23,6 +23,19 @@ const POLL_MS = 250;
 /** How long to leave it before starting btop again, after it quits or is killed. */
 const RETRY_MS = 5000;
 
+/**
+ * How long a screen may stand still before btop is taken to be wedged. btop can wedge itself: when one
+ * of its passes takes over five seconds its watchdog cancels that thread while the thread still holds
+ * the mutex, and the thread it starts in its place blocks on that mutex for good — one thread asleep on
+ * a futex, no more drawing, and the process (and so the screen) looking perfectly alive. The pass it
+ * takes exception to is a slow one, and a slow one is what it gets while the office is still starting
+ * up: measured here, every btop started with the office wedged within six seconds, while the same btop
+ * started on a quiet machine drew for minutes. Its own update is 2 s, so twenty seconds of nothing is
+ * not a slow picture but a wedged one, and starting it a second time — with the office's own startup
+ * behind it — is what gets a monitor that keeps moving.
+ */
+const STALE_MS = 20_000;
+
 export interface MonitorOpts {
   /** Where it runs: it reads no project, so anywhere the office owns will do. */
   cwd: string;
@@ -31,6 +44,8 @@ export interface MonitorOpts {
   cols?: number;
   rows?: number;
   retryMs?: number;
+  /** How long a still screen is left alone before btop is started again (see STALE_MS). */
+  staleMs?: number;
   /** How often to hand the screen on; 0 to leave the clock to whoever calls `poll` (the tests). */
   pollMs?: number;
   spawn?: (opts: SpawnOpts) => Pty;
@@ -49,6 +64,8 @@ export class Monitor {
   private last: string[] = [];
   private interval?: NodeJS.Timeout;
   private retry?: NodeJS.Timeout;
+  /** When the screen last changed, so a wedged btop can be told from a quiet one (see STALE_MS). */
+  private changedAt = 0;
   /** Nothing to run here: no btop, so nothing to try again either. */
   private off = false;
   private stopping = false;
@@ -84,17 +101,41 @@ export class Monitor {
     this.stopping = true;
     clearInterval(this.interval);
     clearTimeout(this.retry);
-    this.pty?.kill();
+    this.drop();
+  }
+
+  /** Hands the screen on whenever it has changed, and starts btop again when it has stopped. */
+  private flush() {
+    if (!this.term) return;
+    const now = Date.now();
+    if (now - this.changedAt > (this.opts.staleMs ?? STALE_MS)) {
+      this.restart();
+      return;
+    }
+    const frame = snapshotScreen(this.term, this.last);
+    if (!frame) return;
+    this.changedAt = now;
+    this.onFrame(frame);
+  }
+
+  /** Starts btop over, keeping on the wall what the wedged one had drawn until the new one draws. */
+  private restart() {
+    const drawn = this.full();
+    this.drop();
+    this.spawnBtop();
+    if (drawn) this.onFrame(drawn);
+  }
+
+  /** Gives up this btop and its screen. */
+  private drop() {
+    // Killed outright: a wedged btop has SIGTERM blocked (its runner thread blocks it) and its main
+    // thread is waiting on the mutex the thread btop cancelled went and died holding, so it never comes
+    // round to handling it. The point of dropping it is that it stops now.
+    this.pty?.kill('SIGKILL');
     this.pty = undefined;
     this.term?.dispose();
     this.term = undefined;
-  }
-
-  /** Hands the screen on whenever it has changed (see snapshotScreen). */
-  private flush() {
-    if (!this.term) return;
-    const frame = snapshotScreen(this.term, this.last);
-    if (frame) this.onFrame(frame);
+    this.last = [];
   }
 
   private spawnBtop() {
@@ -123,8 +164,15 @@ export class Monitor {
     this.term = term;
     this.pty = pty;
     this.last = [];
-    pty.onData((data) => term.write(data));
+    // btop takes a few seconds to draw its first screen: until then it is not late, it is starting.
+    this.changedAt = Date.now();
+    // Both are ignored for a terminal the office has already given up (see restart): what it says is no
+    // longer the screen, and its exit must not take the new one's place away nor start a third btop.
+    pty.onData((data) => {
+      if (this.term === term) term.write(data);
+    });
     pty.onExit((e) => {
+      if (this.pty !== pty) return;
       this.pty = undefined;
       this.term?.dispose();
       this.term = undefined;

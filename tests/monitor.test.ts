@@ -66,7 +66,7 @@ function harness(t: TestContext, spawn?: (o: SpawnOpts) => Pty) {
     },
     (f) => frames.push(f),
   );
-  return { monitor, frames, spawned, pty: () => ptys[ptys.length - 1]!, started: () => ptys.length, tick: (ms: number) => t.mock.timers.tick(ms) };
+  return { monitor, frames, spawned, ptys, pty: () => ptys[ptys.length - 1]!, started: () => ptys.length, tick: (ms: number) => t.mock.timers.tick(ms) };
 }
 
 /** The screen as text, rows in order. */
@@ -188,4 +188,46 @@ test('btop really draws on the monitor the office gives it', { skip: !resolveCom
   assert.deepEqual([drawn.cols, drawn.rows], [MONITOR_COLS, MONITOR_ROWS]);
   assert.match(text(drawn), /cpu/i, 'its boxes are there');
   assert.match(text(drawn), /mem/i);
+});
+
+test('a screen that stops changing is a wedged btop, and it is started again', async (t) => {
+  const h = harness(t);
+  t.mock.timers.enable({ apis: ['Date'] }); // the clock only: the terminal reads what it is handed on timers of its own
+  h.monitor.start();
+  h.pty().emit('cpu 12%');
+  await parsed();
+  h.monitor.poll();
+  assert.equal(h.frames.length, 1);
+
+  h.tick(60_000); // a minute of nothing, as a wedged btop gives
+  h.monitor.poll();
+  assert.equal(h.started(), 2, 'it is left behind and btop is started again');
+  assert.equal(h.frames.length, 2, 'and the wall keeps what it had drawn: no blank screen while it starts');
+  assert.equal(h.frames[1]!.full, true);
+  assert.match(text(h.frames[1]), /cpu 12%/);
+  h.monitor.stop();
+});
+
+test('the wedged btop it drops itself neither takes the screen nor starts another', async (t) => {
+  const h = harness(t);
+  // The clock is the test's from the start, so the still screen and the retry are both read off it. What
+  // the terminal was handed — the emit below — is read on a timer of its own, which is left real.
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 1_000_000 });
+  h.monitor.start();
+  h.pty().emit('cpu 12%');
+  await parsed();
+  h.monitor.poll();
+  assert.equal(h.frames.length, 1);
+
+  h.tick(60_000); // a minute of nothing, as a wedged btop gives
+  h.monitor.poll();
+  assert.equal(h.started(), 2, 'the wedged one is dropped and btop started again');
+  assert.equal(h.ptys[0]!.killed, true);
+  assert.equal(h.frames.length, 2, 'and the wall keeps what it had drawn');
+
+  // Its exit arrives once the new one is already running, as a kill's does.
+  h.ptys[0]!.end({ exitCode: 0 });
+  h.tick(60_000);
+  assert.equal(h.started(), 2, 'no third btop, and the new screen is still the one being read');
+  h.monitor.stop();
 });

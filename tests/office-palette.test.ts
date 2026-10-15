@@ -11,6 +11,8 @@ import { FLOOR_PALETTES } from '../src/shared/floors.js';
 const HEX = /^#[0-9a-f]{6}$/;
 /** A material's colour as it is written in the tables. */
 const hex = (m: { color: { getHexString(): string } }) => `#${m.color.getHexString()}`;
+/** One of the schemes, by the name ⚙️ → Palette shows. */
+const scheme = (name: string) => PALETTES.find((p) => p.name === name)!;
 
 test('every scheme is a whole palette: every colour a colour, and accents to take turns through', () => {
   assert.ok(PALETTES.length >= 8, `${PALETTES.length} schemes`);
@@ -34,8 +36,10 @@ test("a floor's own scheme keeps the floor's surfaces under the office's furnitu
   // Only the surfaces are the floor's: the furniture is the office's, whichever floor you are on.
   assert.equal(first.wood, atFloor(3).wood);
   assert.equal(first.accents, atFloor(9).accents);
-  // Every floor has a scheme to fall back to, and it is offered.
-  for (const f of FLOOR_PALETTES) assert.ok(PALETTES.some((p) => p.name === f.name && p.wall === f.wall && p.floor === f.floor));
+  // Every floor has a scheme to fall back to, whatever its own is: no palette paints every floor its own.
+  for (let i = 0; i < FLOOR_PALETTES.length; i++) assert.equal(atFloor(i).wall, FLOOR_PALETTES[i].wall);
+  // The office as it always was is offered as a scheme, so it can be come back to from any of the others.
+  assert.ok(PALETTES.some((p) => p.wall === FLOOR_PALETTES[0].wall && p.wood === '#c98b5a'));
 });
 
 test('a palette out of storage is all of it or none of it', () => {
@@ -87,10 +91,10 @@ test('a lit material answers to the palette too, and its glow comes with it', ()
   // The fire pole and the lamp bulbs: the same colour as something unlit, made with an emissive, which
   // is a material of its own (see toon) and used to be left out.
   const pole = toon('#f2c14e', { emissive: '#3a2a00' });
-  const scheme = PALETTES.find((p) => p.name === 'Midnight')!;
+  const espresso = scheme('Espresso');
 
-  paintPalette(scheme);
-  assert.equal(hex(pole), shade(scheme.brass, 0.98));
+  paintPalette(espresso);
+  assert.equal(hex(pole), shade(espresso.brass, 0.98));
   assert.notEqual(`#${pole.emissive.getHexString()}`, '3a2a00', 'the glow turned with the colour');
 
   paintPalette(null);
@@ -101,13 +105,13 @@ test('a lit material answers to the palette too, and its glow comes with it', ()
 test("painting the room moves the office's own materials, and puts them back", () => {
   const wood = toon(PALETTE.wood);
   const rug = accent(0, '#123456');
-  const scheme = PALETTES.find((p) => p.name === 'Midnight')!;
+  const petrol = scheme('Petrol');
 
-  paintPalette(scheme);
-  assert.equal(hex(wood), scheme.wood);
-  assert.equal(hex(rug), scheme.accents[0]);
+  paintPalette(petrol);
+  assert.equal(hex(wood), petrol.wood);
+  assert.equal(hex(rug), petrol.accents[0]);
   // The accents take turns, so a row of rugs is not one colour.
-  assert.equal(hex(accent(1, '#654321')), scheme.accents[1 % scheme.accents.length]);
+  assert.equal(hex(accent(1, '#654321')), petrol.accents[1 % petrol.accents.length]);
 
   paintPalette(null);
   assert.equal(hex(wood), PALETTE.wood);

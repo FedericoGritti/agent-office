@@ -90,7 +90,7 @@ export function paletteRows(settings: Settings, change: (some: Partial<Settings>
   paint();
 
   return [
-    setting('Scheme', 'you', chips, h('p.setting-note', {}, 'Sixteen palettes, built as a whole room each: the surfaces, the furniture and the accents chosen together, so nothing fights. The first ten are the floors’ own; the rest are drawn by hand. Changing any colour below makes it yours.')),
+    setting('Scheme', 'you', chips, h('p.setting-note', {}, 'Eleven palettes, each built as a whole room: the surfaces, the furniture and the accents chosen together, so nothing fights. The first is the office as it always was; the rest are strong — coffee, leather, walnut, brass, steel, petrol — and none of them is pastel. The chip before them is the floor’s own, whatever the building gave it. Changing any colour below makes it yours.')),
     setting('The room and the furniture', 'you', colors, note),
     setting('The accents', 'you', accents, h('p.setting-note', {}, 'What the rugs, the chairs, the poufs and the couch’s pillows are made of: they take these in turn, so no two neighbours in a row match and none of them is random.')),
   ];

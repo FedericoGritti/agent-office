@@ -8,6 +8,8 @@ import { ease, popIn } from './curves';
 import { undress } from './props';
 import { ACT_MIN, DESPAIR_MIN, TWIRL_TIME, WAIT_CYCLE, WAIT_HOPS, blendStance, type Act, type Stance } from './worker-stance';
 import { STATUS_BULB, bubbleFor } from './worker-badges';
+import { buildWorkerBody } from './worker-body';
+import type { Face } from './worker-face';
 import { globe, papers } from './worker-props';
 import { DANCE, groove, type Dancing, type Stage } from './worker-dance';
 import { DEAD, STARVED, bones, crossedEyes, slump } from './worker-jail';
@@ -48,6 +50,8 @@ export class Worker {
   private dancing: Dancing | null = null;
   private pupils: THREE.Mesh[] = [];
   private feet: THREE.Mesh[] = [];
+  /** Its face, past the eyes: the brows and the mouth, built by worker-face.ts and posed each frame. */
+  private face: Face;
   /** Sent home: the box of its things in its arms, and how far into its waddle it is. */
   private leaving: Leaving | null = null;
   /** On its way out (sent home) or in (called to a meeting): it waddles along instead of standing. */
@@ -102,55 +106,18 @@ export class Worker {
     name: string,
     private color: string,
   ) {
-    const skin = (this.skin = toonUnique(color));
-    const white = toon('#ffffff');
-    const ink = toon('#1d1d1d');
-
     this.root.add(this.body);
-    // Bean-shaped body
-    const bean = mesh(new THREE.CapsuleGeometry(0.28, 0.3, 8, 16), skin, 0, 0.55, 0);
-    this.body.add(bean);
-    // Big cartoon eyes
-    for (const sx of [-1, 1]) {
-      const eye = mesh(new THREE.SphereGeometry(0.09, 12, 10), white, sx * 0.11, 0.7, 0.23, false);
-      eye.scale.z = 0.6;
-      this.body.add(eye);
-      const pupil = mesh(new THREE.SphereGeometry(0.045, 10, 8), ink, sx * 0.11, 0.7, 0.29, false);
-      this.body.add(pupil);
-      this.eyes.push(eye, pupil);
-      this.pupils.push(pupil);
-    }
-    // Headset: band + mic
-    const band = mesh(new THREE.TorusGeometry(0.29, 0.025, 6, 20, Math.PI), toon('#2b2d42'), 0, 0.72, 0, false);
-    band.rotation.y = Math.PI / 2;
-    this.body.add(band);
-    this.headset.push(band);
-    for (const sx of [-1, 1]) {
-      const cup = mesh(new THREE.SphereGeometry(0.07, 10, 8), toon('#2b2d42'), sx * 0.29, 0.72, 0, false);
-      this.body.add(cup);
-      this.headset.push(cup);
-    }
-    // Antenna with status bulb
-    this.body.add(mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.22, 6), toon('#2b2d42'), 0, 1.07, 0, false));
-    this.bulb = toonUnique(STATUS_BULB.starting);
-    this.bulb.emissive = new THREE.Color(STATUS_BULB.starting).multiplyScalar(0.6);
-    this.bulbMesh = mesh(new THREE.SphereGeometry(0.075, 12, 10), this.bulb, 0, 1.2, 0, false);
-    this.body.add(this.bulbMesh);
-
-    const arm = (x: number) => {
-      const pivot = new THREE.Group();
-      pivot.position.set(x, 0.55, 0.05);
-      pivot.add(mesh(new THREE.CapsuleGeometry(0.055, 0.16, 4, 8), skin, 0, -0.12, 0));
-      this.body.add(pivot);
-      return pivot;
-    };
-    this.armL = arm(-0.3);
-    this.armR = arm(0.3);
-    for (const sx of [-1, 1]) {
-      const foot = mesh(new THREE.CapsuleGeometry(0.06, 0.1, 4, 8), skin, sx * 0.12, 0.2, 0.05);
-      this.body.add(foot);
-      this.feet.push(foot);
-    }
+    const built = buildWorkerBody(this.body, color);
+    this.skin = built.skin;
+    this.eyes = built.eyes;
+    this.pupils = built.pupils;
+    this.headset = built.headset;
+    this.armL = built.armL;
+    this.armR = built.armR;
+    this.feet = built.feet;
+    this.bulb = built.bulb;
+    this.bulbMesh = built.bulbMesh;
+    this.face = built.face;
 
     // What it acts out with: papers in its hands, and a globe beside its laptop.
     this.papers = papers();
@@ -475,6 +442,8 @@ export class Worker {
     this.armR.position.set(0.3 - s.reach * 0.07, 0.55 - s.drop + s.reach * 0.04, 0.05 + s.reach * 0.14);
     this.feet.forEach((f, i) => f.position.set(i ? 0.12 : -0.12, 0.2 + (i ? s.tap * 0.07 : 0), 0.05 + s.kick + (i ? s.tap * 0.03 : 0)));
     for (const p of this.pupils) p.position.y = 0.7 + s.look - 0.02 * this.age;
+    // The face: brows down over its eyes while it works, up when it's pleased, a mouth that opens with it.
+    this.face.pose(s);
     // Worn out, it hunches over and its eyes droop.
     this.body.rotation.x = s.lean + 0.2 * this.age;
     s.lid = Math.min(s.lid, 1 - 0.38 * this.age);

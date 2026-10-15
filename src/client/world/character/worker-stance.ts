@@ -28,24 +28,32 @@ export interface Stance {
   /** Eyes open (1) or narrowed, and looking up (+) or down (-). */
   lid: number;
   look: number;
+  /** Brows raised (-1) or drawn down over its eyes, working (+1), and how far its mouth is open. */
+  brow: number;
+  mouth: number;
 }
 
-const STANCE_KEYS = ['armLx', 'armRx', 'armLz', 'armRz', 'reach', 'drop', 'lean', 'turn', 'roll', 'lift', 'tap', 'kick', 'lid', 'look'] as const;
+const STANCE_KEYS = ['armLx', 'armRx', 'armLz', 'armRz', 'reach', 'drop', 'lean', 'turn', 'roll', 'lift', 'tap', 'kick', 'lid', 'look', 'brow', 'mouth'] as const;
 
 export function stanceOf(act: Act, t: number, s: Stance): Stance {
   s.armLx = s.armRx = -0.3;
   s.armLz = s.armRz = s.reach = s.drop = s.lean = s.turn = s.roll = s.tap = s.kick = s.look = 0;
+  s.brow = s.mouth = 0;
   s.lift = Math.sin(t * 2) * 0.015;
   s.lid = 1;
   switch (act) {
     case 'up':
       s.armLx = s.armRx = -2.6;
       s.lift = 0;
+      s.brow = -0.7;
+      s.mouth = 0.9;
       break;
     case 'type':
       s.armLx = -1.2 + Math.sin(t * 22) * 0.25;
       s.armRx = -1.2 + Math.sin(t * 22 + 1.7) * 0.25;
       s.lift = Math.abs(Math.sin(t * 11)) * 0.02;
+      s.brow = 0.45;
+      s.mouth = 0.15;
       break;
     case 'edit':
       // Hunched over the keys, typing flat out.
@@ -54,6 +62,8 @@ export function stanceOf(act: Act, t: number, s: Stance): Stance {
       s.lean = 0.16;
       s.lift = Math.abs(Math.sin(t * 17)) * 0.035;
       s.look = -0.02;
+      s.brow = 0.8;
+      s.mouth = 0.2;
       break;
     case 'read':
       // The papers held up in front, eyes running down the page.
@@ -62,6 +72,8 @@ export function stanceOf(act: Act, t: number, s: Stance): Stance {
       s.armRz = -0.3;
       s.lean = -0.06;
       s.look = -0.01 - ((t * 0.9) % 1) * 0.03;
+      s.brow = 0.2;
+      s.mouth = 0.05;
       break;
     case 'test':
       // Leaning back, hands behind its head, feet out: waiting on the run.
@@ -73,6 +85,8 @@ export function stanceOf(act: Act, t: number, s: Stance): Stance {
       s.kick = 0.08;
       s.look = 0.025;
       s.lift = 0;
+      s.brow = -0.1;
+      s.mouth = 0.25 + Math.sin(t * 3) * 0.15;
       break;
     case 'web':
       // Scrolling with one hand, looking up at the globe.
@@ -80,6 +94,8 @@ export function stanceOf(act: Act, t: number, s: Stance): Stance {
       s.armRx = -0.8;
       s.lean = -0.1;
       s.look = 0.03;
+      s.brow = -0.15;
+      s.mouth = 0.05;
       break;
     case 'failing':
       // Head in its hands, shaking it slowly.
@@ -92,6 +108,8 @@ export function stanceOf(act: Act, t: number, s: Stance): Stance {
       s.lid = 0.55;
       s.look = -0.035;
       s.lift = 0;
+      s.brow = -0.65;
+      s.mouth = 0.1;
       break;
     case 'waiting': {
       // Arms crossed, hip cocked, tapping a foot.
@@ -106,6 +124,7 @@ export function stanceOf(act: Act, t: number, s: Stance): Stance {
       s.tap = tap;
       s.lift = tap * 0.012;
       s.lid = 0.6;
+      s.brow = 0.5;
       break;
     }
   }

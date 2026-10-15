@@ -28,9 +28,10 @@ export interface Body {
   face: Face;
 }
 
-/** Builds the body into `into` (the worker's own body group), and hands back what it is made of. */
-export function buildWorkerBody(into: THREE.Group, color: string): Body {
-  const skin = toonUnique(color);
+/** Builds the body into `into` (the worker's own body group), and hands back what it is made of.
+ *  `skin` is what it is made of, and comes from the palette when one is chosen (see accent in
+ *  world/office/paint.ts, which the worker's own colour stands in for). */
+export function buildWorkerBody(into: THREE.Group, skin: THREE.MeshToonMaterial): Body {
   const white = toon('#ffffff');
   const ink = toon('#1d1d1d');
   const dark = toon('#2b2d42');

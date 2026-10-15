@@ -3,6 +3,7 @@ import type { Theme, WorkerAction, WorkerStatus, WorkerTask } from '../../../sha
 import { isAsleep, type WorkerPr } from '../../../shared/status';
 import { beard, grime, peasantGarb, type Beard, type PeasantGarb } from '../costumes';
 import { disposeSprite, mesh, textSprite, toon, toonUnique } from '../toon';
+import { accent } from '../office/paint';
 import type { WorkerRig } from './rig';
 import { ease, popIn } from './curves';
 import { undress } from './props';
@@ -15,6 +16,16 @@ import { DANCE, groove, type Dancing, type Stage } from './worker-dance';
 import { DEAD, STARVED, bones, crossedEyes, slump } from './worker-jail';
 import { packUp, waddle, type Leaving } from './worker-leave';
 import { dressUp, growBeard, wearGarb } from './worker-dress';
+
+/**
+ * Which of the palette's accents a worker wears: from its name, so it is the same one every time it is
+ * drawn, and two workers side by side are not the same blob (see accent in world/office/paint.ts).
+ */
+function workerSlot(name: string): number {
+  let h = 0;
+  for (const c of name) h = (h * 31 + (c.codePointAt(0) ?? 0)) % 100003;
+  return h;
+}
 
 /** The little Claude worker that sits at a desk. Forward is +z. */
 export class Worker {
@@ -107,7 +118,7 @@ export class Worker {
     private color: string,
   ) {
     this.root.add(this.body);
-    const built = buildWorkerBody(this.body, color);
+    const built = buildWorkerBody(this.body, accent(workerSlot(name), color));
     this.skin = built.skin;
     this.eyes = built.eyes;
     this.pupils = built.pupils;

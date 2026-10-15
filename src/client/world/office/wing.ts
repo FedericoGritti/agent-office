@@ -20,58 +20,33 @@ export interface WingView {
   set(level: number): void;
 }
 
-/** The sign that says there's room to grow, painted for how far the back office is built out. */
-function paintGrowSign(c: HTMLCanvasElement, level: number) {
-  const g = c.getContext('2d')!;
-  const w = c.width;
-  const h = c.height;
-  const full = level >= WING.rows;
-  g.fillStyle = full ? '#e9ecef' : '#ffd166';
-  g.fillRect(0, 0, w, h);
-  // Hazard stripes along the top and the bottom, while there's building to do.
-  if (!full) {
-    g.save();
-    for (const y of [0, h - 34]) {
-      g.beginPath();
-      g.rect(0, y, w, 34);
-      g.clip();
-      g.fillStyle = '#2b2d42';
-      for (let x = -40; x < w + 40; x += 56) {
-        g.beginPath();
-        g.moveTo(x, y + 34);
-        g.lineTo(x + 28, y + 34);
-        g.lineTo(x + 56, y);
-        g.lineTo(x + 28, y);
-        g.fill();
-      }
-      g.restore();
-      g.save();
-    }
-    g.restore();
-  }
-  g.fillStyle = '#2b2d42';
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.font = '800 88px Nunito, ui-rounded, system-ui, sans-serif';
-  g.fillText(full ? '🏢 As big as it gets' : '🚧 Room to grow', w / 2, h * 0.4);
-  g.font = '700 46px Nunito, ui-rounded, system-ui, sans-serif';
-  g.fillText(full ? 'The back office is built all the way out' : level ? 'Press E to go back another row: 2 more desks' : 'Press E to knock through: 2 more desks', w / 2, h * 0.68);
-}
-
 /**
  * The back office: the bit of north wall between the gong and the east wall, which comes down when
  * the floor's built out, and behind it the bay, a row deeper each time, with a pair of desks down the
- * middle of each row, a rug under them, a lamp over them and a window in the east wall. The sign that
- * says there's room to grow hangs on whichever wall is at the back.
+ * middle of each row, a rug under them, a lamp over them and a window in the east wall. No sign says
+ * so: the wall itself is what you use (see the expand interaction in features/workers/views.ts), and
+ * the hint bar says what pressing E there does. Whichever wall is at the back is the one it acts on.
  */
 export function buildWing(group: THREE.Group, colliders: Collider[], interactables: Interactable[], desks: Map<string, DeskView>, looks: Looks, trimMat: THREE.Material, planks: THREE.Material, ceiling: THREE.Material, night: NightParts): WingView {
   const T = WALL_T;
   const midX = (WING.minX + WING.maxX) / 2;
 
+  // What knocks the back office out a row, or walls its last one back up: the wall at the back of it.
+  // There is no sign on that wall any more — looking at the wall itself is what puts this in reach,
+  // and the hint bar (features/workers/views.ts) says what pressing E there does.
+  const it: Interactable = { kind: 'expand', x: midX, z: FLOOR.minZ + 0.3, radius: 2.2 };
+  interactables.push(it);
+  /** Marks a run of wall as the one to knock through. */
+  const knockable = (wall: THREE.Object3D) =>
+    wall.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) o.userData.interact = it;
+    });
+
   // The wall where it goes through, standing while there's none.
   const plug = new THREE.Group();
   const plugCols: Collider[] = [];
   wallRun(plug, plugCols, 'x', FLOOR.minZ - T / 2, WING.minX, FLOOR.maxX + T, -1, [], looks, [false, true]);
+  knockable(plug);
   group.add(plug);
 
   // Each row's desks, and its rug and lamp.
@@ -101,25 +76,6 @@ export function buildWing(group: THREE.Group, colliders: Collider[], interactabl
     });
     return { extras, seats };
   });
-
-  // The sign: on the wall at the back, high enough to read from across the room over the desks.
-  const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 420;
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  const sign = new THREE.Group();
-  const board = mesh(roundedBox(2.64, 0.06, 1.12, 0.06), toon(PALETTE.ink), 0, 0, 0, false);
-  board.rotation.x = Math.PI / 2;
-  sign.add(board);
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(2.56, 1.05), new THREE.MeshBasicMaterial({ map: tex }));
-  face.position.z = 0.032;
-  sign.add(face);
-  group.add(sign);
-  const it: Interactable = { kind: 'expand', x: midX, z: FLOOR.minZ + 0.3, radius: 2.2 };
-  interactables.push(it);
-  sign.userData.interact = it;
 
   let built: THREE.Object3D[] = [];
   let mine: Collider[] = [];
@@ -165,7 +121,11 @@ export function buildWing(group: THREE.Group, colliders: Collider[], interactabl
         wallRun(shell, mine, 'z', WING.minX - T / 2, back, FLOOR.minZ - T, -1, [], looks, [false, false]);
         const windows = wingWindows(level);
         wallRun(shell, mine, 'z', FLOOR.maxX + T / 2, back, FLOOR.minZ, 1, windows, looks, [false, false]);
-        wallRun(shell, mine, 'x', back - T / 2, WING.minX - T, FLOOR.maxX + T, -1, [], looks, [true, true]);
+        // The wall at the back, which is the one E knocks through from here on.
+        const backWall = new THREE.Group();
+        wallRun(backWall, mine, 'x', back - T / 2, WING.minX - T, FLOOR.maxX + T, -1, [], looks, [true, true]);
+        knockable(backWall);
+        shell.add(backWall);
         for (const o of windows) {
           shell.add(windowIn(o));
           shell.add(wetPane(o, night.wetGlass));
@@ -194,18 +154,10 @@ export function buildWing(group: THREE.Group, colliders: Collider[], interactabl
       }
       colliders.push(...mine);
 
-      // The sign on whichever wall is at the back: low on the old wall, up over the desks and their
-      // lamps once they're there, where it reads from across the room.
-      sign.position.set(midX, level ? 5.3 : 2.4, back + 0.05);
+      // What E acts on moves with the wall: the one at the back of the back office as it stands.
       it.z = back + 0.3;
-      paintGrowSign(canvas, level);
-      tex.needsUpdate = true;
     },
   };
-  void document.fonts?.ready.then(() => {
-    paintGrowSign(canvas, Math.max(0, view.level));
-    tex.needsUpdate = true;
-  });
   view.set(0);
   return view;
 }

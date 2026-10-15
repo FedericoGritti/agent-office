@@ -74,8 +74,25 @@ export interface Base {
  *  piece (and so the walk map round it still means something). */
 export const SCALE_MIN = 0.01;
 export const SCALE_MAX = 100;
-/** How much one turn of the wheel changes it: the same tenth the pictures on the walls go up by. */
-const SCALE_STEP = 1.1;
+
+/**
+ * The sizes a piece may be made, as multiples of the size it was built at: the rungs of one ladder for
+ * the whole room, so two pieces at 150% are the same size and one at 300% is exactly twice the one at
+ * 150%. Halves and quarters, and the decade again at every power of ten (…, 0.5, 0.75, 1, 1.25, 1.5, 2,
+ * 2.5, 3, 4, 5, 7.5, 10, 12.5, …, 75, 100).
+ *
+ * Multiplicative steps — a tenth of whatever a piece happens to be — are what this replaced: they leave
+ * every piece at a size of its own (1.21, 1.331, …), and then no two of them can be compared at all.
+ */
+const DECADES = [0.01, 0.1, 1, 10];
+const RUNGS = [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 7.5];
+/** A rung, at the precision a hundredth of a percent needs: 0.1 × 1.5 is 0.15000000000000002. */
+const rung = (n: number) => Math.round(n * 10000) / 10000;
+// The largest size a piece may be is a rung of it too, so a size written by hand at the limit lands on
+// the limit rather than on the rung below it.
+export const SCALE_STEPS: readonly number[] = [...new Set([...DECADES, SCALE_MAX, ...DECADES.flatMap((d) => RUNGS.map((r) => rung(d * r)))])]
+  .filter((s) => s >= SCALE_MIN && s <= SCALE_MAX)
+  .sort((a, b) => a - b);
 
 /** A size brought inside the limits: the only thing written to a file, or applied to a piece. One that
  *  isn't a number at all is the size it came — never a NaN in a transform, which would take the whole
@@ -90,9 +107,19 @@ export function scaleOf(at: { scale?: number }): number {
   return clampScale(at.scale ?? 1);
 }
 
-/** One turn of the wheel: bigger (`dir` > 0) or smaller, never past the limits. */
+/** A hair, so a rung that is a float's near miss still counts as the rung. */
+const EPS = 1e-9;
+
+/** One turn of the wheel: the next size up (`dir` > 0) or down, out of the room's one ladder. */
 export function resizeBy(scale: number, dir: number): number {
-  return clampScale(scale * (dir > 0 ? SCALE_STEP : 1 / SCALE_STEP));
+  const at = scaleOf({ scale });
+  if (dir > 0) {
+    for (const step of SCALE_STEPS) if (step > at + EPS) return step;
+    return SCALE_MAX;
+  }
+  let below = SCALE_MIN;
+  for (const step of SCALE_STEPS) if (step < at - EPS) below = step;
+  return below;
 }
 
 /** How far one press moves a piece up or down, in metres: a step, on the room's own grid. */
@@ -352,9 +379,13 @@ function round(n: number): number {
   return Math.round(n * 400) / 400;
 }
 
-/** A size, written out: a thousandth is finer than any wheel turn can ask for. */
+/** The rung nearest `n`: what a size is written out as, and what a size read off a file becomes, so
+ *  every size in the room is one of the ladder's (see SCALE_STEPS) rather than beside it — a layout
+ *  written before the ladder was, at 1.21, lands on 1.25 the next time it is read. */
 function roundScale(n: number): number {
-  return Math.round(n * 1000) / 1000;
+  let best = SCALE_STEPS[0]!;
+  for (const step of SCALE_STEPS) if (Math.abs(step - n) < Math.abs(best - n)) best = step;
+  return best;
 }
 
 /**

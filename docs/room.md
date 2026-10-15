@@ -116,15 +116,21 @@ got it, so an addition made on one floor doesn't turn up on another. One more fi
 additions: `kind` says what it is. The other two are any piece's: `y` says how high it stands — a pot up
 on the loft's floor has the same `x` and `z` as the meeting room underneath it, and one the editor lifted
 keeps the height it was left at — and `scale` says how big it is when it isn't the size it was built at.
+It is a rung of the room's ladder (see *Anything you can pick up* below): a size read off a file that
+isn't one — anything a hand wrote, or a layout saved before there was a ladder — is brought to the rung
+nearest it.
 
 **Anything you can pick up can be resized and lifted; a seat's own furniture can't.** Scroll while you
-carry a piece and it grows or shrinks — a hundredth of what it came as at the smallest, a hundred times
-at the largest, a tenth a notch — and **−**/**+** raise and lower it a quarter of a metre a step (`=` is
-the `+` key on most keyboards, and the `-` and `+` characters work wherever they are). It grows about its
-own middle and the height it stands at, and goes straight up and down where it stands, so it stays where
-you're putting it; what you walk into grows with it and goes up with it, and the place you use it from
-goes up too, so a board lifted two metres is still the board you press E at. The sign at the top carries a
-**−**/**+** pair for each — the size and the height beside them — and a click is one step and no more,
+carry a piece and it grows or shrinks one rung of the room's own ladder at a time — 100%, 125%, 150%,
+200%, 250%, 300%, 400%, 500%, 750%, and the same rungs at every power of ten, up to a hundred times what
+it came as and down to a hundredth — and **−**/**+** raise and lower it a quarter of a metre a step (`=`
+is the `+` key on most keyboards, and the `-` and `+` characters work wherever they are). The ladder is
+the whole room's, not the piece's: two pieces at 150% are the same size, and one at 300% is exactly twice
+the one at 150%. It grows about its own middle and the height it stands at, and goes straight up and down
+where it stands, so it stays where you're putting it; what you walk into grows with it and goes up with
+it, and the place you use it from goes up too, so a board lifted two metres is still the board you press
+E at. The sign at the top carries a **−**/**+** pair for each — the size and the height beside them — and
+a click is one step and no more,
 which is what a scroll can't promise; a button needs a cursor, so in first person, where the mouse is
 captured, it is the keys that do it. Left up there it stays up there, because nothing in this room falls.
 It stops at the room's floor and at the ceiling above it, less the thing's own height, so a tall model

@@ -3,7 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LIFT_STEP, SCALE_MAX, SCALE_MIN, change, clampScale, forget, hasSeat, isAddition, labelFor, liftBy, nextSpawnId, place, placeAdded, placements, resizeBy, sanitize, scaleOf, setPlacements, spawn, spawned } from '../src/shared/placement.js';
+import { LIFT_STEP, SCALE_MAX, SCALE_MIN, SCALE_STEPS, change, clampScale, forget, hasSeat, isAddition, labelFor, liftBy, nextSpawnId, place, placeAdded, placements, resizeBy, sanitize, scaleOf, setPlacements, spawn, spawned } from '../src/shared/placement.js';
 
 const BASE = { x: -16.63, z: -12.56, rotY: 0 } as const;
 const TURNED = { x: -2, z: -4, rotY: Math.PI } as const;
@@ -175,17 +175,17 @@ test('a piece the editor resized keeps its size in the file, and the size it cam
   // Three notches of the wheel up: the size goes into the file, and comes back out of it.
   let big = 1;
   for (let i = 0; i < 3; i++) big = resizeBy(big, 1);
-  assert.equal(Math.round(big * 1000) / 1000, 1.331);
+  assert.equal(big, 2, 'three rungs up from as it came is twice it');
   change('add-1', { x: 1, z: 2 }, { x: 1, z: 2, rotY: 0, scale: big, hidden: false });
-  assert.equal(placements()['add-1']?.scale, 1.331);
-  assert.equal(scaleOf(place('add-1', { x: 0, z: 0 })), 1.331);
-  assert.equal(spawned()[0]?.scale, 1.331);
+  assert.equal(placements()['add-1']?.scale, 2);
+  assert.equal(scaleOf(place('add-1', { x: 0, z: 0 })), 2);
+  assert.equal(spawned()[0]?.scale, 2);
 
-  // And three notches down again is the size it came, with nothing left to remember: the wheel's own
-  // arithmetic lands a hair off 1, which the file must not keep.
+  // And three notches down again is the size it came, exactly: the rungs are the file's sizes, so going
+  // down the way you came up leaves nothing to remember (the same wheel used to land a hair off 1).
   let back = big;
   for (let i = 0; i < 3; i++) back = resizeBy(back, -1);
-  assert.notEqual(back, 1);
+  assert.equal(back, 1);
   change('add-1', { x: 1, z: 2 }, { x: 1, z: 2, rotY: 0, scale: back, hidden: false });
   assert.equal(placements()['add-1']?.scale, undefined);
   assert.deepEqual(placements()['add-1'], { kind: 'fountain', x: 1, z: 2, rotY: 0 });
@@ -250,16 +250,36 @@ test('a size stops at the ends of what a piece may be made', () => {
   assert.equal(clampScale(0), SCALE_MIN);
   assert.equal(clampScale(Number.NaN), 1, 'a size arithmetic cannot make is the size it came');
 
-  // A size written by hand is brought to the nearest end rather than losing the piece, and one that
-  // isn't a number at all is no size (the piece still stands).
+  // A size written by hand is brought to the nearest end rather than losing the piece, one that isn't a
+  // number at all is no size (the piece still stands), and one that is a number but not a rung — a
+  // layout written before the ladder was — comes back as the rung nearest it.
   const cleaned = sanitize({
     'add-1': { kind: 'rug', x: 1, z: 2, scale: 1e6 },
     'add-2': { kind: 'rug', x: 1, z: 2, scale: 'big' },
     'add-3': { kind: 'rug', x: 1, z: 2, scale: 0.000001 },
-    'add-4': { kind: 'rug', x: 1, z: 2, scale: 1.2000000000000002 },
+    'add-4': { kind: 'rug', x: 1, z: 2, scale: 1.21 },
   });
   assert.deepEqual(
     ['add-1', 'add-2', 'add-3', 'add-4'].map((id) => cleaned[id]?.scale),
-    [SCALE_MAX, undefined, SCALE_MIN, 1.2],
+    [SCALE_MAX, undefined, SCALE_MIN, 1.25],
   );
+});
+
+test('every size a piece can be is one of the room\'s ladder, and the same ladder for all of them', () => {
+  // Eight notches up from as it came: halves and quarters, not 1.1 and 1.21 and 1.331.
+  let size = 1;
+  const up: number[] = [];
+  for (let i = 0; i < 8; i++) up.push((size = resizeBy(size, 1)));
+  assert.deepEqual(up, [1.25, 1.5, 2, 2.5, 3, 4, 5, 7.5]);
+  // Down again lands on the rung it came from, not beside it (floats and all).
+  for (const rung of up) assert.equal(resizeBy(resizeBy(rung, 1), -1), rung);
+  assert.equal(resizeBy(resizeBy(1, 1), -1), 1);
+  // The ladder is the room's, not the piece's: the same sizes for everything, and each a round multiple
+  // of the one below it — twice a rung is a rung.
+  assert.deepEqual([...SCALE_STEPS].sort((a, b) => a - b), [...SCALE_STEPS], 'smallest first');
+  for (const step of SCALE_STEPS) {
+    assert.ok(step >= SCALE_MIN && step <= SCALE_MAX, `${step} is inside the limits`);
+    assert.ok(resizeBy(step, 1) >= step, `${step} has one above it, or is the largest`);
+  }
+  assert.ok(SCALE_STEPS.includes(0.5) && SCALE_STEPS.includes(2) && SCALE_STEPS.includes(50));
 });

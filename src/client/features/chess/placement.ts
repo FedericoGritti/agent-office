@@ -2,6 +2,8 @@
 // furniture, so every measurement and move is expressed in the model frame rather than in world axes.
 
 import * as THREE from 'three';
+import { parsePiece, startSquare } from '../../../shared/chess';
+import type { Collider } from '../../world/types';
 
 /** The exact bounds of an object's geometry in `frame` coordinates, independent of the furniture's
  * world translation, rotation and scale. */
@@ -27,6 +29,48 @@ export function boundsIn(object: THREE.Object3D, frame: THREE.Object3D): THREE.B
     }
   });
   return bounds;
+}
+
+export interface BoardGrid {
+  x: number;
+  z: number;
+  side: number;
+}
+
+/** The playable square grid read from the model's own starting pieces. The board mesh includes a marble
+ * border, so its outer width is not eight squares. */
+export function gridFromPieces(pieces: readonly THREE.Object3D[], frame: THREE.Object3D): BoardGrid | null {
+  const starts = new Map<string, THREE.Object3D>();
+  for (const object of pieces) {
+    const piece = parsePiece(object.name);
+    if (piece) starts.set(startSquare(piece), object);
+  }
+  const a1Object = starts.get('a1');
+  const h1Object = starts.get('h1');
+  const a8Object = starts.get('a8');
+  if (!a1Object || !h1Object || !a8Object) return null;
+  const inFrame = (object: THREE.Object3D) => frame.worldToLocal(object.getWorldPosition(new THREE.Vector3()));
+  const a1 = inFrame(a1Object);
+  const h1 = inFrame(h1Object);
+  const a8 = inFrame(a8Object);
+  const cell = (a1.x - h1.x) / 7;
+  if (cell <= 0 || a8.z <= a1.z) return null;
+  return { x: (a1.x + h1.x) / 2, z: (a1.z + a8.z) / 2, side: cell * 8 };
+}
+
+/** Replaces a model's generic solid box with the world-space slab one can actually stand on. For a
+ * chess set that is the board, not an invisible block as tall as its king. */
+export function fitColliderTo(collider: Collider, surface: THREE.Object3D): boolean {
+  surface.updateWorldMatrix(true, true);
+  const box = new THREE.Box3().setFromObject(surface);
+  if (box.isEmpty()) return false;
+  collider.minX = box.min.x;
+  collider.maxX = box.max.x;
+  collider.minZ = box.min.z;
+  collider.maxZ = box.max.z;
+  collider.bottom = box.min.y;
+  collider.top = box.max.y;
+  return true;
 }
 
 /** Moves one piece until the middle of its base is at `target` in the set's frame. The change is added

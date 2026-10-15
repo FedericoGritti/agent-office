@@ -22,7 +22,7 @@ import { store } from '../../state';
 import { EYE_HEIGHT } from '../../player';
 import { toast } from '../../ui/dom';
 import { placedPieces, type Piece } from '../../world/office/placed';
-import { boundsIn, placeBaseAt } from './placement';
+import { boundsIn, fitColliderTo, gridFromPieces, placeBaseAt, type BoardGrid } from './placement';
 import type { Ctx } from '../../core/context';
 import type { Interactable } from '../../world/types';
 
@@ -53,13 +53,13 @@ interface Board {
   piece: Piece;
   /** The room interaction attached to the model and kept at the furniture's current position. */
   spot: Interactable;
-  /** The board's own mesh, the model's root (the pieces' frame), how wide a square is and how high the
-   *  surface is — all in that root's own metres. */
+  /** The board's own mesh, the model's root (the pieces' frame), how wide the playable grid is and how
+   * high the surface is — all in that root's own metres. */
   board: THREE.Mesh;
   frame: THREE.Object3D;
   side: number;
   top: number;
-  /** Where the board's middle is in the frame, so the squares are worked out from where it actually sits. */
+  /** Where the playable grid's middle is in the frame. The marble border lies outside it. */
   middle: THREE.Vector3;
   set: SetPiece[];
   /** The marks drawn on the board, and what the position looked like when the pieces were last laid out. */
@@ -189,9 +189,21 @@ export function installChess(ctx: Ctx) {
       warn('the chess board has no measurable surface');
       return null;
     }
+    const remembered: BoardGrid | undefined = frame.userData.chessGrid;
+    const grid = remembered ?? gridFromPieces(nodes, frame);
+    if (!grid) {
+      warn('the chess pieces do not describe a playable square grid');
+      return null;
+    }
+    if (!remembered) frame.userData.chessGrid = grid;
     const middle = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const side = Math.max(size.x, size.z);
+    middle.set(grid.x, middle.y, grid.z);
+    const side = grid.side;
+    const collider = piece.colliders[0];
+    if (!collider || !fitColliderTo(collider, boardMesh)) {
+      warn('the chess board has no surface the player can stand on');
+      return null;
+    }
     const set = nodes.map((node) => {
       const piece = parsePiece(node.name)!;
       return { object: node, key: `${piece.colour}${piece.kind}` };
@@ -205,8 +217,8 @@ export function installChess(ctx: Ctx) {
       frame.add(mark);
       return mark;
     });
-    // The board's middle is the frame's origin only if the model was built that way: this one is (see the
-    // note in shared/chess), and a board that isn't has its squares worked out from where it actually is.
+    // The downloaded mesh includes a marble border; `grid` is read from the starting pieces, so both the
+    // pieces and the aim land in the centres of the visible squares rather than across the whole slab.
     return { piece, spot, board: boardMesh, frame, side, top: box.max.y, middle, set, marks, laid: '', aimed: null, held: null };
   }
 

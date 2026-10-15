@@ -3,11 +3,11 @@
 // The rules are not here. They are chess.js, on the server, which is the authority on what is legal (see
 // server/chess.ts); this is the little that the room, the wire and the rules all have to agree on.
 //
-// The pieces are the downloaded set (see features/chess). It is in metres and true to life — a board
-// 0.5532 m across, 6.92 cm to a square — and its own axes are the convention the arithmetic below follows:
-// the a-file towards +x, the first rank towards -z, the board's middle at the origin. Its pieces are laid
-// out on their own, slightly tighter, grid, so a game places them by the board's squares and not by where
-// the model happened to leave them.
+// The pieces are the downloaded set (see features/chess). Its marble slab is 0.5532 m across, while the
+// playable grid inside it is 0.4631 m across — 5.79 cm to a square. The set's own axes are the convention
+// the arithmetic below follows: the a-file towards +x, the first rank towards -z. The client reads the
+// exact playable width and middle from the model's starting pieces instead of mistaking its border for
+// more board.
 
 export type Square = string;
 /** Which side a piece belongs to, as chess.js writes it. */
@@ -79,7 +79,7 @@ export function squareAt(x: number, z: number, side: number): Square | null {
 export interface SetPiece {
   colour: Colour;
   kind: 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
-  /** Which of a pair, or which of the eight, counting from the a-file as 1 (see startSquare). */
+  /** Which of a pair, or which of the eight, counting from that colour's left as 1 (see startSquare). */
   index: number;
 }
 
@@ -89,18 +89,20 @@ export function parsePiece(name: string): SetPiece | null {
   return { colour: parts[2] === 'white' ? 'w' : 'b', kind: parts[1] as SetPiece['kind'], index: Number(parts[3] ?? '1') };
 }
 
-/** Where the pieces of a back rank stand, by the set's own numbering from the a-file. */
+/** Where the pieces of a back rank stand before black's numbered pairs are mirrored. */
 const BACK_FILES: Record<'rook' | 'knight' | 'bishop' | 'queen' | 'king', number[]> = { rook: [0, 7], knight: [1, 6], bishop: [2, 5], queen: [3], king: [4] };
 
 /**
- * The square a piece of the set stands on when a game begins. The set numbers a pair or a row from 01 at
- * the a-file (`piece_rook_white_01` is the a-file rook, `piece_pawn_white_08` the h-file pawn), which is
- * what makes this a lookup rather than a guess.
+ * The square a piece of the set stands on when a game begins. Each side numbers a pair or a row from its
+ * own left: white 01 is on the a-file and black 01 on the h-file. The king and queen have no number and
+ * are put on their standard chess squares rather than where this model happened to leave them.
  */
 export function startSquare(piece: SetPiece): Square {
   const white = piece.colour === 'w';
-  if (piece.kind === 'pawn') return squareName(piece.index - 1, white ? 1 : 6);
-  return squareName(BACK_FILES[piece.kind][piece.index - 1] ?? 0, white ? 0 : 7);
+  if (piece.kind === 'pawn') return squareName(white ? piece.index - 1 : 8 - piece.index, white ? 1 : 6);
+  const file = BACK_FILES[piece.kind][piece.index - 1] ?? 0;
+  const paired = BACK_FILES[piece.kind].length > 1;
+  return squareName(!white && paired ? 7 - file : file, white ? 0 : 7);
 }
 
 /** What to say about a game on the board itself and in the hint bar. */

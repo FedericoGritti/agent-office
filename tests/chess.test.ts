@@ -6,8 +6,8 @@ import assert from 'node:assert/strict';
 import { START_FEN, isSquare, parsePiece, squareAt, squareCentre, startSquare, statusOf } from '../src/shared/chess.js';
 import { ChessGames } from '../src/server/chess.js';
 
-/** The downloaded set's board, in metres: 6.92 cm to a square (see the note in shared/chess.ts). */
-const SIDE = 0.5532;
+/** The downloaded set's playable grid, in metres: its marble border lies outside these eight squares. */
+const SIDE = 0.4631046567644392;
 
 test('a square is a place on the board, and the arithmetic knows which', () => {
   // The model's own convention: the a-file towards +x, the first rank towards -z.
@@ -31,14 +31,15 @@ test('the set names its pieces by what they are, and says which square each one 
   assert.deepEqual(parsePiece('piece_knight_white_02'), { colour: 'w', kind: 'knight', index: 2 });
   assert.deepEqual(parsePiece('piece_queen_black'), { colour: 'b', kind: 'queen', index: 1 });
   assert.equal(parsePiece('board'), null);
-  // The numbering runs from the a-file, which is what makes the start a lookup: eight pawns on the eight
-  // files, the two rooks on the two corners.
+  // Each side counts from its own left: white 01 starts on the a-file, black 01 on the h-file.
   assert.equal(startSquare(parsePiece('piece_pawn_white_01')!), 'a2');
   assert.equal(startSquare(parsePiece('piece_pawn_white_08')!), 'h2');
-  assert.equal(startSquare(parsePiece('piece_pawn_black_03')!), 'c7');
+  assert.equal(startSquare(parsePiece('piece_pawn_black_01')!), 'h7');
+  assert.equal(startSquare(parsePiece('piece_pawn_black_03')!), 'f7');
   assert.equal(startSquare(parsePiece('piece_rook_white_01')!), 'a1');
   assert.equal(startSquare(parsePiece('piece_rook_white_02')!), 'h1');
-  assert.equal(startSquare(parsePiece('piece_knight_black_02')!), 'g8');
+  assert.equal(startSquare(parsePiece('piece_rook_black_01')!), 'h8');
+  assert.equal(startSquare(parsePiece('piece_knight_black_02')!), 'b8');
   assert.equal(startSquare(parsePiece('piece_bishop_white_02')!), 'f1');
   assert.equal(startSquare(parsePiece('piece_queen_black')!), 'd8');
   assert.equal(startSquare(parsePiece('piece_king_white')!), 'e1');

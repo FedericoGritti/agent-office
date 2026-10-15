@@ -2,7 +2,7 @@
 // storage is a whole one (see src/client/palette.ts).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PALETTES, PALETTE_GROUPS, atFloor, readPalette, shade } from '../src/client/palette.js';
+import { PALETTES, PALETTE_GROUPS, atFloor, randomPalette, readPalette, shade } from '../src/client/palette.js';
 import { PALETTE } from '../src/client/world/office/materials.js';
 import { accent, paintPalette, PARTS } from '../src/client/world/office/paint.js';
 import { toon } from '../src/client/world/toon.js';
@@ -72,6 +72,15 @@ test('the wells cover every colour a palette has, once each', () => {
   assert.equal(new Set(keys).size, keys.length);
   const own = Object.keys(PALETTES[0]).filter((k) => k !== 'name' && k !== 'accents');
   assert.deepEqual([...keys].sort(), own.sort());
+});
+
+test('a scheme at random is one of them, and not the one it came from', () => {
+  assert.ok(PALETTES.includes(randomPalette()));
+  for (let i = 0; i < 40; i++) {
+    const p = randomPalette('Espresso');
+    assert.ok(PALETTES.includes(p), `${p.name} is not a scheme`);
+    assert.notEqual(p.name, 'Espresso');
+  }
 });
 
 test("no colour the office builds with is claimed by two parts of the room", () => {

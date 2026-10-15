@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { PALETTES } from '../src/client/palette.js';
 import { EMPTY_PLAN } from '../src/shared/floorplan.js';
 import { parked } from '../src/shared/garage.js';
 import { JUKEBOX_TUNES } from '../src/shared/jukebox.js';
@@ -225,7 +226,7 @@ test('what the browser remembers keeps its keys and shapes', () => {
   assert.deepEqual(state.lastSpot(), { floor: 'f1', name: 'F', x: 1, y: 2, z: 3, facing: 4 });
   assert.ok(storage.has('agent-office.spot'));
   const settings = state.loadSettings();
-  assert.deepEqual(settings, { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: state.HUD_DEFAULTS, pins: [], outlines: true, shadows: true, resolution: 2, measure: false, shading: 'toon', palette: null });
+  assert.deepEqual(settings, { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: state.HUD_DEFAULTS, pins: [], outlines: true, shadows: true, resolution: 2, measure: false, shading: 'toon', palette: null, paletteRandom: false });
   state.saveSettings({ ...settings, volume: 2, view: 'third', needsYouSound: 'remind', hands: true, outlines: false, shadows: false, resolution: 1, measure: true });
   assert.equal(state.loadSettings().volume, 1);
   assert.equal(state.loadSettings().view, 'third');
@@ -255,6 +256,13 @@ test('what the browser remembers keeps its keys and shapes', () => {
   assert.equal(state.loadSettings().palette, null);
   state.saveSettings({ ...settings, palette: { ...mine, accents: ['#abcdef'] } as never });
   assert.equal(state.loadSettings().palette, null);
+  // A scheme at random: one of the palette's, and never the one that was there when it opened.
+  const first = PALETTES[0];
+  state.saveSettings({ ...settings, palette: { ...first }, paletteRandom: true });
+  const rolled = state.loadSettings();
+  assert.equal(rolled.paletteRandom, true);
+  assert.ok(PALETTES.some((p) => p.name === rolled.palette?.name), `${rolled.palette?.name} is not a scheme`);
+  assert.notEqual(rolled.palette?.name, first.name);
   store.apply(welcome());
   assert.equal(state.lastFloor(), 'f1');
 });

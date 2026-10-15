@@ -232,6 +232,16 @@ const SCHEMES: Palette[] = [
  *  (whatever the building gave it) is the first chip of the row rather than one of these. */
 export const PALETTES: readonly Palette[] = [OFFICE, ...SCHEMES];
 
+/**
+ * One of the schemes at random: what ⚙️ → Palette's 🎲 answers with, once per time the office opens.
+ * `not` is the one it must not be — a room that comes up the same colour twice in a row is not a room
+ * that changes.
+ */
+export function randomPalette(not?: string): Palette {
+  const choices = not ? PALETTES.filter((p) => p.name !== not) : PALETTES;
+  return choices[Math.floor(Math.random() * choices.length)] ?? PALETTES[0];
+}
+
 /** The colours, in the order ⚙️ → Palette shows them, grouped the way it groups them. */
 export const PALETTE_GROUPS: readonly { title: string; keys: readonly Colour[] }[] = [
   { title: 'The room', keys: ['wall', 'trim', 'floor', 'ceiling'] },

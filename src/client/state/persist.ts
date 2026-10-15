@@ -2,7 +2,7 @@
 // you were last on and the spot you were standing in. Every read and write shrugs off blocked storage.
 
 import { randomLook, sanitizeLook, type Look } from '../../shared/avatar';
-import { readPalette, type Palette } from '../palette';
+import { randomPalette, readPalette, type Palette } from '../palette';
 
 export interface Profile {
   name: string;
@@ -85,6 +85,8 @@ export interface Settings {
   shading: Shading;
   /** The palette the room and everything in it is painted from, or null for each floor's own (see palette.ts). */
   palette: Palette | null;
+  /** A scheme of the palette at random, and a different one each time the office opens, instead of `palette`. */
+  paletteRandom: boolean;
 }
 
 const SETTINGS_KEY = 'agent-office.settings';
@@ -147,7 +149,7 @@ export function rememberSpot(s: Spot) {
 }
 
 export function loadSettings(): Settings {
-  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [], outlines: true, shadows: true, resolution: 2, measure: false, shading: 'toon', palette: null };
+  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [], outlines: true, shadows: true, resolution: 2, measure: false, shading: 'toon', palette: null, paletteRandom: false };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null');
     if (saved?.view === 'first' || saved?.view === 'third') s.view = saved.view;
@@ -170,6 +172,10 @@ export function loadSettings(): Settings {
     if (SHADINGS.includes(saved?.shading)) s.shading = saved.shading;
     // A stored palette is a file someone can edit: the right colours, or none of it (see palette.ts).
     s.palette = readPalette(saved?.palette);
+    // A scheme at random, and never the same one twice running: what the room is painted with this
+    // time, chosen as the office opens (see randomPalette).
+    s.paletteRandom = saved?.paletteRandom === true;
+    if (s.paletteRandom) s.palette = randomPalette(s.palette?.name);
   } catch {
     // storage blocked
   }

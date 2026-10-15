@@ -173,11 +173,6 @@ export function buildStation(plan: MapPlan): World {
         doorOpen = want > doorOpen ? Math.min(1, doorOpen + dt * 1.6) : Math.max(0, doorOpen - dt * 1.1);
         shell.slide(doorOpen);
       }
-      for (const d of kit.desks.values()) {
-        if (!d.vacancy.visible || !d.group.visible || d.def.station) continue;
-        d.vacancy.position.y = d.vacancyY + Math.sin(t * 2 + d.def.x) * 0.06;
-        d.vacancy.rotation.y = t * 1.2;
-      }
       kit.gong?.update(dt);
       herald?.person.update(dt, t, false, false);
     },

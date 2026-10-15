@@ -2,5 +2,5 @@
 // and the lab reuse. The world's shared types live in ../types.ts.
 export { buildOffice } from './build';
 export { DESK_BOOKS, FLOOR_PLANTS, coffeeTable, deskBooks, deskMug, loungeCouch, plant, plantLeaves, pouf, type PlantSpecies } from './props';
-export { buildDesk, vacancyMarker } from './seats';
+export { buildDesk } from './seats';
 export type { WingView } from './wing';

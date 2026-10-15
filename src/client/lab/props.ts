@@ -60,7 +60,6 @@ const SHOW: Record<string, () => Shown> = {
     if (q.get('desks') === '1') {
       [0, 2, 5, 8].forEach((index, i) => {
         const desk = buildDesk({ ...DESKS[index], x: i * 2.5, z: 0, rotY: 0 }, index, toon('#e8a87c'));
-        desk.vacancy.visible = false;
         object.add(desk.group);
       });
     } else {

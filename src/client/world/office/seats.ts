@@ -10,7 +10,7 @@ import { accent } from './paint';
 import { deskBooks, deskMug, plant } from './props';
 
 // Where people sit: the seats you use (see SEATING), the desks, the bean bags, and the post the
-// that workers sit (or stand) at, with the "+" over a free one.
+// that workers sit (or stand) at.
 
 /** Makes `obj` somewhere to sit (see SEATING): walk up to it, or look at it, and press E. */
 export function seatable(obj: THREE.Object3D, seatId: string, radius: number, interactables: Interactable[]) {
@@ -98,21 +98,10 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   ch.position.set(0, 0, 0.9);
   group.add(ch);
 
-  const vacancyY = height + 0.55;
-  const vacancy = vacancyMarker(vacancyY);
+  const vacancy = new THREE.Group();
   group.add(vacancy);
 
-  return { def, group, laptopAnchor, seatAnchor, stage, chair: ch, vacancy, vacancyY };
-}
-
-/** The floating green "+" over an empty seat. */
-export function vacancyMarker(y: number): THREE.Group {
-  const vacancy = new THREE.Group();
-  const plusMat = toon('#7cf29a', { emissive: '#1f7a3a' });
-  vacancy.add(mesh(box(0.28, 0.08, 0.08), plusMat, 0, 0, 0, false));
-  vacancy.add(mesh(box(0.08, 0.28, 0.08), plusMat, 0, 0, 0, false));
-  vacancy.position.set(0, y, 0);
-  return vacancy;
+  return { def, group, laptopAnchor, seatAnchor, stage, chair: ch, vacancy };
 }
 
 const BEANBAG_COLORS = ['#ff6b6b', '#4ecdc4', '#9b5de5', '#ffd166', '#f15bb5', '#00bbf9', '#06d6a0', '#fb8500'];
@@ -160,11 +149,10 @@ export function buildBeanbag(def: DeskDef, index: number): DeskView {
   stage.rotation.y = Math.PI;
   group.add(stage);
 
-  const vacancyY = 1.25;
-  const vacancy = vacancyMarker(vacancyY);
+  const vacancy = new THREE.Group();
   group.add(vacancy);
 
-  return { def, group, laptopAnchor, seatAnchor, stage, chair: bag, vacancy, vacancyY };
+  return { def, group, laptopAnchor, seatAnchor, stage, chair: bag, vacancy };
 }
 
 declare module '../types' {
@@ -243,8 +231,6 @@ export const stationDesks: Fixture = (site) => {
     site.desks.set(def.id, view);
     const y = def.y ?? 0;
 
-    // Whoever works here is shown by the seat itself (see idleAgentsIn), so no vacancy sign.
-    view.group.remove(view.vacancy);
     // Its own floor: it stops a walker down in the meeting room where it stands high, and one up in the
     // office where it is a desk.
     const corners = [-1, 1].flatMap((side) =>

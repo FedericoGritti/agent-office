@@ -3,7 +3,6 @@ import { KIOSK, STATION_AGENT, deskSeat, type DeskDef, type StationKind } from '
 import { BENCH_OUT, COUNCIL, THRONE_SIZE } from '../../../shared/maps';
 import { boxFootprint } from '../../../shared/maps/props';
 import { deskPoint } from '../../../shared/nav';
-import { vacancyMarker } from '../office';
 import type { DeskView, Interactable } from '../types';
 import { mesh, roundedBox, textPlane } from '../toon';
 import { BENCH_TOP, TABLE_TOP, box, collide, lit, xz, type Kit } from './kit';
@@ -39,7 +38,7 @@ export function buildBenches(kit: Kit) {
   }
 }
 
-/** A place at a bench: its laptop, the worker on the seat, a mug beside it, and the '+' while it's free. */
+/** A place at a bench: its laptop, the worker on the seat, and a mug beside it. */
 export function placeSetting(kit: Kit, def: DeskDef, overflow: boolean): { view: DeskView; it: Interactable } {
   const g = new THREE.Group();
   g.position.set(def.x, 0, def.z);
@@ -60,7 +59,7 @@ export function placeSetting(kit: Kit, def: DeskDef, overflow: boolean): { view:
   g.add(stage);
   g.add(mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.11, 12), kit.mats.white, -0.6, TABLE_TOP + 0.055, 0.1, false));
   g.add(mesh(box(0.2, 0.012, 0.28), kit.mats.black, -0.62, TABLE_TOP + 0.006, -0.2, false));
-  const vacancy = vacancyMarker(1.35);
+  const vacancy = new THREE.Group();
   g.add(vacancy);
   // An overflow seat is put away until they're all taken (see setBeanbags).
   g.visible = !overflow;
@@ -68,7 +67,7 @@ export function placeSetting(kit: Kit, def: DeskDef, overflow: boolean): { view:
   kit.interactables.push(it);
   g.userData.interact = it;
   kit.group.add(g);
-  return { view: { def, group: g, laptopAnchor, seatAnchor, stage, chair: new THREE.Group(), vacancy, vacancyY: 1.35 }, it };
+  return { view: { def, group: g, laptopAnchor, seatAnchor, stage, chair: new THREE.Group(), vacancy }, it };
 }
 
 const CONSOLE_SIGN: Record<StationKind, string> = { coordinator: '📡 Ask me' };
@@ -122,7 +121,7 @@ export function agentConsole(kit: Kit, def: DeskDef): DeskView {
   const it: Interactable = { kind: 'station', deskId: def.id, x: fx, z: fz, radius: 1.3 };
   kit.interactables.push(it);
   g.userData.interact = it;
-  return { def, group: g, laptopAnchor, seatAnchor, stage, chair: new THREE.Group(), vacancy, vacancyY: 0 };
+  return { def, group: g, laptopAnchor, seatAnchor, stage, chair: new THREE.Group(), vacancy };
 }
 
 /** The round briefing table, its chairs, and the display on a stand with the meeting's board and sign. */
@@ -201,14 +200,14 @@ function briefingChair(kit: Kit, def: DeskDef): DeskView {
   const stage = new THREE.Object3D();
   stage.position.set(0, 0.52, 0.85);
   g.add(stage);
-  const vacancy = vacancyMarker(1.45);
+  const vacancy = new THREE.Group();
   g.add(vacancy);
   kit.group.add(g);
   kit.colliders.push({ minX: def.x + Math.sin(def.rotY) * 0.85 - 0.3, maxX: def.x + Math.sin(def.rotY) * 0.85 + 0.3, minZ: def.z + Math.cos(def.rotY) * 0.85 - 0.3, maxZ: def.z + Math.cos(def.rotY) * 0.85 + 0.3, top: 0.5 });
   const it: Interactable = { kind: 'desk', deskId: def.id, ...xz(deskSeat(def, 1.5)), radius: 1.1 };
   kit.interactables.push(it);
   g.userData.interact = it;
-  return { def, group: g, laptopAnchor, seatAnchor, stage, chair, vacancy, vacancyY: 1.45 };
+  return { def, group: g, laptopAnchor, seatAnchor, stage, chair, vacancy };
 }
 
 /**

@@ -203,11 +203,6 @@ export function buildCastle(plan: MapPlan): World {
         doorOpen = want > doorOpen ? Math.min(1, doorOpen + dt * 1.2) : Math.max(0, doorOpen - dt * 0.8);
         shell.swing(doorOpen);
       }
-      for (const d of kit.desks.values()) {
-        if (!d.vacancy.visible || !d.group.visible || d.def.station) continue;
-        d.vacancy.position.y = d.vacancyY + Math.sin(t * 2 + d.def.x) * 0.06;
-        d.vacancy.rotation.y = t * 1.2;
-      }
       kit.gong?.update(dt);
       herald?.person.update(dt, t, false, false);
     },

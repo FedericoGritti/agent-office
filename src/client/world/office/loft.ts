@@ -7,7 +7,7 @@ import type { Fixture } from './fixture';
 import { PALETTE, box, floorTexture, type Looks } from './materials';
 import { accent } from './paint';
 import { floorPlant, pendant, plant } from './props';
-import { chair, seatable, vacancyMarker } from './seats';
+import { chair, seatable } from './seats';
 
 /**
  * The upstairs office: a loft on posts in the south-east corner, with the two sides that face the desks
@@ -143,7 +143,7 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   const stage = new THREE.Object3D();
   stage.position.set(0.72, 0.68, 0.18);
   desk.add(stage);
-  desks.set(BOSS_SEAT.id, { def: BOSS_SEAT, group: desk, laptopAnchor, seatAnchor, stage, chair: bossChair, vacancy: vacancyMarker(0), vacancyY: 0 });
+  desks.set(BOSS_SEAT.id, { def: BOSS_SEAT, group: desk, laptopAnchor, seatAnchor, stage, chair: bossChair, vacancy: new THREE.Group() });
   const talk: Interactable = { kind: 'desk', deskId: BOSS_SEAT.id, x: deskX, y: floorY, z: deskZ + 1.9, radius: 1.6 };
   interactables.push(talk);
   desk.userData.interact = talk;

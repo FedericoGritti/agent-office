@@ -273,8 +273,8 @@ export function installWorkerViews(ctx: Ctx, core: CoreState, parts: WorkerViews
   }
 
   /**
-   * A seat or kiosk shows it's free (its '+', or the board agent waiting there) only while nobody's at
-   * it, and once every desk is taken, bean bags come out for the workers who don't fit.
+   * A seat or kiosk is marked free only while nobody's at it, and once every desk is taken, bean bags
+   * come out for the workers who don't fit.
    */
   function arrangeSeats() {
     const world = ctx.world();

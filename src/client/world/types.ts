@@ -66,10 +66,11 @@ export interface DeskView {
   /** Where the worker gets up to dance when a pull request merges: its feet, and the way it faces. */
   stage: THREE.Object3D;
   chair: THREE.Group;
-  /** Shown while nobody is there: the "+" over a free seat, or the board agent waiting to be asked. */
+  /**
+   * Shown while the seat is free: how a desk, a bench or a kiosk with nobody at it is told apart (see
+   * views.ts). Nothing is drawn in it.
+   */
   vacancy: THREE.Group;
-  /** How high the vacancy marker floats. */
-  vacancyY: number;
 }
 
 /**

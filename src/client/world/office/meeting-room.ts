@@ -32,10 +32,9 @@ function buildMeetingSeat(def: DeskDef, index: number): DeskView {
   const stage = new THREE.Object3D();
   stage.position.set(0, 0.48, 0.85);
   group.add(stage);
-  // Nobody is hired here from the floor, so there's no '+' over a free chair: a meeting fills them.
   const vacancy = new THREE.Group();
   group.add(vacancy);
-  return { def, group, laptopAnchor, seatAnchor, stage, chair: ch, vacancy, vacancyY: 0 };
+  return { def, group, laptopAnchor, seatAnchor, stage, chair: ch, vacancy };
 }
 
 /**

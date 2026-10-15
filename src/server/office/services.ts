@@ -11,6 +11,8 @@ import { Ledger } from '../usage.js';
 import { PlanLimitsReader } from '../limits.js';
 import { Webhook } from '../webhook.js';
 import { Machine } from '../machine.js';
+import { Monitor } from '../monitor.js';
+import { MACHINE_SCREEN } from '../../shared/machine.js';
 import type { Floor } from '../floor.js';
 import { Sky } from '../sky.js';
 import { Themes } from '../theme.js';
@@ -119,6 +121,10 @@ export function createServices(ctx: Ctx): BuildingServices {
     (state) => ctx.broadcast({ t: 'machine', state }),
   );
   machine.start();
+  // btop on the west wall's monitor, the same on every floor: the office's own terminal, mirrored to
+  // whoever is looking at the wall (see ../monitor.ts).
+  const monitor = new Monitor({ cwd: cfg.dataDir }, (frame) => ctx.broadcast({ t: 'screen', workerId: MACHINE_SCREEN, ...frame }));
+  monitor.start();
   /** Queues everywhere may be waiting for room under the worker limit: let them look again. */
   const pumpQueues = (except?: Floor) => {
     if (machine.limit === undefined) return;
@@ -128,7 +134,7 @@ export function createServices(ctx: Ctx): BuildingServices {
     });
   };
 
-  return { sky, themes, windows, maps, prompts, leaveOnMerge, ledger, signins, limits, accountLimits, webhook, machine, limitsOf, pumpQueues };
+  return { sky, themes, windows, maps, prompts, leaveOnMerge, ledger, signins, limits, accountLimits, webhook, machine, monitor, limitsOf, pumpQueues };
 }
 
 /** What's made once the floors are open: the SSH team, the tailnet, workers' web servers, pictures and upgrades. */

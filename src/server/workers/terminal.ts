@@ -42,9 +42,18 @@ export function newTerm(w: Worker, on: { progress?(busy: boolean): void; title(t
   return term;
 }
 
+/** A screen as the browsers get it: its size, the rows that changed, and whether this is the whole of it. */
+export interface ScreenFrame {
+  cols: number;
+  rows: number;
+  lines: Record<number, Run[]>;
+  full: boolean;
+  cursor: [number, number];
+}
+
 /** Full screens for every running worker — sent to people as they walk in. */
 export function fullScreens(workers: Iterable<Worker>) {
-  const out: { workerId: string; frame: NonNullable<ReturnType<typeof snapshotScreen>> }[] = [];
+  const out: { workerId: string; frame: ScreenFrame }[] = [];
   for (const w of workers) {
     if (!w.term) continue;
     const frame = snapshotScreen(w.term, []);
@@ -73,7 +82,7 @@ export function flushScreens(workers: Iterable<Worker>, events: WorkerEvents, ch
 }
 
 /** The rows of the screen that changed since `last` (all of them when its size changed), or null when none did. */
-export function snapshotScreen(term: HeadlessTerminal, last: string[]) {
+export function snapshotScreen(term: HeadlessTerminal, last: string[]): ScreenFrame | null {
   const buf = term.buffer.active;
   const cols = term.cols;
   const rows = term.rows;

@@ -6,6 +6,7 @@
  */
 import type * as THREE from 'three';
 import type { GhIssue } from '../../../shared/protocol';
+import { MACHINE_SCREEN } from '../../../shared/machine';
 import type { Ctx } from '../../core/context';
 import { boardHint, hintTitle, key, onE } from '../../core/hint';
 import { store, type Topic } from '../../state';
@@ -126,9 +127,10 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
     },
     use: openCoord('timeline'),
   });
-  // The machine monitor on the west wall.
+  // The machine monitor on the west wall: btop's screen when the office's machine is running one, the
+  // office's own drawing of the CPU and memory until then (see features/boards/machine.ts).
   const machineTex = new MachineTexture();
-  mountBoard(office.machineScreen, machineTex.texture, () => machineTex.render(store.machine), ['machine']);
+  mountBoard(office.machineScreen, machineTex.texture, () => machineTex.render(store.machine, store.screens.get(MACHINE_SCREEN)), ['machine', 'screens']);
   // The meeting room: its output as it's written on the back wall, and how it's going on the door.
   const meetingBoardTex = new MeetingBoardTexture();
   mountBoard(office.meetingBoard, meetingBoardTex.texture, () => meetingBoardTex.render(store.meeting), ['meeting']);

@@ -1,5 +1,6 @@
 import type { Floor } from '../floor.js';
 import { ROOF } from '../../shared/rooftop.js';
+import { MACHINE_SCREEN } from '../../shared/machine.js';
 import type { FloorView } from '../../shared/protocol.js';
 import { views } from '../ws/handlers/index.js';
 import type { Ctx } from './context.js';
@@ -15,4 +16,8 @@ export const floorView = (ctx: Ctx, floor: Floor | undefined): FloorView => {
 export const roofView = (ctx: Ctx): FloorView => ({ ...floorView(ctx, undefined), floor: ROOF });
 export const screensOf = (ctx: Ctx, c: Client, floor: Floor | undefined) => {
   for (const { workerId, frame } of floor?.workers.fullScreens() ?? []) ctx.sendTo(c, { t: 'screen', workerId, ...frame, full: true });
+  // The machine's own screen on the wall (btop): not a worker's, and the same on every floor, so
+  // whoever walks in gets it whole along with the terminals of the floor they're on.
+  const wall = ctx.monitor.full();
+  if (wall) ctx.sendTo(c, { t: 'screen', workerId: MACHINE_SCREEN, ...wall, full: true });
 };

@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import type { MachineState } from '../../../shared/protocol';
 import { officeFull } from '../../../shared/machine';
+import { paintScreen } from '../workers/laptop';
+import type { ScreenState } from '../../state/store';
 
 const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
 const INK = '#1b1d2e';
@@ -36,10 +38,19 @@ export class MachineTexture {
     this.texture.anisotropy = 8;
   }
 
-  render(s: MachineState) {
-    const key = JSON.stringify(s);
+  render(s: MachineState, terminal?: ScreenState) {
+    // Once the office's machine runs a terminal of its own on this wall, that is what the monitor shows:
+    // btop, in the colours of whoever runs the office, saying everything this drawing says and a lot more
+    // (see server/monitor.ts). Where there is no btop to run — or in the moment before its first screen
+    // arrives — the office's own drawing stands in.
+    const key = terminal ? `term:${terminal.version}` : JSON.stringify(s);
     if (key === this.drawn) return;
     this.drawn = key;
+    if (terminal) {
+      paintScreen(this.ctx, this.canvas.width, this.canvas.height, terminal);
+      this.texture.needsUpdate = true;
+      return;
+    }
     const g = this.ctx;
     const W = this.canvas.width;
     const H = this.canvas.height;

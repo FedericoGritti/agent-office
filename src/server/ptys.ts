@@ -49,6 +49,14 @@ export interface Pty {
   onExit(cb: (e: PtyExit) => void): void;
 }
 
+/**
+ * A terminal in the office's own process, dying with it: a worker's goes to the host so it survives a
+ * restart, while the office's own screens (the wall monitor, see monitor.ts) are nobody's to keep.
+ */
+export function spawnLocal(opts: SpawnOpts): Pty {
+  return pty.spawn(opts.file, opts.args, { name: 'xterm-256color', cols: opts.cols, rows: opts.rows, cwd: opts.cwd, env: opts.env });
+}
+
 /** A terminal the host was still running when the office came back. */
 export interface Adopted {
   pty: Pty;
@@ -213,7 +221,7 @@ export class PtyHost {
 
   /** A new terminal: in the host when there is one, else in-process. Throws if it can't start. */
   spawn(opts: SpawnOpts): Pty {
-    if (!this.sock) return pty.spawn(opts.file, opts.args, { name: 'xterm-256color', cols: opts.cols, rows: opts.rows, cwd: opts.cwd, env: opts.env });
+    if (!this.sock) return spawnLocal(opts);
     const id = randomBytes(8).toString('hex');
     const p = new RemotePty(id, (m) => this.send(m));
     this.ptys.set(id, p);

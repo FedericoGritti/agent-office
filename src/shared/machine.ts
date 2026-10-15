@@ -2,6 +2,12 @@
 
 import type { MachineState } from './protocol.js';
 
+/**
+ * The screen the office's own machine shows on the wall (btop, see server/monitor.ts). It is not a
+ * worker's, so it travels as a screen frame under this id, which no worker id is.
+ */
+export const MACHINE_SCREEN = 'machine';
+
 /** The office has as many workers as it takes. */
 export function officeFull(s: MachineState): boolean {
   return s.limit !== undefined && s.workers >= s.limit;

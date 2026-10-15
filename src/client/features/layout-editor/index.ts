@@ -28,6 +28,9 @@ export function installLayoutEditor(ctx: Ctx) {
     // A quarter turn each way, the same as R and Shift+R: a button is one step, and in third person a
     // button is what there is (see banner.ts).
     turn: (dir) => void carrying.turn(dir < 0),
+    // A window's own two steps: a hole in a wall is widened and heightened where it stands, not turned.
+    widen: (dir) => void windows.resize(dir),
+    heighten: (dir) => void windows.heighten(dir),
   });
 
   /** Whether you're arranging the room at all: the mode the sign is up for. */
@@ -41,7 +44,10 @@ export function installLayoutEditor(ctx: Ctx) {
     const held = carrying.carrying;
     if (!arranging()) banner.hide();
     else if (window)
-      banner.set({ text: `🛠️ Carrying ${windowLabel(window.id)} — E puts it in the wall · Canc takes it away · Esc puts it back${windows.refused ? ` · ${windows.refused}` : ''}` });
+      banner.set({
+        text: `🛠️ Carrying ${windowLabel(window.id)} — E puts it in the wall · scroll sizes it · −/+ its height · Canc takes it away · Esc puts it back${windows.refused ? ` · ${windows.refused}` : ''}`,
+        window: { width: windows.width, height: windows.height },
+      });
     else if (held)
       banner.set({
         text: `🛠️ Carrying ${labelFor(held.id)} — E puts it down · R turns it${carrying.adjustable ? ' · scroll sizes it · −/+ up and down' : ''} · Canc takes it away · Esc puts it back`,
@@ -236,9 +242,19 @@ export function installLayoutEditor(ctx: Ctx) {
       // layout that puts `+` somewhere else (or a numeric keypad) still works. The wheel is for the size
       // (see below). A piece of the room's own with a seat has no height of its own to change, so the
       // keys aren't the editor's there at all.
+      //
+      // A window is the other way round: where it stands on the wall is where you look — up and down it
+      // as much as along it — so the same two keys make it taller and shorter instead, and the wheel
+      // wider and narrower. A hole is sized, not raised (see Windows.resize and .heighten).
+      const dir = e.code === 'Equal' || e.key === '+' ? 1 : -1;
+      if (windows.carrying) {
+        e.preventDefault();
+        windows.heighten(dir);
+        return true;
+      }
       if (!carrying.adjustable) return false;
       e.preventDefault();
-      carrying.raise(e.code === 'Equal' || e.key === '+' ? 1 : -1);
+      carrying.raise(dir);
       return true;
     }
     if (e.code === 'Delete' || e.code === 'Backspace') {
@@ -261,6 +277,8 @@ export function installLayoutEditor(ctx: Ctx) {
       el.replaceChildren(
         hintTitle(`🧰 Carrying ${windowLabel(window.id)}`),
         aside(windows.refused ?? 'It follows your look: along the wall, up and down it, or on to another one'),
+        key('Scroll', 'Wider / narrower'),
+        key('− / +', 'Taller / shorter'),
         key('Canc', 'Take it away'),
         key('Esc', 'Put it back'),
       );
@@ -319,7 +337,14 @@ export function installLayoutEditor(ctx: Ctx) {
   window.addEventListener(
     'wheel',
     (e) => {
-      if (e.target !== ctx.canvas || !carrying.adjustable) return;
+      if (e.target !== ctx.canvas) return;
+      if (windows.carrying) {
+        e.preventDefault();
+        e.stopPropagation();
+        windows.resize(e.deltaY < 0 ? 1 : -1);
+        return;
+      }
+      if (!carrying.adjustable) return;
       e.preventDefault();
       e.stopPropagation();
       carrying.resize(e.deltaY < 0 ? 1 : -1);

@@ -9,10 +9,12 @@ import { FLOOR, WALL_HEIGHT, WALL_T, type Opening, type Side } from '../../../sh
 import {
   baseWindow,
   changeWindow,
+  heighten,
   newWindowId,
   removeWindow,
   sizeOn,
   wallSpan,
+  widen,
   WINDOW_SIDES,
   windowFits,
   windowPlacements,
@@ -195,6 +197,35 @@ export class Windows {
     this.deps.changed();
   }
 
+  /**
+   * A step wider or narrower (`dir` > 0 wider) while you carry it, and a step taller or shorter: the
+   * size keys, where the room gives a piece of furniture its height. A window grows about its own middle
+   * and upwards from its sill (see widen and heighten in shared/windows).
+   */
+  resize(dir: number): boolean {
+    return this.held ? this.apply(widen(this.held, dir)) : false;
+  }
+
+  /** A step higher (`dir` > 0) or lower, its sill staying where the room's row put it. */
+  heighten(dir: number): boolean {
+    return this.held ? this.apply(heighten(this.held, dir)) : false;
+  }
+
+  /** Whether what you carry has a size at all: what the sign's own buttons are for. */
+  get adjustable(): boolean {
+    return this.held !== null;
+  }
+
+  /** How wide the window in your hands is, in metres, for the sign to say. */
+  get width(): number {
+    return this.held?.width ?? 0;
+  }
+
+  /** How tall it is, in metres: from the sill of the row it stands in up to its head. */
+  get height(): number {
+    return this.held ? this.held.y1 - this.held.y0 : 0;
+  }
+
   /** Out of the wall for good: no window there at all, and it's saved that way. */
   takeAway(): boolean {
     if (!this.held) return false;
@@ -241,6 +272,25 @@ export class Windows {
     this.aimed = null;
     this.deps.rebuild();
     this.show(held);
+    this.deps.changed();
+    return true;
+  }
+
+  /**
+   * Moves the window in your hands to the size one step away, if the wall takes it there: a size is asked
+   * the same question a move is (see windowFits), and a size a window can't be is not one — the window
+   * stays as it is, and the sign at the top goes on saying how big it is, which is where a step that
+   * stopped shows. A step that changes nothing at all (the floor under its size) is not a move either.
+   */
+  private apply(at: Opening): boolean {
+    const held = this.held;
+    if (!held) return false;
+    if (at.width === held.width && at.y1 === held.y1) return false;
+    if (windowFits(at.wall, at, windows(), held.id)) return false;
+    const sized: WindowDef = { ...held, ...at };
+    this.held = sized;
+    changeWindow(sized.id, baseWindow(sized.id), sized);
+    this.deps.rebuild();
     this.deps.changed();
     return true;
   }

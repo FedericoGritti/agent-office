@@ -9,6 +9,9 @@ import { FLOOR } from '../src/shared/layout.js';
 import { setWindows } from '../src/shared/windows.js';
 import { Windows } from '../src/client/features/layout-editor/windows.js';
 
+/** A length without the last bits of floating-point noise: a step of a quarter metre lands on the grid. */
+const exact = (n: number): number => Math.round(n * 1000) / 1000;
+
 /** An editor carrying windows, with a camera it looks through: `look` stands it somewhere and aims it. */
 function make() {
   const camera = new THREE.PerspectiveCamera(70, 1.6, 0.1, 200);
@@ -101,4 +104,53 @@ test('a window still cannot be carried into another one, which says which', () =
   look(-8, -3, FLOOR.minX, 4.6, -3);
   assert.deepEqual([windows.carrying?.y0, windows.carrying?.y1], [1.1, 3.3]);
   assert.equal(windows.refused, 'West window 6 is there');
+});
+
+test('a window is sized while you carry it', () => {
+  setWindows(null);
+  const { windows, look } = make();
+  windows.toggle();
+
+  // The lounge's own window on the west wall, beside the exit door and short of the end of the wall.
+  look(-8, 10, FLOOR.minX, 2.2, 10);
+  assert.equal(windows.looking?.id, 'window-west-4');
+  assert.ok(windows.pickUp());
+  assert.equal(windows.width, 3);
+
+  // A step wider, and it stays where it stands: a hole grows about its own middle.
+  assert.ok(windows.resize(1));
+  assert.equal(exact(windows.width), 3.25);
+  assert.equal(windows.carrying?.u, 10);
+
+  // Taller from its sill up, which is where the room's row put it, up to the ceiling.
+  assert.equal(exact(windows.height), 2.2);
+  assert.ok(windows.heighten(1));
+  assert.equal(exact(windows.height), 2.45);
+  assert.equal(windows.carrying?.y0, 1.1);
+
+  // Followed to where it stops: the doorway on that wall is 0.4 m from its edge at 4.75 m wide, and the
+  // step after that one changes nothing at all.
+  for (let i = 0; i < 20; i++) windows.resize(1);
+  assert.equal(windows.width, 4.75);
+  assert.equal(windows.carrying?.y0, 1.1, 'and widening never moves it along the wall');
+});
+
+test('a window beside another one cannot be widened into it', () => {
+  setWindows(null);
+  const { windows, look } = make();
+  windows.toggle();
+
+  // The boss's office's pair on the east wall stand exactly the 0.4 m apart the room leaves between two
+  // windows: a step wider each way would be inside the other one, so no step is taken.
+  look(0, 9.4, FLOOR.maxX, 4.7, 9.4);
+  assert.equal(windows.looking?.id, 'loft-east-1');
+  assert.ok(windows.pickUp());
+  assert.equal(windows.width, 1.8);
+
+  assert.ok(!windows.resize(1), 'where a window would be inside another, nothing happens');
+  assert.equal(windows.width, 1.8);
+
+  // Narrower the other way there is room, and it goes there.
+  assert.ok(windows.resize(-1));
+  assert.equal(windows.width, 1.55);
 });

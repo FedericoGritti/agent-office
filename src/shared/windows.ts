@@ -73,6 +73,30 @@ export function wallSpan(wall: Side): { lo: number; hi: number } | undefined {
  */
 const EDGE = 0.4;
 
+/** The step the editor sizes a window by: the quarter of a metre the room's furniture moves and grows by. */
+export const SIZE_STEP = 0.25;
+
+/**
+ * The window one step wider (`dir` > 0) or narrower, where it stands along its wall: a hole grows about
+ * its own middle, so widening one leaves it where you put it — its wall, sill and head are untouched.
+ *
+ * A step never takes it under `EDGE`, which is at once the least the room leaves between two holes and
+ * the smallest hole that is a window at all (see windowFits): a window narrowed by hand stops where a
+ * window stops, and cannot be stepped down to something the walls would refuse to cut.
+ */
+export function widen(at: Opening, dir: number): Opening {
+  return { ...at, width: Math.max(EDGE, round(at.width + dir * SIZE_STEP)) };
+}
+
+/**
+ * The window one step taller (`dir` > 0) or shorter, standing on the same sill: a hole grows upwards, so
+ * the sill the room's rows put it on stays and its head rises towards the ceiling — with the same floor
+ * on its height as on its width.
+ */
+export function heighten(at: Opening, dir: number): Opening {
+  return { ...at, y1: at.y0 + Math.max(EDGE, round(at.y1 - at.y0 + dir * SIZE_STEP)) };
+}
+
 /** What the editor saves for one window: what differs from how the room builds it, or a whole new one. */
 export interface WindowPlacement {
   wall?: Side;
@@ -183,7 +207,10 @@ export function sizeOn(wall: Side, u: number, y: number, list: readonly WindowDe
 export function windowFits(wall: Side, at: Opening, list: readonly WindowDef[] = windows(), ignore?: string): string | undefined {
   const span = OUTSIDE[wall];
   if (!span) return 'nothing looks out of that wall';
-  if (at.width < EDGE || at.y1 - at.y0 < EDGE) return 'a hole that small is not a window';
+  // A hole is measured as its sill and head rather than as a height, so the smallest one there is lands a
+  // hair under EDGE the moment the numbers behind it are floats (a sill of 1.1 and a head of 1.5 are
+  // 0.3999999999999999 apart): the same hair the gaps below are given, for the same reason.
+  if (at.width < EDGE - HAIR || at.y1 - at.y0 < EDGE - HAIR) return 'a hole that small is not a window';
   if (at.u - at.width / 2 < span.lo + EDGE - HAIR || at.u + at.width / 2 > span.hi - EDGE + HAIR) return 'the wall ends there';
   if (at.y0 < 0) return 'it starts under the floor';
   if (at.y1 > WALL_HEIGHT) return 'it runs out of the wall at the ceiling';

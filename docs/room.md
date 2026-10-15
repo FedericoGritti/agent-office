@@ -47,6 +47,33 @@ Anything with a **✔** can also be lifted and resized (**−**/**+**, **scroll*
 furniture as much as what the catalog adds — except the pieces that say a seat comes with them (a desk, a
 cushion, a couch): those keep the height and the size the room builds them at, for the reason below.
 
+## The windows
+
+The windows are not pieces: each is a hole in an outside wall, cut where `src/shared/windows.ts` says
+(`src/client/world/office/shell.ts`). **F2** picks one out of the wall with **E** like furniture, but
+then it behaves differently: it follows your look — along the wall you're looking at, up and down it,
+or on to another wall — with **N** putting in a new one and **Canc** taking one out for good, leaving a
+plain run of wall. The walls are not moved but built again round the list as it stands, and the
+building's outside with them.
+
+A window is carried about its wall rather than over the floor: it follows your look along the wall and
+up and down it, and it stops at the floor and at the ceiling. **Scroll** while you carry one and it grows
+or shrinks sideways, about its own middle, so it stays where it stands; **−**/**+** make it taller or
+shorter, growing upwards so that the sill the room's row put it on stays. The sign at the top says how
+wide it is and how tall, in metres, and carries a pair of buttons for each.
+
+A step stops where a window stops: never under the smallest hole that is a window — the least the room
+leaves between two of them, 40 cm — never into another window or a doorway, never past the end of its
+wall or through the ceiling. A step that would go there is not taken at all, so the window stays exactly
+as it is and the sign goes on saying what it is.
+
+A window can only go where a window can be: inside the ends of its wall, clear of the other windows and
+of the doorways, and off the slab the boss's office stands on. A new one copies the size of the window
+nearest it at that height (the boss's office's row, or the meeting room's below it, not whichever is
+nearer along the wall). And it is the building's windows, not the floor's: every floor is the same room
+and the tower outside carries them on every floor, so the list is kept in `.agent-office/windows.json`,
+one file for the office, beside the sky and the decorations.
+
 ## What you can put in the room
 
 **C** while you're arranging opens the catalog — `src/shared/catalog.ts` is the list, and

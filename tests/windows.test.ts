@@ -8,11 +8,13 @@ import * as THREE from 'three';
 import { BALCONY_DOOR, EXIT_DOOR, FLOOR, WALL_T, type Opening } from '../src/shared/layout.js';
 import {
   changeWindow,
+  heighten,
   newWindowId,
   removeWindow,
   sanitizeWindows,
   setWindows,
   sizeOn,
+  widen,
   WINDOW_DEFS,
   windowFits,
   windowLabel,
@@ -33,6 +35,9 @@ interface Rect {
 }
 
 const rectOf = (o: Opening): Rect => ({ u0: o.u - o.width / 2, u1: o.u + o.width / 2, y0: o.y0, y1: o.y1 });
+
+/** A length without the last bits of floating-point noise: a step of a quarter metre lands on the grid. */
+const exact = (n: number): number => Math.round(n * 1000) / 1000;
 
 /** The room's outside walls, built with the windows as they stand: what the shell fixture does at build time. */
 function built(list = windows()): THREE.Group {
@@ -177,4 +182,34 @@ test('a new window takes the size of the row it lands in, and says what it is ca
   assert.equal(windowLabel('loft-east-1'), "Boss's window 1");
   assert.equal(windowLabel('meeting-east-2'), 'Meeting room window 2');
   assert.equal(windowLabel('window-3'), 'Window 3');
+});
+
+test('a window is widened about its middle and heightened from its sill', () => {
+  setWindows(null);
+  const built = WINDOW_DEFS[0]!;
+
+  const wider = widen(built, 1);
+  assert.equal(wider.width, built.width + 0.25);
+  assert.equal(wider.u, built.u, 'it grows about its own middle, so it stays where it stands');
+  assert.deepEqual([wider.y0, wider.y1], [built.y0, built.y1], 'and as high as it was');
+
+  const taller = heighten(built, 1);
+  assert.equal(exact(taller.y1), exact(built.y1 + 0.25));
+  assert.equal(taller.y0, built.y0, 'a hole grows upwards: the sill the room put it on stays');
+  assert.equal(taller.width, built.width);
+
+  // Neither step goes under the smallest hole that is a window, which is the least the room leaves
+  // between two of them: a window narrowed by hand stops where a window stops, and there the wall takes
+  // it (see windowFits).
+  const small: Opening = { wall: 'south', u: -16.5, width: 0.5, y0: 1.1, y1: 2.1 };
+  let narrowest = small;
+  let squat = small;
+  for (let i = 0; i < 10; i++) {
+    narrowest = widen(narrowest, -1);
+    squat = heighten(squat, -1);
+  }
+  assert.equal(narrowest.width, 0.4);
+  assert.equal(exact(squat.y1 - squat.y0), 0.4);
+  assert.equal(windowFits(narrowest.wall, narrowest), undefined, 'and what it stops at is a hole the wall takes');
+  assert.equal(windowFits(squat.wall, squat), undefined);
 });

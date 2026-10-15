@@ -88,6 +88,8 @@ test("what btop draws reaches the wall, once per change", async (t) => {
   assert.equal(spawned.env.COLORTERM, 'truecolor', 'and in the colours btop draws its own theme in');
 
   h.pty().emit('cpu 12%\r\nmem 40%');
+  h.monitor.poll();
+  assert.equal(h.frames.length, 0, 'an unparsed write is not scanned or sent as an empty frame');
   await parsed();
   h.monitor.poll();
   assert.equal(h.frames.length, 1, 'the change went out');
@@ -210,9 +212,8 @@ test('a screen that stops changing is a wedged btop, and it is started again', a
 
 test('the wedged btop it drops itself neither takes the screen nor starts another', async (t) => {
   const h = harness(t);
-  // The clock is the test's from the start, so the still screen and the retry are both read off it. What
-  // the terminal was handed — the emit below — is read on a timer of its own, which is left real.
-  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 1_000_000 });
+  // Only the still-screen clock is the test's: xterm keeps the real timer it parses writes on.
+  t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
   h.monitor.start();
   h.pty().emit('cpu 12%');
   await parsed();
@@ -227,7 +228,7 @@ test('the wedged btop it drops itself neither takes the screen nor starts anothe
 
   // Its exit arrives once the new one is already running, as a kill's does.
   h.ptys[0]!.end({ exitCode: 0 });
-  h.tick(60_000);
-  assert.equal(h.started(), 2, 'no third btop, and the new screen is still the one being read');
+  assert.equal(h.started(), 2, 'no third btop was started');
+  assert.equal(h.monitor.running, true, 'and the new terminal is still the one being read');
   h.monitor.stop();
 });

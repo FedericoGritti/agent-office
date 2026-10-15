@@ -62,6 +62,8 @@ export class Monitor {
   private term?: HeadlessTerminal;
   /** The rows as last sent, so a frame carries what changed (see snapshotScreen). */
   private last: string[] = [];
+  /** Set only after xterm has parsed new data, so an idle screen is never walked and serialized. */
+  private dirty = false;
   private interval?: NodeJS.Timeout;
   private retry?: NodeJS.Timeout;
   /** When the screen last changed, so a wedged btop can be told from a quiet one (see STALE_MS). */
@@ -104,18 +106,20 @@ export class Monitor {
     this.drop();
   }
 
-  /** Hands the screen on whenever it has changed, and starts btop again when it has stopped. */
+  /** Hands parsed changes on, and starts btop again when its visible screen has stopped. */
   private flush() {
     if (!this.term) return;
     const now = Date.now();
-    if (now - this.changedAt > (this.opts.staleMs ?? STALE_MS)) {
-      this.restart();
-      return;
+    if (this.dirty) {
+      this.dirty = false;
+      const frame = snapshotScreen(this.term, this.last);
+      if (frame) {
+        this.changedAt = now;
+        this.onFrame(frame);
+        return;
+      }
     }
-    const frame = snapshotScreen(this.term, this.last);
-    if (!frame) return;
-    this.changedAt = now;
-    this.onFrame(frame);
+    if (now - this.changedAt > (this.opts.staleMs ?? STALE_MS)) this.restart();
   }
 
   /** Starts btop over, keeping on the wall what the wedged one had drawn until the new one draws. */
@@ -136,6 +140,7 @@ export class Monitor {
     this.term?.dispose();
     this.term = undefined;
     this.last = [];
+    this.dirty = false;
   }
 
   private spawnBtop() {
@@ -164,10 +169,16 @@ export class Monitor {
     this.term = term;
     this.pty = pty;
     this.last = [];
+    this.dirty = false;
     // btop takes a few seconds to draw its first screen: until then it is not late, it is starting.
     this.changedAt = Date.now();
     // Both are ignored for a terminal the office has already given up (see restart): what it says is no
     // longer the screen, and its exit must not take the new one's place away nor start a third btop.
+    // xterm emits this after parsing, at most once per frame: one listener avoids a callback allocation
+    // for every pty chunk and tells flush exactly when reading the buffer is safe.
+    term.onWriteParsed(() => {
+      if (this.term === term) this.dirty = true;
+    });
     pty.onData((data) => {
       if (this.term === term) term.write(data);
     });

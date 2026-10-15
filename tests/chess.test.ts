@@ -1,6 +1,10 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { START_FEN, isSquare, parsePiece, squareAt, squareCentre, startSquare, statusOf } from '../src/shared/chess.js';
+import { ChessGames } from '../src/server/chess.js';
 
 /** The downloaded set's board, in metres: 6.92 cm to a square (see the note in shared/chess.ts). */
 const SIDE = 0.5532;
@@ -85,4 +89,18 @@ test('a game says how it stands in words a player reads', () => {
   assert.equal(statusOf({ ...game, turn: 'b', check: true }), 'Black to play — check');
   assert.equal(statusOf({ ...game, over: { how: 'checkmate', winner: 'b' } }), 'Checkmate — Black wins');
   assert.equal(statusOf({ ...game, over: { how: 'stalemate' } }), 'Stalemate — a draw');
+});
+
+test('the server keeps a legal game and its history through a restart', (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'agent-office-chess-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const first = new ChessGames(dir);
+  assert.equal(first.move('board-1', 'e2', 'e4'), true);
+  assert.equal(first.move('board-1', 'e7', 'e4'), false);
+  assert.deepEqual(first.state('board-1').moves, ['e4']);
+
+  const restored = new ChessGames(dir);
+  assert.deepEqual(restored.state('board-1').moves, ['e4']);
+  assert.equal(restored.move('board-1', 'e7', 'e5'), true);
+  assert.deepEqual(restored.state('board-1').moves, ['e4', 'e5']);
 });

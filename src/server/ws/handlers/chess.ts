@@ -15,8 +15,9 @@ export const chessHandlers = {
   'chess.move'(ctx, c, msg) {
     const floor = here(ctx, c);
     if (!floor || !BOARD_ID.test(msg.board) || !isSquare(msg.from) || !isSquare(msg.to)) return;
-    // Not a legal move, not this board, or not this turn: nothing happens, and nobody is told anything.
-    if (!floor.chess.move(msg.board, msg.from, msg.to, msg.promotion)) return;
+    // Even a move refused against a newer position sends the authoritative board back: two people can
+    // act at once, and the stale browser must see what actually happened.
+    floor.chess.move(msg.board, msg.from, msg.to, msg.promotion);
     ctx.toFloor(floor, { t: 'chess', boards: floor.chess.boards() });
   },
   'chess.new'(ctx, c, msg) {

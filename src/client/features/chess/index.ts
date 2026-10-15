@@ -22,6 +22,7 @@ import { store } from '../../state';
 import { EYE_HEIGHT } from '../../player';
 import { toast } from '../../ui/dom';
 import { placedPieces, type Piece } from '../../world/office/placed';
+import { boundsIn, placeBaseAt } from './placement';
 import type { Ctx } from '../../core/context';
 import type { Interactable } from '../../world/types';
 
@@ -43,9 +44,6 @@ const MARKS = 30;
 /** One square's worth of the board, as the room moves it about: where its middle is and what it is. */
 interface SetPiece {
   object: THREE.Object3D;
-  /** Where its middle and its lowest point were when the model was built: what a move is measured from. */
-  centre: THREE.Vector3;
-  baseY: number;
   /** `wpawn`, `bknight`…: which of the set's pieces this is. */
   key: string;
 }
@@ -53,6 +51,8 @@ interface SetPiece {
 /** A board standing in the room, with what the room has worked out about it. */
 interface Board {
   piece: Piece;
+  /** The room interaction attached to the model and kept at the furniture's current position. */
+  spot: Interactable;
   /** The board's own mesh, the model's root (the pieces' frame), how wide a square is and how high the
    *  surface is — all in that root's own metres. */
   board: THREE.Mesh;
@@ -125,21 +125,22 @@ export function installChess(ctx: Ctx) {
     for (const [id, board] of boards) {
       if (wanted.has(id) && placedPieces().includes(board.piece)) continue;
       for (const mark of board.marks) mark.removeFromParent();
-      drop(id, board.piece);
+      drop(id);
       boards.delete(id);
     }
     for (const id of wanted) {
       if (boards.has(id) || refused.has(id)) continue;
       const piece = placedPieces().find((p) => p.id === id);
       if (!piece) continue;
-      const built = build(piece);
+      const spot = interactableOf(piece);
+      const built = build(piece, spot);
       if (!built) {
         // A set the room can't move is left standing as it came rather than half-played: nothing is asked
         // of this one again, and the piece itself is the room's furniture like any other.
         refused.add(id);
         continue;
       }
-      const spot = interactableOf(piece);
+      built.frame.userData.interact = spot;
       office.interactables.push(spot);
       where.set(spot, built);
       boards.set(id, built);
@@ -152,18 +153,18 @@ export function installChess(ctx: Ctx) {
   }
 
   /** Lets go of a board: the spot the aim could land on goes with it. */
-  function drop(id: string, piece: Piece): void {
+  function drop(id: string): void {
     for (const [spot, board] of where) {
       if (board.piece.id !== id) continue;
+      if (board.frame.userData.interact === spot) delete board.frame.userData.interact;
       where.delete(spot);
       const at = office.interactables.indexOf(spot);
       if (at >= 0) office.interactables.splice(at, 1);
     }
-    void piece;
   }
 
   /** Reads a board piece's model: the board mesh, the pieces of the set, and the metres they're in. */
-  function build(piece: Piece): Board | null {
+  function build(piece: Piece, spot: Interactable): Board | null {
     let boardMesh: THREE.Mesh | null = null;
     const nodes: THREE.Object3D[] = [];
     for (const part of piece.parts) {
@@ -174,7 +175,7 @@ export function installChess(ctx: Ctx) {
         if (parsePiece(o.name) && !(o.parent && parsePiece(o.parent.name))) nodes.push(o);
       });
     }
-    if (!boardMesh || nodes.length < 32) {
+    if (!boardMesh || nodes.length !== 32) {
       warn(`the room found ${nodes.length} chess pieces where it expects 32`);
       return null;
     }
@@ -183,19 +184,17 @@ export function installChess(ctx: Ctx) {
       warn('this chess set is not laid out the way the room can move it');
       return null;
     }
-    const box = new THREE.Box3().setFromObject(boardMesh);
-    const middle = frame.worldToLocal(box.getCenter(new THREE.Vector3()));
-    const corner = frame.worldToLocal(new THREE.Vector3(box.min.x, box.min.y, box.min.z));
-    const far = frame.worldToLocal(new THREE.Vector3(box.max.x, box.max.y, box.max.z));
-    const side = Math.max(far.x - corner.x, far.z - corner.z);
+    const box = boundsIn(boardMesh, frame);
+    if (box.isEmpty()) {
+      warn('the chess board has no measurable surface');
+      return null;
+    }
+    const middle = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const side = Math.max(size.x, size.z);
     const set = nodes.map((node) => {
       const piece = parsePiece(node.name)!;
-      const own = new THREE.Box3().setFromObject(node);
-      const ownCentre = own.getCenter(new THREE.Vector3());
-      const centre = frame.worldToLocal(ownCentre.clone());
-      // Its lowest point, in the frame's own metres, so a piece can be stood on the board's surface.
-      const baseY = frame.worldToLocal(new THREE.Vector3(ownCentre.x, own.min.y, ownCentre.z)).y;
-      return { object: node, centre, baseY, key: `${piece.colour}${piece.kind}` };
+      return { object: node, key: `${piece.colour}${piece.kind}` };
     });
     const marks = Array.from({ length: MARKS }, () => {
       // Each its own material: a mark says a different thing from the one beside it (where you are, where
@@ -208,7 +207,7 @@ export function installChess(ctx: Ctx) {
     });
     // The board's middle is the frame's origin only if the model was built that way: this one is (see the
     // note in shared/chess), and a board that isn't has its squares worked out from where it actually is.
-    return { piece, board: boardMesh, frame, side, top: far.y, middle, set, marks, laid: '', aimed: null, held: null };
+    return { piece, spot, board: boardMesh, frame, side, top: box.max.y, middle, set, marks, laid: '', aimed: null, held: null };
   }
 
   /** A game nobody has touched: the board is there, and nobody has played on it yet. */
@@ -235,13 +234,9 @@ export function installChess(ctx: Ctx) {
       ones.forEach((one, at) => {
         const square = squares[at];
         one.object.visible = square !== undefined;
-        if (!square || !one.object.parent) return;
+        if (!square) return;
         const { x, z } = squareCentre(square, board.side);
-        // Where the piece's own origin has to be for it to stand on that square, in the frame's metres…
-        const want = new THREE.Vector3(board.middle.x + x - one.centre.x, board.top - one.baseY, board.middle.z + z - one.centre.z);
-        // …said in the space of the object it actually is: a glTF nests a node inside a node.
-        const inParent = one.object.parent.worldToLocal(board.frame.localToWorld(want));
-        one.object.position.copy(inParent);
+        placeBaseAt(one.object, board.frame, new THREE.Vector3(board.middle.x + x, board.top, board.middle.z + z));
       });
     }
   }
@@ -309,7 +304,14 @@ export function installChess(ctx: Ctx) {
         board.held = board.aimed;
         return;
       }
-      // Something in hand: put it down there, and let the office say whether that was a move.
+      // Refuse locally too, so an impossible destination leaves the piece selected instead of appearing
+      // to do nothing. The server still decides finally, because another player may have moved first.
+      const game = new Chess(gameOf(id).fen);
+      const legal = game.moves({ square: board.held as Sq, verbose: true }).some((move) => move.to === board.aimed);
+      if (!legal) {
+        toast('That piece cannot move there');
+        return;
+      }
       net.send({ t: 'chess.move', board: id, from: board.held, to: board.aimed });
       board.held = null;
     }),
@@ -332,12 +334,18 @@ export function installChess(ctx: Ctx) {
   ctx.ticks.add('play', () => {
     lookForBoards();
     for (const board of boards.values()) {
+      // The catalog editor can move the whole set after it was discovered; the interaction follows it.
+      board.spot.x = board.piece.at.x;
+      board.spot.y = board.piece.at.y;
+      board.spot.z = board.piece.at.z;
       const game = gameOf(board.piece.id);
       // The pieces follow the position rather than the other way round: a move that arrived from the
       // server, or from the other browser, is the same thing here as your own.
       if (board.laid !== game.fen) {
         layout(board, game);
         board.laid = game.fen;
+        // A move from the other player makes a square selected against the old position meaningless.
+        board.held = null;
       }
       const near = aim(board);
       if (near === null || near > REACH) board.aimed = null;

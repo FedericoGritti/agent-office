@@ -40,9 +40,20 @@ export class ChessGames {
     if (known) return known;
     const game = new Chess();
     const saved = this.saved[board];
-    // A file nobody could have written, or a position chess.js refuses, is not a game: it starts again
-    // rather than taking the floor's board with it.
-    if (saved?.fen) {
+    let restored = false;
+    // Replaying the saved SAN moves restores both the position and chess.js's history. Loading only the
+    // FEN would make the move list and threefold-repetition knowledge disappear after every restart.
+    if (Array.isArray(saved?.moves)) {
+      try {
+        for (const move of saved.moves) game.move(move);
+        restored = !saved.fen || game.fen() === saved.fen;
+      } catch {
+        restored = false;
+      }
+    }
+    // Older or damaged records may have a usable final position but no replayable history.
+    if (!restored && saved?.fen) {
+      game.reset();
       try {
         game.load(saved.fen);
       } catch {

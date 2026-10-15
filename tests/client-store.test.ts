@@ -242,13 +242,16 @@ test('what the browser remembers keeps its keys and shapes', () => {
   state.saveSettings({ ...settings, needsYouSound: 'loud' as never });
   assert.equal(state.loadSettings().needsYouSound, 'once');
   // The look you picked, and the palette over the floor's own, come back as they went in.
-  const mine = { name: 'Mine', wall: '#123456', trim: '#234567', floor: '#345678', ceiling: '#456789', wood: '#56789a', ink: '#6789ab', desk: '#789abc', plant: '#89abcd', pot: '#9abcde', accents: ['#ABCDEF', '#bcdefa', '#cdefab'] };
+  const mine = { name: 'Mine', wall: '#123456', trim: '#234567', floor: '#345678', ceiling: '#456789', wood: '#56789a', ink: '#6789ab', metal: '#789abc', brass: '#89abcd', desk: '#9abcde', plant: '#abcdef', pot: '#bcdefa', accents: ['#ABCDEF', '#bcdefa', '#cdefab'] };
   state.saveSettings({ ...settings, shading: 'smooth', palette: mine });
   assert.equal(state.loadSettings().shading, 'smooth');
   assert.deepEqual(state.loadSettings().palette, { ...mine, accents: ['#abcdef', '#bcdefa', '#cdefab'] });
   // A palette that isn't one the office could have written is not a palette the room is painted in.
   state.saveSettings({ ...settings, shading: 'flat' as never, palette: { ...mine, floor: 'red' } as never });
   assert.equal(state.loadSettings().shading, 'toon');
+  assert.equal(state.loadSettings().palette, null);
+  // A palette missing one of its colours is refused too: half a palette is worse than the office's own.
+  state.saveSettings({ ...settings, palette: { ...mine, metal: undefined } as never });
   assert.equal(state.loadSettings().palette, null);
   state.saveSettings({ ...settings, palette: { ...mine, accents: ['#abcdef'] } as never });
   assert.equal(state.loadSettings().palette, null);

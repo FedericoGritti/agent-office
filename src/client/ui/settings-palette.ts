@@ -2,7 +2,7 @@
 // to start from (see palette.ts for the schemes, core/appearance.ts for when they are applied and
 // world/office/paint.ts for what each colour reaches).
 
-import { PALETTES, PALETTE_GROUPS, atFloor, type Colour, type Palette } from '../palette';
+import { PALETTES, PALETTE_COLOURS, PALETTE_GROUPS, atFloor, type Colour, type Palette } from '../palette';
 import { store, type Settings } from '../state';
 import { h } from './dom';
 import { setting } from './settings-rows';
@@ -15,16 +15,15 @@ const LABELS: Record<Colour, string> = {
   ceiling: 'Ceiling',
   wood: 'Wood',
   ink: 'Dark fittings',
-  desk: 'Desk tops',
+  metal: 'Grey metal',
+  brass: 'Warm metal',
+  desk: 'Desk tops, paper',
   plant: 'Plants',
   pot: 'Pots',
 };
 
 /** How many accents the wells offer: the schemes all have four. */
 const ACCENTS = 4;
-
-/** The colours in the order the wells are made, so a well can be filled from the palette. */
-const COLOURS: readonly Colour[] = PALETTE_GROUPS.flatMap((g) => g.keys);
 
 /** The Palette page: a scheme to start from, then the colours themselves. */
 export function paletteRows(settings: Settings, change: (some: Partial<Settings>) => void): Node[] {
@@ -82,7 +81,7 @@ export function paletteRows(settings: Settings, change: (some: Partial<Settings>
   function paint() {
     const p: Palette = shown();
     paintChips();
-    wells.forEach((input, i) => (input.value = p[COLOURS[i]]));
+    wells.forEach((input, i) => (input.value = p[PALETTE_COLOURS[i]]));
     accentWells.forEach((input, i) => (input.value = p.accents[i] ?? p.accents.at(-1) ?? '#ffffff'));
     note.textContent = settings.palette
       ? `Your own palette, painted on everything the office builds itself. The floor keeps its planks and the office keeps its shapes: this is the paint, not the furniture. Kept in this browser, so a floor you ride to still looks like itself to everyone else.`

@@ -3,6 +3,7 @@ import { FLOOR } from '../../../shared/layout';
 import { BALL, HOOP, RETURN_AFTER, THREE_POINT, backboard, launch, nearSolids, outOfReach, simulate, type BallHit, type BallShot, type BallSim, type BallState, type Solid } from '../../../shared/hoop';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
+import { accent } from '../../world/office/paint';
 import { mergeByMaterial, mesh, toon, toonUnique } from '../../world/toon';
 
 const ORANGE = '#ff6b1a';
@@ -31,7 +32,7 @@ export function buildHoop(): HoopView {
 
   // The board: white, with an orange border and the shooter's square over the rim.
   parts.add(mesh(new THREE.BoxGeometry(board.thick, board.top - board.bottom, board.width), toon('#f8f9fa'), face - board.thick / 2, midY, z));
-  const orange = toon(ORANGE);
+  const orange = accent(2, ORANGE);
   const line = (w: number, h: number, y: number, dz: number) => parts.add(mesh(new THREE.BoxGeometry(0.012, h, w), orange, face + 0.006, y, z + dz, false));
   const e = 0.05;
   line(board.width, e, board.top - e / 2, 0);
@@ -72,9 +73,8 @@ export function buildHoop(): HoopView {
   // The key painted on the floor, out to the free-throw line, and the circle round the line.
   const lineX = face + HOOP.line;
   const keyW = 2.6;
-  const paint = (geo: THREE.BufferGeometry, color: string, y: number) => {
+  const paint = (geo: THREE.BufferGeometry, mat: THREE.Material, y: number) => {
     // Lit like the floor it's on (and not outlined: it's flat on it), and drawn over the planks.
-    const mat = toonUnique(color);
     mat.polygonOffset = true;
     mat.polygonOffsetFactor = -2;
     mat.userData.outlineParameters = { visible: false };
@@ -86,19 +86,22 @@ export function buildHoop(): HoopView {
     group.add(m);
     return m;
   };
+  // The key and the rim are the palette's (see paint.ts); the lines stay white, like the ball.
+  const keyPaint = accent(1, '#ee9a5d');
+  const linePaint = toonUnique('#ffffff');
   const keyLen = lineX - FLOOR.minX;
-  const key = paint(new THREE.PlaneGeometry(keyLen, keyW), '#ee9a5d', 0.013);
+  const key = paint(new THREE.PlaneGeometry(keyLen, keyW), keyPaint, 0.013);
   key.position.set(FLOOR.minX + keyLen / 2, key.position.y, z);
   const w = 0.06;
   const stripe = (len: number, x: number, sz: number, alongZ: boolean) => {
-    const s = paint(new THREE.PlaneGeometry(alongZ ? w : len, alongZ ? len : w), '#ffffff', 0.015);
+    const s = paint(new THREE.PlaneGeometry(alongZ ? w : len, alongZ ? len : w), linePaint, 0.015);
     s.position.set(x, s.position.y, sz);
   };
   stripe(keyLen, FLOOR.minX + keyLen / 2, z - keyW / 2, false);
   stripe(keyLen, FLOOR.minX + keyLen / 2, z + keyW / 2, false);
   stripe(keyW, lineX, z, true);
   // Half a circle, out past the line.
-  const arc = paint(new THREE.RingGeometry(keyW / 2 - w, keyW / 2, 40, 1, -Math.PI / 2, Math.PI), '#ffffff', 0.015);
+  const arc = paint(new THREE.RingGeometry(keyW / 2 - w, keyW / 2, 40, 1, -Math.PI / 2, Math.PI), linePaint, 0.015);
   arc.position.set(lineX, arc.position.y, z);
 
   const colliders: Collider[] = [backboard(), { minX: FLOOR.minX, maxX: back, minZ: z - 0.45, maxZ: z + 0.45, bottom: midY - 0.8, top: midY + 0.3 }];

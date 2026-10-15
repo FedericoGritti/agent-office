@@ -144,8 +144,13 @@ export function paintModel(root: THREE.Object3D, paint: (name: string) => THREE.
 
 /**
  * The usual `paint`: a toon material of the palette's color for each name. A name the palette has no
- * color for comes out magenta, so a part the script and the code disagree on shows at a glance.
+ * color for comes out magenta, so a part the script and the code disagree on shows at a glance. A name
+ * may also be given a material directly, for a part that answers to the palette's accents (see
+ * world/office/paint.ts and the lounge's sofa).
  */
-export function palette(colors: Record<string, string>): (name: string) => THREE.Material {
-  return (name) => toon(colors[name] ?? '#ff00ff');
+export function palette(colors: Record<string, string | THREE.Material>): (name: string) => THREE.Material {
+  return (name) => {
+    const color = colors[name];
+    return typeof color === 'string' ? toon(color) : (color ?? toon('#ff00ff'));
+  };
 }

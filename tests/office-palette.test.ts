@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PALETTES, PALETTE_GROUPS, atFloor, readPalette, shade } from '../src/client/palette.js';
 import { PALETTE } from '../src/client/world/office/materials.js';
-import { accent, paintPalette } from '../src/client/world/office/paint.js';
+import { accent, paintPalette, PARTS } from '../src/client/world/office/paint.js';
 import { toon } from '../src/client/world/toon.js';
 import { FLOOR_PALETTES } from '../src/shared/floors.js';
 
@@ -55,6 +55,10 @@ test('shade darkens a colour, and leaves it alone at 1', () => {
   // Same length, so the strings compare as the colours do.
   assert.ok(shade('#f2d7b0', 0.9) < '#f2d7b0' && shade('#f2d7b0', 0.9) > shade('#f2d7b0', 0.5));
   assert.match(shade('#f2d7b0', 0.9), HEX);
+  // Over 1 brightens, and never overflows a channel into a shorter hex.
+  assert.equal(shade('#ffffff', 2), '#ffffff');
+  assert.equal(shade('#808080', 2), '#ffffff');
+  assert.match(shade('#c9952c', 1.6), HEX);
 });
 
 test('the wells cover every colour a palette has, once each', () => {
@@ -62,6 +66,19 @@ test('the wells cover every colour a palette has, once each', () => {
   assert.equal(new Set(keys).size, keys.length);
   const own = Object.keys(PALETTES[0]).filter((k) => k !== 'name' && k !== 'accents');
   assert.deepEqual([...keys].sort(), own.sort());
+});
+
+test("no colour the office builds with is claimed by two parts of the room", () => {
+  const claimed = new Map<string, string>();
+  for (const [part, list] of Object.entries(PARTS)) {
+    for (const [own] of list) {
+      const already = claimed.get(own);
+      assert.equal(already, undefined, `${own} is in ${part} and ${already}`);
+      claimed.set(own, part);
+    }
+  }
+  // A table that stopped covering anything is a table that stopped painting anything.
+  assert.ok(claimed.size > 50, `${claimed.size} colours claimed`);
 });
 
 test("painting the room moves the office's own materials, and puts them back", () => {

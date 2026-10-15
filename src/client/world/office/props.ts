@@ -83,7 +83,7 @@ export function deskBooks(i: number): THREE.Object3D {
 // moved round one by one. Sofa is the old couch's blue, Wood and Frame the old coffee table's top and pedestal,
 // and WoodDark the sofa's feet (the desk furniture's darker wood). A pillow's or a pouf's Cloth is each copy's
 // own color, so it has none here: a copy that forgets its color comes out magenta.
-const LOUNGE_COLORS = { Sofa: '#5b8def', WoodDark: '#8a5a3b', Wood: PALETTE.wood, Frame: PALETTE.deskLeg };
+const LOUNGE_COLORS = { Sofa: accent(2, '#5b8def'), WoodDark: '#8a5a3b', Wood: PALETTE.wood, Frame: PALETTE.deskLeg };
 const paintLounge = palette(LOUNGE_COLORS);
 
 /** A pillow or a pouf, its Cloth in `color`. */

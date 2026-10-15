@@ -149,15 +149,20 @@ test('an addition can name a model fetched from an online catalog', () => {
   assert.equal(labelFor('add-1'), 'ArmChair 01');
 });
 
-test('a press goes up a step and no further than the floor or the ceiling', () => {
+test('a press goes up a rung of the room\'s ladder of heights, and no further than floor or ceiling', () => {
   assert.equal(LIFT_STEP, 0.25);
   assert.equal(liftBy(0, 1, 6.8), 0.25);
   assert.equal(liftBy(2.75, 1, 6.8), 3);
   assert.equal(liftBy(2.75, -1, 6.8), 2.5);
+  // A piece that was built off the ladder — the boards hang at 2.25, a pot stands on the loft at 3 —
+  // goes to the rung above or below wherever it is, rather than a step from its own base.
+  assert.equal(liftBy(2.1, 1, 6.8), 2.25);
+  assert.equal(liftBy(2.1, -1, 6.8), 2);
+  assert.equal(liftBy(2.3, 1, 6.8), 2.5, 'the rung above, not a quarter of a metre on from 2.3');
   // The floor is as low as it goes, and the ceiling as high — the ceiling it is handed is already the
   // room's less the thing's own height (see the carry's ceilingFor).
   assert.equal(liftBy(0, -1, 6.8), 0);
-  assert.equal(liftBy(6.7, 1, 6.8), 6.8);
+  assert.equal(liftBy(6.75, 1, 6.8), 6.8);
   // A height arithmetic cannot make is the floor, the way a size it cannot make is the size it came.
   assert.equal(liftBy(Number.NaN, 1, 6.8), 0.25);
   // Nothing taller than the room moves: its ceiling is under its floor.

@@ -124,13 +124,15 @@ nearest it.
 carry a piece and it grows or shrinks one rung of the room's own ladder at a time — 100%, 125%, 150%,
 200%, 250%, 300%, 400%, 500%, 750%, and the same rungs at every power of ten, up to a hundred times what
 it came as and down to a hundredth — and **−**/**+** raise and lower it a quarter of a metre a step (`=`
-is the `+` key on most keyboards, and the `-` and `+` characters work wherever they are). The ladder is
-the whole room's, not the piece's: two pieces at 150% are the same size, and one at 300% is exactly twice
-the one at 150%. It grows about its own middle and the height it stands at, and goes straight up and down
-where it stands, so it stays where you're putting it; what you walk into grows with it and goes up with
-it, and the place you use it from goes up too, so a board lifted two metres is still the board you press
-E at. The sign at the top carries a **−**/**+** pair for each — the size and the height beside them — and
-a click is one step and no more,
+is the `+` key on most keyboards, and the `-` and `+` characters work wherever they are). Both ladders are
+the whole room's, not the piece's: two pieces at 150% are the same size, one at 300% is exactly twice the
+one at 150%, and a height is counted **from the floor** — 0, 0.25, 0.5, … — and not a quarter of a metre
+from wherever that piece happens to have been built, so a picture lifted to 2.25 is on the same line as
+the boards the room hangs at 2.25 and the pictures hung beside them. It grows about its own middle and the
+height it stands at, and goes straight up and down where it stands, so it stays where you're putting it;
+what you walk into grows with it and goes up with it, and the place you use it from goes up too, so a
+board lifted two metres is still the board you press E at. The sign at the top carries a **−**/**+** pair
+for each — the size and the height beside them — and a click is one step and no more,
 which is what a scroll can't promise; a button needs a cursor, so in first person, where the mouse is
 captured, it is the keys that do it. Left up there it stays up there, because nothing in this room falls.
 It stops at the room's floor and at the ceiling above it, less the thing's own height, so a tall model

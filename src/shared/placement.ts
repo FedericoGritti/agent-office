@@ -122,15 +122,22 @@ export function resizeBy(scale: number, dir: number): number {
   return below;
 }
 
-/** How far one press moves a piece up or down, in metres: a step, on the room's own grid. */
+/** The heights a piece may be put at, up from the floor: a quarter of a metre, the same ladder for the
+ *  whole room, so two pieces at the same height line up and most of the room is already on it. */
 export const LIFT_STEP = 0.25;
 
-/** The height one press up (`dir` > 0) or down from `y` leaves a piece at, never under the floor or past
- *  the ceiling it is given. A height that isn't a number at all is the floor, like a size that isn't a
- *  number is the size it came. */
-export function liftBy(y: number, dir: number, ceiling: number): number {
-  const next = (Number.isFinite(y) ? y : 0) + (dir > 0 ? LIFT_STEP : -LIFT_STEP);
-  return Math.min(Math.max(0, ceiling), Math.max(0, next));
+/**
+ * The height one press up (`dir` > 0) or down from `at` leaves a piece at: the next rung of the room's
+ * own ladder of heights, counted from the floor and not from wherever the piece happens to have been
+ * built. That is the point of it: a board hung at 2.25 and a picture lifted to 2.25 are on one line,
+ * where stepping a quarter of a metre from each piece's own base left the two a fifth of a metre apart.
+ * Never under the floor or past the ceiling it is given. A height that isn't a number at all is the
+ * floor, the way a size that isn't a number is the size it came.
+ */
+export function liftBy(at: number, dir: number, ceiling: number): number {
+  const from = Number.isFinite(at) ? at : 0;
+  const rung = dir > 0 ? Math.floor(from / LIFT_STEP + 1) * LIFT_STEP : Math.ceil(from / LIFT_STEP - 1) * LIFT_STEP;
+  return Math.min(Math.max(0, ceiling), Math.max(0, rung));
 }
 
 /** What each piece is called on the panel. A piece without an entry goes by its id. */

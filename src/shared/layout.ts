@@ -187,7 +187,7 @@ export const MEETING_SEATS: DeskDef[] = (
   ] as const
 ).map(([x, z, rotY], i) => ({ id: `meeting-${i + 1}`, x, z, rotY, label: i === 0 ? 'Head of the table' : `Meeting chair ${i + 1}`, room: true }));
 /** The board on the meeting room's back (south) wall that shows the meeting's output file as it's written. */
-export const MEETING_BOARD = { x: MEETING_TABLE.x, y: 1.95, z: FLOOR.maxZ - 0.08, width: 3.6, height: 1.2 } as const;
+export const MEETING_BOARD = { x: MEETING_TABLE.x, y: 2, z: FLOOR.maxZ - 0.08, width: 3.6, height: 1.2 } as const;
 /** The boss's desk upstairs: not a seat the office hires into, but one you can put a shell at (B), so the boss's office has a normal terminal on its desk. Built by the loft. */
 export const BOSS_SEAT: DeskDef = { id: 'boss-seat', x: (LOFT.minX + LOFT.maxX) / 2 + 0.5, y: LOFT.y, z: (LOFT.minZ + LOFT.maxZ) / 2 + 0.7, rotY: Math.PI, label: '👑 Boss' };
 
@@ -240,21 +240,21 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
  *  on the east. `rotY` is the way each faces (0 = +z), and `label` is what the plan calls one — the office
  *  paints no name over its own (see `features/boards`: a board says what it is on itself). */
 export const BOARDS = {
-  issues: { x: -9.84, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Checklist' },
-  queue: { x: -3.12, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🕓 Timeline' },
-  pulls: { x: 3.6, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🎯 Phase' },
+  issues: { x: -9.84, y: 2.25, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Checklist' },
+  queue: { x: -3.12, y: 2.25, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🕓 Timeline' },
+  pulls: { x: 3.6, y: 2.25, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '🎯 Phase' },
   // East wall, north of the lounge TV.
-  services: { x: FLOOR.maxX - 0.08, y: 2.1, z: -8.2, rotY: -Math.PI / 2, width: 6, height: 3, label: '🪙 Token' },
+  services: { x: FLOOR.maxX - 0.08, y: 2.25, z: -8.2, rotY: -Math.PI / 2, width: 6, height: 3, label: '🪙 Token' },
 } as const;
 
 /** The big TV on the east wall that shows whoever is screen sharing. */
-export const TV = { x: FLOOR.maxX - 0.1, y: 2.2, z: 0, width: 6.4, height: 3.6 } as const;
+export const TV = { x: FLOOR.maxX - 0.1, y: 2.25, z: 0, width: 6.4, height: 3.6 } as const;
 /**
  * The monitor on the west wall, between the first two windows from the north (the ladder has the
  * span between the middle two) and facing the desks: how busy the office's machine is, and how many
  * workers it runs of the most it takes.
  */
-export const MACHINE_MONITOR = { x: FLOOR.minX, y: 2.2, z: -6, width: 2.3, height: 1.3 } as const;
+export const MACHINE_MONITOR = { x: FLOOR.minX, y: 2.25, z: -6, width: 2.3, height: 1.3 } as const;
 /**
  * The jukebox: against the north wall in the first spot of the row, in the corner the room's west wall
  * makes, facing into the room (+z) like the shelf and the boards beside it. `y` is its speaker.

@@ -173,8 +173,8 @@ export interface StackState {
 export interface Stack {
   group: THREE.Group;
   interactables: Interactable[];
-  /** The ceiling's tiles, for the back office's ceiling to match (its uvs are meters, like a ShapeGeometry's). */
-  ceiling: THREE.Material;
+  /** The ceiling's tiles, for the back office's ceiling to match (its uvs are meters, like a ShapeGeometry's). A toon material, whose color tints the tiles (see Office.setColors). */
+  ceiling: THREE.MeshToonMaterial;
   /** The floor you're on: the ladder, the hatches and the poles go where there are floors to go to. */
   set(s: StackState): void;
   state: StackState;

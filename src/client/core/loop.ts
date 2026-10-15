@@ -5,6 +5,7 @@
  */
 import * as THREE from 'three';
 import { SlowFrames } from '../framerate';
+import { applyAppearance } from './appearance';
 import { applyGraphics } from './graphics';
 import { framesWatched, phaseTimes, sampleFrame } from './perf';
 import { EYE_HEIGHT } from '../player';
@@ -195,6 +196,8 @@ export function installLoop(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'stage
     // The two Graphics settings that need the buffer and the shaders made again are applied here, once per
     // change (see core/graphics.ts). The outlines are a pass over the frame, so they are one branch.
     applyGraphics(renderer, [scene, hands.scene], sun, ctx.settings);
+    // Shading and your own colours: the same idea, one change each (see core/appearance.ts).
+    applyAppearance(ctx.office, ctx.settings);
     const draw = (s: THREE.Scene, c: THREE.Camera) => (ctx.settings.outlines ? effect.render(s, c) : renderer.render(s, c));
     const firstPerson = player.view === 'first';
     const unhide = firstBody?.hideExtras();

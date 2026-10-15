@@ -3,15 +3,49 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 let gradient: THREE.DataTexture | null = null;
 
-/** Three-step ramp that gives MeshToonMaterial its flat cartoon banding. */
+/** How many steps the smooth ramp runs through: enough that no band shows on any surface. */
+const SMOOTH_STEPS = 32;
+
+/** The ramp's pixels: three flat steps (the office's cartoon banding), or a run from shadow to light. */
+function ramp(smooth: boolean): Uint8Array {
+  if (!smooth) return new Uint8Array([90, 90, 90, 255, 185, 185, 185, 255, 255, 255, 255, 255]);
+  const data = new Uint8Array(SMOOTH_STEPS * 4);
+  for (let i = 0; i < SMOOTH_STEPS; i++) {
+    // The same shadowed end the banded ramp starts at, so a room only loses its bands, not its depth.
+    const v = Math.round(90 + (255 - 90) * (i / (SMOOTH_STEPS - 1)));
+    data.set([v, v, v, 255], i * 4);
+  }
+  return data;
+}
+
+/**
+ * The ramp every toon material samples for its shading: one texture, shared by all of them (see toon
+ * and toonUnique), so switching it re-shades the whole office at once. Its pixels are rewritten in
+ * place — a material holds the texture, not its contents — and the sampler is told to read them again.
+ */
 function gradientMap(): THREE.DataTexture {
   if (gradient) return gradient;
-  const data = new Uint8Array([90, 90, 90, 255, 185, 185, 185, 255, 255, 255, 255, 255]);
-  gradient = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
+  gradient = new THREE.DataTexture(ramp(false), 3, 1, THREE.RGBAFormat);
   gradient.minFilter = THREE.NearestFilter;
   gradient.magFilter = THREE.NearestFilter;
   gradient.needsUpdate = true;
   return gradient;
+}
+
+/**
+ * Shades everything flat-banded (the office's own look) or smoothly, like an ordinary lit room
+ * (Settings → Graphics). Free after the fact: the materials keep sampling the same texture.
+ */
+export function setShading(solid: boolean): boolean {
+  const was = gradient !== null && gradient.magFilter === THREE.LinearFilter;
+  if (was === solid) return false;
+  const data = ramp(solid);
+  const tex = gradientMap();
+  tex.image = { data, width: data.length / 4, height: 1 };
+  // NearestFilter repeats a step across the surface; LinearFilter runs one into the next.
+  tex.minFilter = tex.magFilter = solid ? THREE.LinearFilter : THREE.NearestFilter;
+  tex.needsUpdate = true;
+  return true;
 }
 
 const cache = new Map<string, THREE.MeshToonMaterial>();

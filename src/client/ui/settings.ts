@@ -14,6 +14,7 @@ import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { outsideSetting } from './settings-sky';
 import { choiceRow, setting } from './settings-rows';
 import { graphicsRows } from './settings-graphics';
+import { lookRows } from './settings-look';
 
 const VIEWS: [ViewMode, string, string][] = [
   ['first', '👀 First person', 'See through your own eyes. Click the office to look around with the mouse and click things to use them. Esc frees the mouse.'],
@@ -451,7 +452,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       setting('Your hands in first person', 'you', handsRow, h('p.setting-note', {}, 'Your own hands, held up in front of you looking through your own eyes. Hide them and the view is the office and your body below you, with nothing in the way — the ball, the club and the rest still work the same.')),
       setting('Signed in', null, h('div.volume', {}, signOut), h('p.setting-note', {}, account ? `As ${account.name}, with your own account (${account.role}).` : 'With the shared office password.')),
     ],
-    graphics: graphicsRows(settings, change),
+    graphics: [...graphicsRows(settings, change), ...lookRows(settings, change)],
     sound: [
       setting('Office sounds', 'you', soundRow, h('p.setting-note', {}, 'Workers typing, footsteps, the coffee machine, birds and rain outside, the dog, the ding when a worker is done and the alarm when one needs you. Voice chat isn’t affected.')),
       setting('When a worker needs you', 'you', alarmRow, h('p.setting-note', {}, 'An alarm the moment a worker stops to ask you something or wants a permission. Keep reminding me rings it again, softly, every 30 seconds until someone opens that worker’s terminal. It’s as loud as the office sounds are.')),

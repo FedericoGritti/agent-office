@@ -45,6 +45,10 @@ export const HUD_DEFAULTS: Record<HudPanel, boolean> = { workers: false, people:
 export const NEEDS_YOU_SOUNDS = ['off', 'once', 'remind'] as const;
 export type NeedsYouSound = (typeof NEEDS_YOU_SOUNDS)[number];
 
+/** How the light on everything is shaded: the office's flat toon banding, or a smooth run (see world/toon.ts). */
+export const SHADINGS = ['toon', 'smooth'] as const;
+export type Shading = (typeof SHADINGS)[number];
+
 export interface Settings {
   view: ViewMode;
   /** Your own hands, drawn in front of the camera in first person. Off, the view is the office and your body below you, nothing else. */
@@ -76,6 +80,12 @@ export interface Settings {
   /** Keep measuring what a frame costs after the Settings window is closed, and show it on screen: the only
    * way to see a stutter in the place it happens (see core/perf.ts). */
   measure: boolean;
+  /** Toon keeps the office's flat bands; smooth shades it like an ordinary lit room (see world/toon.ts). */
+  shading: Shading;
+  /** Your own colour over the floor's palette for one surface, or null for the floor's own (see world/office/build.ts). */
+  wallColor: string | null;
+  floorColor: string | null;
+  ceilingColor: string | null;
 }
 
 const SETTINGS_KEY = 'agent-office.settings';
@@ -138,7 +148,7 @@ export function rememberSpot(s: Spot) {
 }
 
 export function loadSettings(): Settings {
-  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [], outlines: true, shadows: true, resolution: 2, measure: false };
+  const s: Settings = { view: 'first', hands: false, volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [], outlines: true, shadows: true, resolution: 2, measure: false, shading: 'toon', wallColor: null, floorColor: null, ceilingColor: null };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null');
     if (saved?.view === 'first' || saved?.view === 'third') s.view = saved.view;
@@ -158,6 +168,12 @@ export function loadSettings(): Settings {
     if (typeof saved?.measure === 'boolean') s.measure = saved.measure;
     // A resolution nobody offers (a file edited by hand) is left at the sharpest.
     if (typeof saved?.resolution === 'number' && saved.resolution >= 0.5 && saved.resolution <= 2) s.resolution = saved.resolution;
+    if (SHADINGS.includes(saved?.shading)) s.shading = saved.shading;
+    // A colour is what a colour well writes and nothing else: `#rrggbb`, or it is the floor's own.
+    const color = (v: unknown) => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null);
+    s.wallColor = color(saved?.wallColor);
+    s.floorColor = color(saved?.floorColor);
+    s.ceilingColor = color(saved?.ceilingColor);
   } catch {
     // storage blocked
   }

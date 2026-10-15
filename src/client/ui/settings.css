@@ -25,6 +25,15 @@
 }
 .outside-now { margin: 0; font-size: 15px; font-weight: 800; }
 
+/* Settings: your own colour for the walls, the floor and the ceiling */
+.look-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; font-size: 14px; font-weight: 800; }
+.look-name { flex: none; width: 84px; }
+.look-row input[type=color] { flex: none; width: 64px; height: 30px; padding: 2px; border: 3px solid var(--ink); border-radius: 9px; background: var(--paper); cursor: pointer; }
+.look-row input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.look-row input[type=color]::-webkit-color-swatch { border: 0; border-radius: 4px; }
+.look-row input[type=color]::-moz-color-swatch { border: 0; border-radius: 4px; }
+.look-row .btn { flex: none; }
+
 /* Settings: office sounds volume */
 .volume { display: flex; align-items: center; gap: 12px; }
 .volume .btn { flex: none; min-width: 112px; justify-content: center; }

@@ -87,6 +87,13 @@ export interface DeskView {
  */
 export interface OfficeHandles {}
 
+/** Your own colours over a floor's palette, one per surface, or null to keep the floor's own. */
+export interface LookColors {
+  wall: string | null;
+  floor: string | null;
+  ceiling: string | null;
+}
+
 export interface Office extends OfficeHandles {
   group: THREE.Group;
   colliders: Collider[];
@@ -97,6 +104,12 @@ export interface Office extends OfficeHandles {
   fixtures(): WallRect[];
   /** Paints the walls, their trim and the floor in a floor's colors, so each project looks like itself. */
   setLook(p: FloorPalette): void;
+  /**
+   * Your own colours over the floor's palette (Settings → Graphics), which stay on through a floor or
+   * a map change: the walls and the ceiling are tinted, and the floor's planks are painted in the
+   * colour with the grain of the floor's own kept. A null paints the floor's own.
+   */
+  setColors(c: LookColors): void;
   /**
    * You're on floor `index` of a building `count` floors tall (0 is the bottom one): the rest of the
    * building goes up over you and down under you, the street that many storeys down, and only the

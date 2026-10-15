@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { WallRect } from '../../../shared/decor';
-import type { FloorPalette } from '../../../shared/floors';
+import { floorPalette, type FloorPalette } from '../../../shared/floors';
 import { street } from '../outside';
 import { cars } from '../../features/cars/world';
 import { scenic } from '../scenic';
@@ -18,7 +18,7 @@ import { tower } from '../tower';
 import { hoop } from '../../features/basketball/world';
 import { kitchen } from '../kitchen';
 import { signs } from '../desksigns';
-import type { Collider, DeskView, Interactable, Office, OfficeHandles } from '../types';
+import type { Collider, DeskView, Interactable, LookColors, Office, OfficeHandles } from '../types';
 import { PALETTE, floorTexture, paintPlanks, type Looks } from './materials';
 import { boards, clearOfStairs, lamps, lounge, machineMonitor, nightLights, plants, rugs, tv } from './room';
 import { plug, walls, type Door } from './shell';
@@ -138,13 +138,38 @@ export function buildOffice(): Office {
     if (built.setLevel) levels.push(built.setLevel);
   }
 
-  const setLook = (p: FloorPalette) => {
-    looks.wall.color.set(p.wall);
-    looks.trim.color.set(p.trim);
+  /** The floor's own palette, and your own colours over it, which both of the calls below paint from. */
+  let palette = floorPalette(0);
+  let colors: LookColors = { wall: null, floor: null, ceiling: null };
+
+  /** `hex` (a `#rrggbb` a colour well wrote) darkened by `k`, in the sRGB the planks are drawn in. */
+  const shade = (hex: string, k: number) => {
+    const n = parseInt(hex.slice(1), 16);
+    return `#${[16, 8, 0].map((shift) => Math.round(((n >> shift) & 255) * k).toString(16).padStart(2, '0')).join('')}`;
+  };
+
+  /** The floor's palette with your colours over it, on everything a floor paints its own way. */
+  const paint = () => {
+    looks.wall.color.set(colors.wall ?? palette.wall);
+    looks.trim.color.set(palette.trim);
+    // A colour of your own keeps the planks' grain: the second row and the seams are the same colour, run darker.
+    const floor: FloorPalette = colors.floor ? { ...palette, floor: colors.floor, floorAlt: shade(colors.floor, 0.9), seam: shade(colors.floor, 0.72) } : palette;
     for (const t of looks.planks) {
-      paintPlanks(t.image as HTMLCanvasElement, p);
+      paintPlanks(t.image as HTMLCanvasElement, floor);
       t.needsUpdate = true;
     }
+    // The ceiling's tiles are white and lit from below (see buildStack): a colour is a tint over them.
+    given.stack?.ceiling.color.set(colors.ceiling ?? '#ffffff');
+  };
+
+  const setLook = (p: FloorPalette) => {
+    palette = p;
+    paint();
+  };
+
+  const setColors = (c: LookColors) => {
+    colors = c;
+    paint();
   };
 
   const setLevel = (index: number, count: number, wings: readonly number[] = []) => {
@@ -181,5 +206,5 @@ export function buildOffice(): Office {
     for (const u of updates) u(t, dt);
   };
 
-  return { ...(given as OfficeHandles), group, colliders, interactables, desks, fixtures: () => walls, setLook, setLevel, windowsChanged, update };
+  return { ...(given as OfficeHandles), group, colliders, interactables, desks, fixtures: () => walls, setLook, setColors, setLevel, windowsChanged, update };
 }

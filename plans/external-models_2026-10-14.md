@@ -18,7 +18,9 @@ La fonte che regge da sola, verificata con richieste vere:
   viva* sì.
 - **Poly Pizza** e **Sketchfab** si potranno aggiungere dopo: la prima vuole una chiave API (gratuita,
   da chiedere), il secondo un token OAuth. **Kenney** è CC0 ma non ha API: sono pacchetti da scaricare a
-  mano, non una ricerca.
+  mano, non una ricerca. Cosa chiederebbe una fonte con licenze per modello, cosa manca a un cane di
+  fuori per entrare nell'ufficio, e fino a dove si può arrivare a sostituire lo scenario intero:
+  [`models-and-scenes_2026-10-15.md`](models-and-scenes_2026-10-15.md).
 
 ## Come funziona
 

@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { DESKS, DESK_BY_ID, DESK_SIZE, WALL_HEIGHT, WING_DESKS, type DeskDef } from '../../shared/layout';
-import { signInk, type DeskLabel } from '../../shared/floorplan';
+import { SIGN_COLORS, signInk, type DeskLabel } from '../../shared/floorplan';
 import { addToPiece, removeFromPiece } from './office/placed';
 import type { Fixture } from './office/fixture';
+import { accent } from './office/paint';
 import { mergeByMaterial, mesh, roundedBox, toon } from './toon';
 
 // Big signs hung from the ceiling over the desks, naming what each one is for ("Operations", "Code
@@ -102,7 +103,10 @@ export function buildDeskSigns(): DeskSigns {
     // Just off the far edge of the desk, so a back-to-back pair's signs don't touch.
     const z = -DESK_SIZE.depth / 2 + SIGN.depth / 2 + 0.012;
     const parts = new THREE.Group();
-    const board = mesh(roundedBox(SIGN.width, SIGN.depth, SIGN.height, 0.08), toon(label.color), 0, SIGN.y, z, false);
+    // The colour you picked for it stands in for one of the palette's accents, so the room coheres
+    // while a palette is on and your own choice is what paints it when none is (see office/paint.ts).
+    const slot = SIGN_COLORS.findIndex((s) => s.color === label.color);
+    const board = mesh(roundedBox(SIGN.width, SIGN.depth, SIGN.height, 0.08), accent(Math.max(0, slot), label.color), 0, SIGN.y, z, false);
     board.rotation.x = Math.PI / 2;
     parts.add(board);
     const top = SIGN.y + SIGN.height / 2;

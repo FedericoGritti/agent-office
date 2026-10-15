@@ -154,7 +154,7 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
   placed(desk, 'boss-desk', { x: deskX, z: deskZ }, [deskCollider], { colliders, interactables });
 
   const couch = new THREE.Group();
-  const couchMat = toon('#ef476f');
+  const couchMat = accent(3, '#ef476f');
   couch.add(mesh(roundedBox(1, 0.45, 2.4, 0.2), couchMat, 0, 0.3, 0));
   couch.add(mesh(roundedBox(0.35, 0.9, 2.4, 0.15), couchMat, 0.45, 0.55, 0));
   for (const sz of [-1, 1]) couch.add(mesh(roundedBox(1, 0.7, 0.3, 0.15), couchMat, 0, 0.45, sz * 1.1));

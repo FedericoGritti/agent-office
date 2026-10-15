@@ -6,6 +6,7 @@ import { mergeByMaterial, mesh, roundedBox, textPlane, toon } from '../toon';
 import type { Collider, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE, box, floorTexture, glassPane } from './materials';
+import { paintAs } from './paint';
 import { floorPlant, plant } from './props';
 import { seatable } from './seats';
 
@@ -43,7 +44,7 @@ export function buildBalcony(group: THREE.Group, colliders: Collider[], interact
   // Everything that doesn't move and isn't textured goes in here, merged at the end.
   const parts = new THREE.Group();
   parts.add(mesh(box(w, SLAB - 0.01, d), toon(PALETTE.wallTrim), cx, -SLAB / 2 - 0.005, cz));
-  const deck = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshToonMaterial({ map: floorTexture(w, d), color: '#d6a574', gradientMap: (toon('#fff') as THREE.MeshToonMaterial).gradientMap }));
+  const deck = new THREE.Mesh(new THREE.PlaneGeometry(w, d), paintAs(new THREE.MeshToonMaterial({ map: floorTexture(w, d), color: '#d6a574', gradientMap: (toon('#fff') as THREE.MeshToonMaterial).gradientMap }), 'wood'));
   deck.rotation.x = -Math.PI / 2;
   deck.position.set(cx, 0.002, cz);
   deck.receiveShadow = true;

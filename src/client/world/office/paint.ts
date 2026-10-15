@@ -2,16 +2,20 @@
 // ui/settings-palette.ts for the rows).
 //
 // The office builds its furniture from about a hundred colours, and world/toon.ts hands every material
-// of a colour to everything that asks for it. So a part of the room is painted by the colours the
-// office builds it with — listed here once, under the part it belongs to — and painting one repaints
-// every mesh that colour was used for. The accents are the exception: a rug, a chair or a pouf is made
-// through accent(), which gives it a material of the palette's own, so painting those never reaches
-// the office's other colours (its yellows are the lamps, its greens the boards' ticks).
+// of a colour to everything that asks for it — every material, an emissive one included, which is why
+// this paints through toonAll. So a part of the room is painted by the colours the office builds it
+// with — listed here once, under the part it belongs to — and painting one repaints every mesh that
+// colour was used for, with the glow of anything lit turned with it.
+//
+// The accents are the exception: a rug, a chair or a pouf is made through accent(), which gives it a
+// material of the palette's own, so painting those never reaches the office's other colours (its
+// yellows are the lamps, its greens the boards' ticks). paintAs is for the few materials built by hand
+// rather than through toon, which no list of colours can reach (the balcony's deck).
 
 import type * as THREE from 'three';
 import type { Palette } from '../../palette';
 import { shade } from '../../palette';
-import { toon, toonUnique } from '../toon';
+import { toonAll, toonUnique } from '../toon';
 import { PALETTE } from './materials';
 
 /**
@@ -102,6 +106,8 @@ export const PARTS = {
     ['#c9952c', 0.78],
     ['#ffe6b0', 1.16],
     ['#ffd8a8', 1.1],
+    // The lamp bulbs' own colour, whose light is painted with it (see repaint).
+    ['#fff7d6', 1.06],
   ],
   // The pale neutrals: the desk tops, the papers, the panels, the backboard, the machine's shell.
   desk: [
@@ -151,7 +157,10 @@ export const PARTS = {
   ],
   // The pots.
   pot: [[PALETTE.pot, 1]],
-} as const satisfies Record<'wood' | 'ink' | 'metal' | 'brass' | 'desk' | 'plant' | 'pot', readonly (readonly [string, number])[]>;
+  // The band between the floors and the balcony's fascia, which carry the skirting's colour without
+  // being the skirting (that one is painted by the Office itself: see setColors in build.ts).
+  trim: [['#e8a87c', 1]],
+} as const satisfies Record<'wood' | 'ink' | 'metal' | 'brass' | 'desk' | 'plant' | 'pot' | 'trim', readonly (readonly [string, number])[]>;
 
 type Part = keyof typeof PARTS;
 
@@ -162,17 +171,44 @@ interface Accent {
   slot: number;
 }
 
+/** What a material was before the palette touched it, so painting can be undone exactly. */
+interface Was {
+  color: string;
+  /** Its glow, if it had one: a lamp's, a sign's, the pole's. */
+  emissive: string | null;
+}
+
 const accents: Accent[] = [];
 /** The materials made so far, by slot and office colour: a pair is only ever made once. */
 const slots: Record<string, THREE.MeshToonMaterial> = {};
+/** Every material the palette has painted, and what it was (see repaint). */
+const painted = new Map<THREE.MeshToonMaterial, Was>();
+/** Materials built by hand rather than through toon, and the part of the room each belongs to. */
+const extras: { material: THREE.MeshToonMaterial; part: Part; k: number }[] = [];
 
-/** The palette in force, so an accent made after one was chosen comes out in it too. */
+/** The palette in force, so a material made after one was chosen comes out in it too. */
 let current: Palette | null = null;
+
+/**
+ * Paints one material `target`'s colour (scaled by `k`), or puts its own back when `target` is null.
+ * Every material is remembered the first time, so the office's own colours can be restored exactly
+ * whatever the palette was in between — and anything that glowed keeps glowing, in the new colour.
+ */
+function repaint(material: THREE.MeshToonMaterial, target: string | null, k: number): void {
+  let was = painted.get(material);
+  if (!was) {
+    was = { color: `#${material.color.getHexString()}`, emissive: material.emissive.getHex() ? `#${material.emissive.getHexString()}` : null };
+    painted.set(material, was);
+  }
+  material.color.set(target ? shade(target, k) : was.color);
+  if (was.emissive) material.emissive.set(target ? shade(target, k * 0.55) : was.emissive);
+}
 
 /**
  * One of the palette's accent slots, for a rug, a chair or a pouf: `slot` picks the accent in turn, so
  * no two neighbours in a row match and none of them is random (see the callers in seats.ts, room.ts,
- * catalog.ts and wing.ts). A material of its own, so a palette repaints these and nothing else.
+ * catalog.ts, wing.ts, desksigns.ts and hanging/world.ts). A material of its own, so a palette
+ * repaints these and nothing else.
  */
 export function accent(slot: number, own: string): THREE.MeshToonMaterial {
   const key = `${slot}|${own}`;
@@ -182,7 +218,19 @@ export function accent(slot: number, own: string): THREE.MeshToonMaterial {
     slots[key] = material;
     accents.push({ material, own, slot });
   }
-  material.color.set(current ? current.accents[slot % current.accents.length] : own);
+  const n = current?.accents.length ?? 0;
+  material.color.set(current && n ? current.accents[((slot % n) + n) % n] : own);
+  return material;
+}
+
+/**
+ * Hands a material built by hand — not through toon, so no list of colours can find it — to the
+ * palette under `part`. Used once, by the balcony's deck; everything else the office builds comes
+ * through toon, and is reached by the table above.
+ */
+export function paintAs<T extends THREE.MeshToonMaterial>(material: T, part: Part, k = 1): T {
+  extras.push({ material, part, k });
+  repaint(material, current?.[part] ?? null, k);
   return material;
 }
 
@@ -190,7 +238,11 @@ export function accent(slot: number, own: string): THREE.MeshToonMaterial {
 export function paintPalette(p: Palette | null): void {
   current = p;
   for (const [part, list] of Object.entries(PARTS) as [Part, readonly (readonly [string, number])[]][]) {
-    for (const [own, dark] of list) toon(own).color.set(p ? shade(p[part], dark) : own);
+    for (const [own, k] of list) for (const material of toonAll(own)) repaint(material, p?.[part] ?? null, k);
   }
-  for (const a of accents) a.material.color.set(p ? p.accents[a.slot % p.accents.length] : a.own);
+  for (const extra of extras) repaint(extra.material, p?.[extra.part] ?? null, extra.k);
+  for (const a of accents) {
+    const n = p?.accents.length ?? 0;
+    a.material.color.set(p && n ? p.accents[((a.slot % n) + n) % n] : a.own);
+  }
 }

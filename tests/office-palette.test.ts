@@ -9,6 +9,8 @@ import { toon } from '../src/client/world/toon.js';
 import { FLOOR_PALETTES } from '../src/shared/floors.js';
 
 const HEX = /^#[0-9a-f]{6}$/;
+/** A material's colour as it is written in the tables. */
+const hex = (m: { color: { getHexString(): string } }) => `#${m.color.getHexString()}`;
 
 test('every scheme is a whole palette: every colour a colour, and accents to take turns through', () => {
   assert.ok(PALETTES.length >= 8, `${PALETTES.length} schemes`);
@@ -81,8 +83,22 @@ test("no colour the office builds with is claimed by two parts of the room", () 
   assert.ok(claimed.size > 50, `${claimed.size} colours claimed`);
 });
 
+test('a lit material answers to the palette too, and its glow comes with it', () => {
+  // The fire pole and the lamp bulbs: the same colour as something unlit, made with an emissive, which
+  // is a material of its own (see toon) and used to be left out.
+  const pole = toon('#f2c14e', { emissive: '#3a2a00' });
+  const scheme = PALETTES.find((p) => p.name === 'Midnight')!;
+
+  paintPalette(scheme);
+  assert.equal(hex(pole), shade(scheme.brass, 0.98));
+  assert.notEqual(`#${pole.emissive.getHexString()}`, '3a2a00', 'the glow turned with the colour');
+
+  paintPalette(null);
+  assert.equal(hex(pole), '#f2c14e');
+  assert.equal(`#${pole.emissive.getHexString()}`, '#3a2a00');
+});
+
 test("painting the room moves the office's own materials, and puts them back", () => {
-  const hex = (m: { color: { getHexString(): string } }) => `#${m.color.getHexString()}`;
   const wood = toon(PALETTE.wood);
   const rug = accent(0, '#123456');
   const scheme = PALETTES.find((p) => p.name === 'Midnight')!;

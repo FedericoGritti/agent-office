@@ -49,9 +49,13 @@ export function setShading(solid: boolean): boolean {
 }
 
 const cache = new Map<string, THREE.MeshToonMaterial>();
+/** The materials made for each colour, whatever else was asked of them: an emissive or an opacity makes
+ *  a material of its own (see toon), and a palette has to reach all of them (see toonAll). */
+const byColor: Record<string, THREE.MeshToonMaterial[]> = {};
 
 export function toon(color: THREE.ColorRepresentation, opts: { emissive?: THREE.ColorRepresentation; transparent?: boolean; opacity?: number } = {}): THREE.MeshToonMaterial {
-  const key = `${new THREE.Color(color).getHexString()}|${opts.emissive ?? ''}|${opts.opacity ?? 1}`;
+  const hex = new THREE.Color(color).getHexString();
+  const key = `${hex}|${opts.emissive ?? ''}|${opts.opacity ?? 1}`;
   const hit = cache.get(key);
   if (hit) return hit;
   const m = new THREE.MeshToonMaterial({ color, gradientMap: gradientMap() });
@@ -61,7 +65,17 @@ export function toon(color: THREE.ColorRepresentation, opts: { emissive?: THREE.
     m.opacity = opts.opacity ?? 1;
   }
   cache.set(key, m);
+  (byColor[hex] ??= []).push(m);
   return m;
+}
+
+/**
+ * Every material the office made for `color`: one colour is several materials when an emissive or an
+ * opacity was asked of it (the fire pole and the lamp bulbs are lit, the rugs are not), and painting a
+ * palette has to reach all of them, not only the plain one.
+ */
+export function toonAll(color: THREE.ColorRepresentation): readonly THREE.MeshToonMaterial[] {
+  return byColor[new THREE.Color(color).getHexString()] ?? [];
 }
 
 /** A fresh (uncached) toon material, for things whose color animates. */

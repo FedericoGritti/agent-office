@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { FRAMES, FRAME_BORDER, WALLS, frameRect, wallPose, wallTop, type Decoration, type WallId, type WallRect } from '../../../shared/decor';
 import { FLOOR, LOFT } from '../../../shared/layout';
 import type { Interactable } from '../../world/types';
+import { accent } from '../../world/office/paint';
 import { toon } from '../../world/toon';
 
 // ---- Pictures -------------------------------------------------------------------------------------
@@ -155,7 +156,7 @@ function frameGeometry(w: number, h: number): THREE.ExtrudeGeometry {
 /** A framed w×h picture facing +z, its back against z = 0. It shows "Loading…" until given a texture. */
 function buildFrame(w: number, h: number, frame: number): { group: THREE.Group; picture: PictureMesh } {
   const group = new THREE.Group();
-  const border = new THREE.Mesh(frameGeometry(w, h), toon((FRAMES[frame] ?? FRAMES[0]).color));
+  const border = new THREE.Mesh(frameGeometry(w, h), accent(frame, (FRAMES[frame] ?? FRAMES[0]).color));
   border.receiveShadow = true;
   group.add(border);
   const picture: PictureMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), flat({ map: loadingTexture() }));

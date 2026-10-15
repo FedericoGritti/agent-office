@@ -28,7 +28,8 @@ export class Carrying {
   private raycaster = new THREE.Raycaster();
   private floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private at = new THREE.Vector3();
-  private aimed: Piece | null = null;
+  /** What the look is on, and how far off it is: a window and a piece can stand behind each other. */
+  private aimedAt: { piece: Piece; distance: number } | null = null;
   private held: Piece | null = null;
   /** Where the piece you're carrying was when you picked it up, for Esc. */
   private from: Placed | null = null;
@@ -59,7 +60,7 @@ export class Carrying {
 
   /** Whether you're arranging the room at all. */
   get on(): boolean {
-    return this.aimed !== null || this.held !== null || this.moving;
+    return this.aimedAt !== null || this.held !== null || this.moving;
   }
 
   private moving = false;
@@ -67,6 +68,16 @@ export class Carrying {
   /** What you're carrying, if anything. */
   get carrying(): Piece | null {
     return this.held;
+  }
+
+  /** The piece of furniture the look is on, if any (see aimDistance). */
+  get aimed(): Piece | null {
+    return this.aimedAt?.piece ?? null;
+  }
+
+  /** How far off that piece is, for whoever has to choose between it and something else under the same look. */
+  get aimDistance(): number {
+    return this.aimedAt?.distance ?? Infinity;
   }
 
   /**
@@ -102,7 +113,7 @@ export class Carrying {
   stop(): void {
     if (this.held) this.putBack();
     this.moving = false;
-    this.aimed = null;
+    this.aimedAt = null;
     this.mark(null, '');
     this.deps.changed();
   }
@@ -126,10 +137,10 @@ export class Carrying {
       if (to) this.place(this.held, { ...this.held.at, ...to, hidden: false }, false);
       return;
     }
-    const piece = this.lookingAt();
-    const changed = piece !== this.aimed;
-    this.aimed = piece;
-    this.mark(piece, piece ? 'E to pick it up' : '');
+    const at = this.lookingAt();
+    const changed = (at?.piece ?? null) !== (this.aimedAt?.piece ?? null);
+    this.aimedAt = at;
+    this.mark(at?.piece ?? null, at ? 'E to pick it up' : '');
     if (changed) this.deps.changed();
   }
 
@@ -178,18 +189,18 @@ export class Carrying {
     return Math.max(0, WALL_HEIGHT - tall);
   }
 
-  /** The piece under what you're looking at, if there is one. */
-  private lookingAt(): Piece | null {
+  /** The piece under what you're looking at, if there is one, and how far off it is. */
+  private lookingAt(): { piece: Piece; distance: number } | null {
     for (const hit of this.raycaster.intersectObject(this.room.group, true)) {
       const piece = pieceOf(hit.object);
-      if (piece && !piece.at.hidden) return piece;
+      if (piece && !piece.at.hidden) return { piece, distance: hit.distance };
     }
     return null;
   }
 
   /** Picks up what you're looking at. Says whether you took anything. */
   pickUp(): boolean {
-    const piece = this.aimed;
+    const piece = this.aimedAt?.piece;
     if (!piece) return false;
     this.held = piece;
     this.from = { ...piece.at };

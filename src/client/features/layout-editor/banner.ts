@@ -20,10 +20,23 @@ export interface BannerPiece {
   turned: number;
 }
 
+/**
+ * A window in your hands: it is a hole in a wall, so it has no facing of its own to turn and is measured
+ * where it is rather than by how big it is against what it came as (see Windows.width and .height).
+ */
+export interface BannerWindow {
+  /** How wide it is, in metres. */
+  width: number;
+  /** How tall it is, in metres, from its sill to its head. */
+  height: number;
+}
+
 export interface BannerWants {
   text: string;
   /** Nothing for an empty hand, or for a piece with a seat: the sign has no buttons to show. */
   piece?: BannerPiece;
+  /** A window's own pair instead: nothing for anything that isn't one. */
+  window?: BannerWindow;
 }
 
 /** What its buttons do: one step down (`dir` < 0) or up, for the size, the height and the facing. */
@@ -31,6 +44,9 @@ export interface BannerSteps {
   size(dir: number): void;
   lift(dir: number): void;
   turn(dir: number): void;
+  /** A window's width and its height: one step a click, the same as the wheel and the `-`/`+` keys. */
+  widen(dir: number): void;
+  heighten(dir: number): void;
 }
 
 export interface Banner {
@@ -53,12 +69,22 @@ export function makeBanner(steps: BannerSteps): Banner {
   const size = step('Smaller', 'Bigger', () => steps.size(-1), () => steps.size(1));
   const height = step('Lower', 'Higher', () => steps.lift(-1), () => steps.lift(1));
   const buttons = h('span.room-banner-buttons.hidden', {}, h('span.what', {}, 'Turn'), facing.el, h('span.what', {}, 'Size'), size.el, h('span.what', {}, 'Up'), height.el);
-  const el = h('div.room-banner.hidden', {}, text, buttons);
+  // A window's own pair, in metres where a piece is a percentage of what it came as, and with no turn
+  // between them: a hole in a wall is not facing anything (see BannerWindow).
+  const wide = step('Narrower', 'Wider', () => steps.widen(-1), () => steps.widen(1));
+  const tall = step('Shorter', 'Taller', () => steps.heighten(-1), () => steps.heighten(1));
+  const windowButtons = h('span.room-banner-buttons.hidden', {}, h('span.what', {}, 'Width'), wide.el, h('span.what', {}, 'Height'), tall.el);
+  const el = h('div.room-banner.hidden', {}, text, buttons, windowButtons);
   document.body.append(el);
   return {
     set(wants) {
       text.textContent = wants.text;
       buttons.classList.toggle('hidden', !wants.piece);
+      windowButtons.classList.toggle('hidden', !wants.window);
+      if (wants.window) {
+        wide.read.textContent = `${wants.window.width.toFixed(2)} m`;
+        tall.read.textContent = `${wants.window.height.toFixed(2)} m`;
+      }
       if (wants.piece) {
         // The facing is a quarter turn at a time, so it reads as the degrees it has gone round.
         facing.read.textContent = `${Math.round(wants.piece.turned)}°`;

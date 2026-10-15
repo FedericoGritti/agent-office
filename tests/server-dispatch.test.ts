@@ -4,7 +4,7 @@
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -267,7 +267,8 @@ test('welcomes a browser and dispatches what it sends', async () => {
   assert.equal(ada?.name, 'Ada');
   assert.equal(ada?.color, '#ff8a5b');
   assert.equal(ada?.floor, floor.id);
-  assert.deepEqual(Object.keys(welcome).slice(-20), ['floor', 'project', 'workers', 'issues', 'pulls', 'queue', 'coordinator', 'decor', 'plan', 'services', 'spend', 'dog', 'ball', 'cars', 'jail', 'jukebox', 'layout', 'whiteboard', 'meeting', 'cabinet']);
+  const fields = ['floor', 'project', 'workers', 'issues', 'pulls', 'queue', 'coordinator', 'decor', 'plan', 'services', 'spend', 'dog', 'ball', 'cars', 'jail', 'jukebox', 'layout', 'chess', 'whiteboard', 'meeting', 'cabinet', 'windows'];
+  for (const field of fields) assert.ok(field in welcome, `welcome includes ${field}`);
 
   a.send({ t: 'ping', at: 42 });
   const pong = await a.take('pong');
@@ -483,4 +484,33 @@ test('the hook server answers only workers, with their own token', async () => {
     assert.equal(res.status, 401);
     assert.match(((await res.json()) as { error: string }).error, /AGENT_OFFICE_WORKER_ID/);
   }
+});
+
+test("the windows in the walls are the building's, and everyone hears one move", async () => {
+  const file = path.join(tmp, 'project', '.agent-office', 'windows.json');
+  const saved = () => JSON.parse(readFileSync(file, 'utf8'));
+  const eva = await Browser.open('?name=Eva');
+  assert.deepEqual((await eva.take('welcome')).windows, {}, 'an office nobody has touched has no window moved');
+
+  const bo = await Browser.open('?name=Bo');
+  await bo.take('welcome');
+
+  // Eva moves one along its wall: both browsers hear it, and the office keeps it.
+  const moved = { 'window-south-1': { u: 6 } };
+  eva.send({ t: 'windows.set', windows: moved });
+  for (const who of [eva, bo]) assert.deepEqual((await who.take('windows')).windows, moved);
+  assert.deepEqual(saved(), moved);
+
+  // A window put in where there is room, a window pushed into the balcony's doorway and an entry that
+  // isn't a window at all: the office keeps what can be in a wall and drops the rest (see shared/windows).
+  const kept = { 'window-south-1': { u: 6 }, 'window-9': { wall: 'south', u: -16, width: 3, y0: 1.1, y1: 3.3 } };
+  eva.send({ t: 'windows.set', windows: { ...kept, 'window-south-2': { u: -4 }, 'window-junk': 'not a window' } });
+  for (const who of [eva, bo]) assert.deepEqual((await who.take('windows')).windows, kept);
+  assert.deepEqual(saved(), kept);
+
+  // Someone walking in later is told how the walls stand.
+  const cy = await Browser.open('?name=Cy');
+  assert.deepEqual((await cy.take('welcome')).windows, kept);
+
+  for (const who of [eva, bo, cy]) await who.close();
 });

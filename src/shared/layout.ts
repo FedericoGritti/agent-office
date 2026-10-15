@@ -356,14 +356,8 @@ export interface Opening {
   y1: number;
 }
 
-/** Windows you can see out of, and the boss's office's four, which sit higher up. */
-export const WINDOWS: Opening[] = [
-  ...[-14, -9, 1].map((u) => ({ wall: 'south' as const, u, width: 3, y0: 1.1, y1: 3.3 })),
-  ...[-9, -3, 3].map((u) => ({ wall: 'west' as const, u, width: 3, y0: 1.1, y1: 3.3 })),
-  // The boss's office: a pair in the south wall either side of its nameplate, a pair in the east one.
-  ...[LOFT.minX + 1.6, LOFT.minX + 7.4].map((u) => ({ wall: 'south' as const, u, width: 2.4, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 })),
-  ...[LOFT.minZ + 1.4, LOFT.minZ + 3.6].map((u) => ({ wall: 'east' as const, u, width: 1.8, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 })),
-];
+// The windows in these walls are not here: they're data the editor can change, so they live in
+// shared/windows.ts, and every builder reads `windows()` from there.
 
 /**
  * The way out of the bottom floor: a door in the west wall onto a landing, with stairs down to the

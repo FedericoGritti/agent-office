@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { BALCONY, BALCONY_DOOR, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, ROOF_BAR, SLAB, STAGE, STOREY, STREET_Y, WALL_HEIGHT, WALL_T, WINDOWS, WING, wingMinZ, wingRowZ, type Opening, type Side } from '../../shared/layout';
+import { BALCONY, BALCONY_DOOR, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, ROOF_BAR, SLAB, STAGE, STOREY, STREET_Y, WALL_HEIGHT, WALL_T, WING, wingMinZ, wingRowZ, type Opening, type Side } from '../../shared/layout';
+import { windows } from '../../shared/windows';
 import type { Collider } from './types';
 import type { Fixture } from './office/fixture';
 import { bulb, type NightParts } from './outside';
-import { mergeByMaterial, mesh, toon, toonUnique } from './toon';
+import { cutRect, mergeByMaterial, mesh, toon, toonUnique } from './toon';
 
 // The rest of the building, from outside: a floor per project, stacked into a tower. Only the floor
 // you're on is really there; the others are its outside (walls, windows, a balcony off each, a
@@ -107,16 +108,14 @@ export function buildTower(colliders: Collider[], night: NightParts): Tower {
       parts.add(m);
     };
     piece(f.u0, f.u1, y0 - SLAB, y0, band);
-    let u = f.u0;
-    for (const o of [...holes].sort((a, b) => a.u - b.u)) {
-      const h0 = o.u - o.width / 2;
-      const h1 = o.u + o.width / 2;
-      piece(u, h0, y0, y0 + WALL_HEIGHT, paint);
-      piece(h0, h1, y0, y0 + o.y0, paint);
-      piece(h0, h1, y0 + o.y1, y0 + WALL_HEIGHT, paint);
-      u = h1;
+    // The wall as the face less the holes in it, cut out of the whole rectangle: a window can stand over
+    // another one (see cutRect), which walking them along the face would wall over.
+    for (const r of cutRect(
+      { minX: f.u0, maxX: f.u1, minZ: y0, maxZ: y0 + WALL_HEIGHT },
+      holes.map((o) => ({ minX: o.u - o.width / 2, maxX: o.u + o.width / 2, minZ: y0 + o.y0, maxZ: y0 + o.y1 })),
+    )) {
+      piece(r.minX, r.maxX, r.minZ, r.maxZ, paint);
     }
-    piece(u, f.u1, y0, y0 + WALL_HEIGHT, paint);
   };
 
   /** Glass in a hole: set back a little, with a frame round it, a bar down the middle and a sill. */
@@ -327,18 +326,21 @@ export function buildTower(colliders: Collider[], night: NightParts): Tower {
     seed = 20260927;
 
     const parts = new THREE.Group();
+    // The windows as they stand now: the floors above and below this one are built with them too, so the
+    // building's outside shows the room's own arrangement (see shared/windows).
+    const list = windows();
     for (let k = 0; k < count; k++) {
       const r = k - index;
       if (r === 0) continue;
       const y0 = r * STOREY;
       for (const side of Object.keys(FACES) as Side[]) {
-        const holes: Opening[] = WINDOWS.filter((o) => o.wall === side);
+        const holes: Opening[] = list.filter((o) => o.wall === side);
         if (side === 'south') holes.push(BALCONY_DOOR);
         // Only the bottom floor has a way out on the west side; its door stands in the hole (see world/office/shell.ts).
         if (side === 'west' && k === 0) holes.push(EXIT_DOOR);
         facade(parts, side, y0, holes);
       }
-      for (const o of WINDOWS) glazing(parts, o, y0, false);
+      for (const o of list) glazing(parts, o, y0, false);
       glazing(parts, BALCONY_DOOR, y0, true);
       balcony(parts, y0);
       const wing = wings[k] ?? 0;

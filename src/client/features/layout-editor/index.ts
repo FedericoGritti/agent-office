@@ -1,12 +1,15 @@
 /**
  * Arranging the room from inside it (F2), walking about and doing it yourself: look at a piece of
- * furniture and press E to pick it up, and while you carry it the piece follows where you look, on a
- * 25 cm grid. E puts it down (and it's saved), R turns it a quarter, Canc takes it out of the room, Esc
- * puts it back where you found it. The hint bar says all of that as you go.
+ * furniture or a window and press E to pick it up, and while you carry it, it follows where you look —
+ * furniture over the floor on a 25 cm grid, a window along the wall you're looking at, or on to another
+ * one. N puts a new window in the wall you're looking at and hands it to you. E puts it down (and it's
+ * saved), R turns a piece of furniture a quarter, Canc takes it out of the room, Esc puts it back where
+ * you found it. The hint bar says all of that as you go.
  */
 import { forget, isAddition, labelFor, nextSpawnId, placements, setPlacements, spawn, spawned, type Placements } from '../../../shared/placement';
 import type { CatalogKind } from '../../../shared/catalog';
 import { MODEL_ADD_PATH, externalKind, kindLabel, type AdditionKind, type ModelSource } from '../../../shared/model-sources';
+import { setWindows, windowLabel, type WindowPlacements } from '../../../shared/windows';
 import type { Ctx } from '../../core/context';
 import { aside, hintTitle, key } from '../../core/hint';
 import { store } from '../../state';
@@ -15,6 +18,7 @@ import { buildAddition, declareAddition, discardAddition, applyCatalog, updateCa
 import { applyPiece, applyPlacements, placedPieces } from '../../world/office/placed';
 import { makeBanner } from './banner';
 import { Carrying } from './carry';
+import { Windows } from './windows';
 import { openCatalog } from './ui';
 
 export function installLayoutEditor(ctx: Ctx) {
@@ -24,13 +28,26 @@ export function installLayoutEditor(ctx: Ctx) {
     // A quarter turn each way, the same as R and Shift+R: a button is one step, and in third person a
     // button is what there is (see banner.ts).
     turn: (dir) => void carrying.turn(dir < 0),
+    // A window's own two steps: a hole in a wall is widened and heightened where it stands, not turned.
+    widen: (dir) => void windows.resize(dir),
+    heighten: (dir) => void windows.heighten(dir),
   });
 
-  /** What the sign says, and what its buttons are about: the mode, what you're carrying, how big it is
-   *  and how high (see features/layout-editor/banner.ts). */
+  /** Whether you're arranging the room at all: the mode the sign is up for. */
+  function arranging(): boolean {
+    return carrying.on || windows.on;
+  }
+
+  /** What the sign and the hint bar say: the mode, what you're carrying, how big it is and how high. */
   function refresh(): void {
+    const window = windows.carrying;
     const held = carrying.carrying;
-    if (!carrying.on) banner.hide();
+    if (!arranging()) banner.hide();
+    else if (window)
+      banner.set({
+        text: `🛠️ Carrying ${windowLabel(window.id)} — E puts it in the wall · scroll sizes it · −/+ its height · Canc takes it away · Esc puts it back${windows.refused ? ` · ${windows.refused}` : ''}`,
+        window: { width: windows.width, height: windows.height },
+      });
     else if (held)
       banner.set({
         text: `🛠️ Carrying ${labelFor(held.id)} — E puts it down · R turns it${carrying.adjustable ? ' · scroll sizes it · −/+ up and down' : ''} · Canc takes it away · Esc puts it back`,
@@ -38,7 +55,7 @@ export function installLayoutEditor(ctx: Ctx) {
         // the way the room built it (see room.md), so the sign carries no buttons.
         ...(carrying.adjustable ? { piece: { size: carrying.size, height: carrying.height, turned: carrying.turned } } : {}),
       });
-    else banner.set({ text: '🛠️ Arranging the room — look at a piece and press E to pick it up · F2 or Esc to finish' });
+    else banner.set({ text: '🛠️ Arranging the room — look at a piece or a window and press E · N puts in a new window · F2 or Esc to finish' });
     ctx.hint.invalidate();
   }
 
@@ -46,6 +63,25 @@ export function installLayoutEditor(ctx: Ctx) {
     save: (file: Placements) => ctx.net.send({ t: 'layout.set', placements: file }),
     changed: refresh,
   });
+
+  const windows = new Windows(ctx.office, ctx.camera, {
+    save: (file: WindowPlacements) => ctx.net.send({ t: 'windows.set', windows: file }),
+    rebuild: () => ctx.office.windowsChanged(),
+    changed: refresh,
+  });
+
+  /** In the mode, or out of it: anything in your hands goes back where you found it. */
+  function arrange(on: boolean): void {
+    if (on === arranging()) return;
+    if (on) {
+      carrying.toggle();
+      windows.toggle();
+    } else {
+      carrying.stop();
+      windows.stop();
+    }
+    refresh();
+  }
 
   // The floor's file comes with its view, and again whenever anyone saves: the furniture goes where it
   // says. The room is built at layout.ts' numbers first, so a floor nobody has touched has no file.
@@ -56,7 +92,12 @@ export function installLayoutEditor(ctx: Ctx) {
     if (store.floor) applyCatalog(ctx.office, store.floor);
   });
 
-  ctx.ticks.add('world', () => carrying.update());
+  // The office's windows come the same way, and the walls are built again round them (see shared/windows).
+  store.on('windows', () => {
+    setWindows(store.windows);
+    ctx.office.windowsChanged();
+  });
+
   // What the additions do each frame: the fountain's water, and nothing else yet.
   ctx.ticks.add('env', (f) => updateCatalog(f.t));
 
@@ -147,13 +188,26 @@ export function installLayoutEditor(ctx: Ctx) {
     refresh();
   }
 
-  /** The keys while you're arranging: E takes and puts, and the rest work on what you're carrying. */
+  ctx.ticks.add('world', () => {
+    carrying.update();
+    windows.update();
+  });
+
+  /** Takes what you're looking at: the window or the piece of furniture, whichever is nearer. */
+  function take(): boolean {
+    const window = windows.looking;
+    if (window && (!carrying.aimed || windows.aimDistance <= carrying.aimDistance)) return windows.pickUp();
+    return carrying.pickUp();
+  }
+
+  /** The keys while you're arranging: E takes and puts, N puts in a new window, and the rest work on what you carry. */
   function press(e: KeyboardEvent): boolean {
-    if (!carrying.on) return false;
+    if (!arranging()) return false;
     if (e.code === 'KeyE') {
       e.preventDefault();
-      if (carrying.carrying) carrying.putDown();
-      else if (!carrying.pickUp()) toast('Look at something to pick it up');
+      if (windows.carrying) windows.putDown();
+      else if (carrying.carrying) carrying.putDown();
+      else if (!take()) toast('Look at something to pick it up');
       return true;
     }
     if (e.code === 'KeyC') {
@@ -173,7 +227,13 @@ export function installLayoutEditor(ctx: Ctx) {
     }
     if (e.code === 'KeyR') {
       e.preventDefault();
-      carrying.turn(e.shiftKey);
+      if (!carrying.carrying) toast('Only furniture turns');
+      else carrying.turn(e.shiftKey);
+      return true;
+    }
+    if (e.code === 'KeyN') {
+      e.preventDefault();
+      if (!windows.add()) toast(windows.refused ?? 'Look at a wall to put a window in', 'warn');
       return true;
     }
     if (e.code === 'Minus' || e.code === 'Equal' || e.key === '-' || e.key === '+') {
@@ -182,42 +242,77 @@ export function installLayoutEditor(ctx: Ctx) {
       // layout that puts `+` somewhere else (or a numeric keypad) still works. The wheel is for the size
       // (see below). A piece of the room's own with a seat has no height of its own to change, so the
       // keys aren't the editor's there at all.
+      //
+      // A window is the other way round: where it stands on the wall is where you look — up and down it
+      // as much as along it — so the same two keys make it taller and shorter instead, and the wheel
+      // wider and narrower. A hole is sized, not raised (see Windows.resize and .heighten).
+      const dir = e.code === 'Equal' || e.key === '+' ? 1 : -1;
+      if (windows.carrying) {
+        e.preventDefault();
+        windows.heighten(dir);
+        return true;
+      }
       if (!carrying.adjustable) return false;
       e.preventDefault();
-      carrying.raise(e.code === 'Equal' || e.key === '+' ? 1 : -1);
+      carrying.raise(dir);
       return true;
     }
     if (e.code === 'Delete' || e.code === 'Backspace') {
       e.preventDefault();
-      if (!carrying.takeAway()) toast('Pick something up first');
+      if (windows.carrying) windows.takeAway();
+      else if (!carrying.takeAway()) toast('Pick something up first');
       return true;
     }
     if (e.code === 'Escape') {
-      carrying.stop();
+      arrange(false);
       return true;
     }
     return false;
   }
 
   function hint(el: HTMLElement): void {
+    const window = windows.carrying;
     const held = carrying.carrying;
+    if (window) {
+      el.replaceChildren(
+        hintTitle(`🧰 Carrying ${windowLabel(window.id)}`),
+        aside(windows.refused ?? 'It follows your look: along the wall, up and down it, or on to another one'),
+        key('Scroll', 'Wider / narrower'),
+        key('− / +', 'Taller / shorter'),
+        key('Canc', 'Take it away'),
+        key('Esc', 'Put it back'),
+      );
+      return;
+    }
+    if (held) {
+      el.replaceChildren(
+        hintTitle(`🧰 Carrying ${labelFor(held.id)}`),
+        aside('It follows your look; E puts it down'),
+        key('R', 'Quarter turn'),
+        key('Canc', 'Take it away'),
+        key('Esc', 'Put it back'),
+      );
+      return;
+    }
+    const looking = windows.looking;
     el.replaceChildren(
-      hintTitle(held ? `🧰 Carrying ${labelFor(held.id)}` : '🧰 Arranging the room'),
-      aside(held ? 'It follows your look; E puts it down' : 'Look at a piece and press E to pick it up'),
+      hintTitle('🧰 Arranging the room'),
+      aside(looking ? `${windowLabel(looking.id)} — E takes it out of the wall` : 'Look at a piece or a window and press E'),
+      key('N', 'New window in this wall'),
       key('C', 'Catalog'),
       key('R', 'Quarter turn'),
       ...(carrying.adjustable ? [key('Scroll', 'Size'), key('− / +', 'Up / down')] : []),
       key('Canc', 'Take it away'),
-      key('Esc', held ? 'Put it back' : 'Stop'),
+      key('Esc', 'Stop'),
     );
   }
 
   ctx.activities.add({
     id: 'moving',
-    active: () => carrying.on,
+    active: () => arranging(),
     // Walking about is the point; anything else that takes over puts what you're carrying back.
     stop: (why) => {
-      if (why !== 'walk') carrying.stop();
+      if (why !== 'walk') arrange(false);
     },
     key: press,
     hint,
@@ -230,8 +325,7 @@ export function installLayoutEditor(ctx: Ctx) {
         toast('Take the elevator to a floor first', 'warn');
         return;
       }
-      carrying.toggle();
-      refresh();
+      arrange(!arranging());
     },
   });
 
@@ -243,7 +337,14 @@ export function installLayoutEditor(ctx: Ctx) {
   window.addEventListener(
     'wheel',
     (e) => {
-      if (e.target !== ctx.canvas || !carrying.adjustable) return;
+      if (e.target !== ctx.canvas) return;
+      if (windows.carrying) {
+        e.preventDefault();
+        e.stopPropagation();
+        windows.resize(e.deltaY < 0 ? 1 : -1);
+        return;
+      }
+      if (!carrying.adjustable) return;
       e.preventDefault();
       e.stopPropagation();
       carrying.resize(e.deltaY < 0 ? 1 : -1);

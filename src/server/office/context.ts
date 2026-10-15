@@ -20,6 +20,7 @@ import type { Building, FloorDef } from '../building.js';
 import type { Floor } from '../floor.js';
 import type { Sky } from '../sky.js';
 import type { Themes } from '../theme.js';
+import type { Windows } from '../windows.js';
 import type { Maps } from '../maps.js';
 import type { OfficePrompts } from '../prompts.js';
 import type { LeaveOnMerge } from '../leave-on-merge.js';
@@ -58,6 +59,8 @@ export interface Core {
 export interface BuildingServices {
   sky: Sky;
   themes: Themes;
+  /** The windows in the office's outside walls: the same on every floor (see ../windows.ts). */
+  windows: Windows;
   maps: Maps;
   prompts: OfficePrompts;
   leaveOnMerge: LeaveOnMerge;

@@ -38,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/AgentSystemLabs/agent-office/main/i
 - **You can't miss who needs you.** A worker that stops to ask you something lights a red beacon over its desk, puts a banner on your screen saying who and what for, and sounds an alarm. One that has finished jumps up and down and dings. Press **N** to go straight to whoever is waiting.
 - **From your phone, too.** `/lite` is the office in 2D: every worker and what it's waiting on, its terminal with the keys a phone keyboard lacks, and the coordinator's boards. The 3D office offers it on a phone or a slow computer.
 - **The coordinator on the walls.** The three boards along the north wall show your project's phase plan, read from its `plans/` folder: the **📋 checklist** of subplans and where each stands, today's **🕓 timeline**, and the **🎯 phase** it is on. Press **E** at any of them for the whole plan in a window. When the checklist runs past the twelve subplans that fit on it, **▲ ▼** arrows at its bottom move the list a row at a time. The **Coordinator** works up in the boss's office at its own desk, under the glass: walk up and press **E** (the first prompt, with nobody there, hires it), then **E** opens its terminal and **P** prompts it, and it keeps the plan and drives it — dispatching each ready subplan to a worker, verifying and integrating what comes back, and advancing between phases. One subplan can span several projects: the worker gets a worktree of each, and a PR in each that links the others.
-- **Rearranging the room.** Press **F2** and you rearrange the office yourself, walking about: look at a piece of furniture, press **E** and you're carrying it — it follows where you look, on a 25 cm grid — then **E** puts it down where you stand, **R** turns it a quarter (**Shift+R** the other way), **Canc** takes it out of the room, **Esc** puts it back where you found it and finishes. A sign at the top of the screen says you're arranging, what you're carrying and what the keys do, and the hint bar says it again. Every move is written to `.agent-office/layout.json` on that floor, so the room is a file kept across restarts and shared out to everyone on the floor, and a piece taken away takes its colliders and its use-point with it. The whole roll call is in [What is in the office](docs/room.md). What can be picked up is what the office's builders declare — the jukebox, the shelf of the project's docs, the boards, the whiteboard, the figures, the gong, the cabinet, the potted plants, the rugs, the lounge TV and the machine monitor — and the desks too — a desk moves with the seat a worker sits at, so the office hires into the new place. The bean bags and the meeting chairs stay put. **C** while you're arranging opens the catalog: things that aren't in the room at all yet — pot plants, rugs, a coffee table, a fountain, in `src/shared/catalog.ts` — and one of them lands in front of you, in your hands to put down like anything else. The same window searches **Poly Haven** for real models — furniture, plants, rocks, whatever it has, all CC0, with the triangles and the metres shown before you click — and the office fetches the one you pick into the floor's own folder.
+- **Rearranging the room.** Press **F2** and you rearrange the office yourself, walking about: look at a piece of furniture, press **E** and you're carrying it — it follows where you look, on a 25 cm grid — then **E** puts it down where you stand, **R** turns it a quarter (**Shift+R** the other way), **Canc** takes it out of the room, **Esc** puts it back where you found it and finishes. A sign at the top of the screen says you're arranging, what you're carrying and what the keys do, and the hint bar says it again. Every move is written to `.agent-office/layout.json` on that floor, so the room is a file kept across restarts and shared out to everyone on the floor, and a piece taken away takes its colliders and its use-point with it. The whole roll call is in [What is in the office](docs/room.md). What can be picked up is what the office's builders declare — the jukebox, the shelf of the project's docs, the boards, the whiteboard, the figures, the gong, the cabinet, the potted plants, the rugs, the lounge TV and the machine monitor — and the desks too — a desk moves with the seat a worker sits at, so the office hires into the new place. The bean bags and the meeting chairs stay put. **C** while you're arranging opens the catalog: things that aren't in the room at all yet — pot plants, rugs, a coffee table, a fountain, in `src/shared/catalog.ts` — and one of them lands in front of you, in your hands to put down like anything else. The same window searches **Poly Haven** for real models — furniture, plants, rocks, whatever it has, all CC0, with the triangles and the metres shown before you click — and the office fetches the one you pick into the floor's own folder. **The windows** are in the same mode and are not pieces: each is a hole in an outside wall, picked out with **E** and carried along the wall, up and down it or on to another one, with **N** putting a new one in the wall you're looking at — and **scroll** makes one wider or narrower as you carry it, **−**/**+** taller or shorter from its sill, up to what the wall, the neighbouring windows and the ceiling leave it. They belong to the building rather than the floor, so the office keeps them in one file of its own, `.agent-office/windows.json`.
 - **What the project spends.** The board on the wall by the lounge shows what this project has spent in OMP: today's tokens beside the all-time ones, each split into the project's own agents (you and the coordinator), the sub-agents — the workers the office runs, and any sub-agent a session spawns — and by provider — read off OMP's own session records (`omp stats`' own numbers), whose own record of the folder a session ran in says which of the two it is. Every worker's conversation is one of the project's own OMP sessions — the ones `omp --resume` lists for that checkout, beside yours — whether the worker works in a worktree or not. It counts only the pay-per-use providers — DeepSeek — and leaves out a run on a subscription like Codex on a ChatGPT plan, whose tokens have no price per token; the dollars are the API equivalent of what is counted. Nothing refreshes on a timer: press **🔄** on it, or **E** for the window, to read the records again.
 - **Agents that manage agents.** Every worker can list, hire, message and send home the others, through an `agent-office` MCP server (Claude Code, Codex, OpenCode) or the `office-workers` command. Ask one to "send everyone whose PR merged home" and it does, deleting their worktrees and branches unless they hold unpushed work. A worker that opens its pull request itself (`gh pr create`) shows it at its desk, and one the office missed can be told which is its own (`office-workers pr`).
 - **Together.** Voice, chat, screen sharing on the lounge TV and a shared whiteboard.
@@ -393,6 +393,48 @@ npm run dev          # Vite with hot reload on :5173, the server on :4600 (passw
 npm run typecheck
 npm test
 ```
+
+### Building, and restarting the office you use
+
+The office serves a built page and a built server out of `dist/` (`dist/public` and `dist/server`), so
+a running office shows a change only once it has been built:
+
+```bash
+npm run typecheck && npm test    # the suite is the whole thing: a couple of minutes
+npm run build                    # dist/public and dist/server, what a start serves
+npm start                        # or: node bin/agent-office.js --home ~/agent-office --port 4600
+```
+
+A page change needs no restart: the page is served from disk with content-hashed files, so reloading
+the browser picks the new one up. A change to the **server** needs the office started again — under
+systemd, `systemctl --user restart agent-office` (or `sudo systemctl restart agent-office` for a
+system unit), with `journalctl --user -u agent-office -f` to watch it come back. `KillMode=process` in
+the unit is what keeps the workers' terminals running through the restart; the next office picks them
+up where they were.
+
+The office keeps its floors and its password in its own home (`--home`, `~/agent-office` by default),
+and each floor keeps what the game writes there in its own `.agent-office/` folder: the furniture the
+editor moved (`layout.json`), the windows (`windows.json`, one file for the whole building), the
+whiteboard, the hung pictures. None of it lives in the checkout.
+
+### Trying a branch without merging it
+
+Build it in its worktree, then run *that* build against the same home and port: the same office — same
+floors, same password, and the workers' terminals keep running — with the branch's code in it.
+
+```bash
+(cd ../agent-office-my-branch && npm install && npm run build)
+node ../agent-office-my-branch/bin/agent-office.js --home ~/agent-office --port 4600 --agent omp --no-open
+```
+
+There is one office — the one in use, that home, that port, behind Tailscale Serve — and that is the
+one to restart on the branch's build: a change is seen there and nowhere else. A second office on
+another port is not a way to look at a change; it duplicates the building, and the office in use goes
+on serving the old page.
+
+Start it from a folder that is **already a floor** (the checkout the service runs in, say): the office
+takes the folder it's started in as a floor of its own, so started anywhere else that folder joins the
+building as a new floor. When you're done, stop it and start the service again to go back to `main`.
 
 Server edits restart the server, not the workers. After changing `ptyhost.ts`, bump `PTY_PROTOCOL` in `ptys.ts` so the next server replaces the PTY host.
 

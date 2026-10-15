@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { BALCONY, DESKS, DESK_SIZE, EXIT_STAIRS, FLOOR, PLANTS, STREET_Y, WALL_HEIGHT, WINDOWS } from '../../shared/layout';
+import { BALCONY, DESKS, DESK_SIZE, EXIT_STAIRS, FLOOR, PLANTS, STREET_Y, WALL_HEIGHT } from '../../shared/layout';
+import { windows } from '../../shared/windows';
 import type { Theme } from '../../shared/protocol';
 import { mulberry32 } from '../../shared/rng';
 import { batWingGeometry, glowTexture } from './costumes';
@@ -45,8 +46,7 @@ function pumpkinSpots(): Spot[] {
   // The kitchen counter, and the lounge's coffee table.
   spots.push([-13, 1.03, 12.2, 0.14, FACE.north], [-16.65, 1.03, 12.25, 0.11, FACE.north], [13, 0.46, 0.25, 0.17, FACE.west]);
   // On the window sills, looking in.
-  for (const o of WINDOWS) {
-    if (o.y0 > 2) continue;
+  for (const o of windows().filter((w) => w.y0 <= 2)) {
     if (o.wall === 'south') spots.push([o.u - 0.85, o.y0, FLOOR.maxZ - 0.08, 0.1, FACE.north]);
     if (o.wall === 'west') spots.push([FLOOR.minX + 0.08, o.y0, o.u + 0.85, 0.1, FACE.east]);
   }

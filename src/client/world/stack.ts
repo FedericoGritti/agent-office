@@ -1,58 +1,14 @@
 import * as THREE from 'three';
-import { FLOOR, LADDER, POLE, POLES, SLAB, WALL_HEIGHT, WALL_T, WINDOWS, type PoleSpot } from '../../shared/layout';
+import { FLOOR, LADDER, POLE, POLES, SLAB, WALL_HEIGHT, WALL_T, type PoleSpot } from '../../shared/layout';
+import { windowHead } from '../../shared/windows';
 import type { Collider, Interactable } from './types';
 import type { Fixture } from './office/fixture';
-import { mesh, textPlane, toon } from './toon';
+import type { Rect } from './toon';
+import { cutRect, mesh, textPlane, toon } from './toon';
 
 // The floors above and below this one: the ceiling (and the hatches and holes in it and in the floor),
 // the ladder up the west wall, and the fire poles. Every floor is built from the same office, so
 // what's here depends on which floor of the building you're on (see Stack.set).
-
-/** The top of the windows either side of the ladder, where the sign to the floor above hangs over. */
-const LADDER_WINDOW_HEAD = Math.max(...WINDOWS.filter((w) => w.wall === 'west').map((w) => w.y1));
-
-interface Rect {
-  minX: number;
-  maxX: number;
-  minZ: number;
-  maxZ: number;
-}
-
-/** `r` less the `holes` in it, as a few rectangles: rows of the grid the holes' edges make, stacked where they line up. */
-export function cutRect(r: Rect, holes: Rect[]): Rect[] {
-  const hs = holes
-    .map((h) => ({ minX: Math.max(r.minX, h.minX), maxX: Math.min(r.maxX, h.maxX), minZ: Math.max(r.minZ, h.minZ), maxZ: Math.min(r.maxZ, h.maxZ) }))
-    .filter((h) => h.maxX > h.minX && h.maxZ > h.minZ);
-  const edges = (lo: number, hi: number, more: number[]) => [...new Set([lo, hi, ...more])].sort((a, b) => a - b);
-  const xs = edges(r.minX, r.maxX, hs.flatMap((h) => [h.minX, h.maxX]));
-  const zs = edges(r.minZ, r.maxZ, hs.flatMap((h) => [h.minZ, h.maxZ]));
-  const out: Rect[] = [];
-  for (let j = 0; j < zs.length - 1; j++) {
-    const zm = (zs[j] + zs[j + 1]) / 2;
-    let run: Rect | null = null;
-    for (let i = 0; i < xs.length - 1; i++) {
-      const xm = (xs[i] + xs[i + 1]) / 2;
-      if (hs.some((h) => xm > h.minX && xm < h.maxX && zm > h.minZ && zm < h.maxZ)) {
-        if (run) out.push(run);
-        run = null;
-      } else if (run) run.maxX = xs[i + 1];
-      else run = { minX: xs[i], maxX: xs[i + 1], minZ: zs[j], maxZ: zs[j + 1] };
-    }
-    if (run) out.push(run);
-  }
-  // Rows with the same span, one on top of the other, become one.
-  for (let i = 0; i < out.length; i++) {
-    for (let j = i + 1; j < out.length; j++) {
-      const a = out[i];
-      const b = out[j];
-      if (a.minX === b.minX && a.maxX === b.maxX && a.maxZ === b.minZ) {
-        a.maxZ = b.maxZ;
-        out.splice(j--, 1);
-      }
-    }
-  }
-  return out;
-}
 
 /** The square round a pole's hole. */
 function around(p: { x: number; z: number }, half: number): Rect {
@@ -473,7 +429,7 @@ export function buildStack(colliders: Collider[], planks: THREE.Material): Stack
     ladderSigns = [];
     // Above the window beside it and below its sill, so they cover neither.
     for (const [name, arrow, y] of [
-      [s.up, '⬆', LADDER_WINDOW_HEAD + 0.48],
+      [s.up, '⬆', windowHead('west') + 0.48],
       [s.down, '⬇', 0.62],
     ] as const) {
       if (!others || !name) continue;

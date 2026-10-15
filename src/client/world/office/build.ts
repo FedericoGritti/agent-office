@@ -100,7 +100,14 @@ export function buildOffice(): Office {
     group,
     colliders,
     interactables,
-    wall: (wall, u, y, w, h) => void walls.push({ wall, u0: u - w / 2, u1: u + w / 2, y0: y - h / 2, y1: y + h / 2 }),
+    wall: (wall, u, y, w, h) => {
+      const rect = { wall, u0: u - w / 2, u1: u + w / 2, y0: y - h / 2, y1: y + h / 2 };
+      walls.push(rect);
+      return () => {
+        const i = walls.indexOf(rect);
+        if (i >= 0) walls.splice(i, 1);
+      };
+    },
     looks,
     planks,
     desks,
@@ -112,9 +119,11 @@ export function buildOffice(): Office {
     },
   };
 
-  // Each fixture in turn, with what it hands back.
+  // What each fixture in turn, with what it hands back.
   const updates: ((t: number, dt: number) => void)[] = [];
   const levels: ((index: number, count: number, wings: readonly number[]) => void)[] = [];
+  /** The floor the office was last put on: what a change to the walls has to build the rest of the building at. */
+  let level: [number, number, readonly number[]] = [0, 1, []];
   const plan: readonly Fixture[] = floorPlan();
   for (const fixture of plan) {
     const built = fixture(site);
@@ -139,9 +148,20 @@ export function buildOffice(): Office {
   };
 
   const setLevel = (index: number, count: number, wings: readonly number[] = []) => {
-    for (const level of levels) level(index, count, wings);
+    level = [index, count, wings];
+    for (const l of levels) l(index, count, wings);
   };
   setLevel(0, 1);
+
+  /**
+   * The windows in the outside walls changed (see shared/windows and features/layout-editor): the walls
+   * are built again round the current list, and so is everything else a floor's level builds — the
+   * building's outside above and below you, which carries the same windows.
+   */
+  const windowsChanged = () => {
+    given.shell!.rebuild();
+    setLevel(...level);
+  };
 
   const update = (t: number, dt: number, people: Iterable<{ x: number; y: number; z: number }>) => {
     const near = new Set<Door>();
@@ -161,5 +181,5 @@ export function buildOffice(): Office {
     for (const u of updates) u(t, dt);
   };
 
-  return { ...(given as OfficeHandles), group, colliders, interactables, desks, fixtures: () => walls, setLook, setLevel, update };
+  return { ...(given as OfficeHandles), group, colliders, interactables, desks, fixtures: () => walls, setLook, setLevel, windowsChanged, update };
 }

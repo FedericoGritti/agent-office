@@ -1,7 +1,7 @@
 import { FLOOR, inWing } from '../../shared/layout';
 import { makeBuffers, type Buffers } from './buffers';
 import { place, rms } from './dsp';
-import { WINDOWS, type Pos } from './places';
+import { OUTSIDE_WINDOWS, type Pos } from './places';
 
 /** Where you hear from: your head, facing where the camera looks. */
 export interface Listener extends Pos {
@@ -197,7 +197,7 @@ export class AudioCore {
 
   /** Where the sounds from outside come in: the hall's windows, or the office's. */
   windows(): Pos[] {
-    return this.hall?.windows.length ? this.hall.windows : WINDOWS;
+    return this.hall?.windows.length ? this.hall.windows : OUTSIDE_WINDOWS();
   }
 
   /** Up on the roof (true), or inside on a floor: the office's hum gives way to the wind and the city. */

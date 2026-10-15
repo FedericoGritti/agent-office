@@ -14,6 +14,7 @@ import { Machine } from '../machine.js';
 import type { Floor } from '../floor.js';
 import { Sky } from '../sky.js';
 import { Themes } from '../theme.js';
+import { Windows } from '../windows.js';
 import { Maps } from '../maps.js';
 import { OfficePrompts } from '../prompts.js';
 import { LeaveOnMerge } from '../leave-on-merge.js';
@@ -31,6 +32,8 @@ export function createServices(ctx: Ctx): BuildingServices {
   // goes by the calendar at the office, the sky's clock.
   const themes = new Themes(cfg.dataDir, () => sky.state.utcOffset, (state) => ctx.broadcast({ t: 'theme', state }));
   themes.start();
+  // The windows in the room's outside walls, as the editor leaves them: the building's, not a floor's.
+  const windows = new Windows(cfg.dataDir);
   // What the building looks like inside: the office, the castle, or a map of your own (⚙️ Settings).
   const maps = new Maps(cfg.dataDir);
   // The prompts the office writes for workers by itself, and the worker everyone starts on (⚙️ Settings).
@@ -125,7 +128,7 @@ export function createServices(ctx: Ctx): BuildingServices {
     });
   };
 
-  return { sky, themes, maps, prompts, leaveOnMerge, ledger, signins, limits, accountLimits, webhook, machine, limitsOf, pumpQueues };
+  return { sky, themes, windows, maps, prompts, leaveOnMerge, ledger, signins, limits, accountLimits, webhook, machine, limitsOf, pumpQueues };
 }
 
 /** What's made once the floors are open: the SSH team, the tailnet, workers' web servers, pictures and upgrades. */

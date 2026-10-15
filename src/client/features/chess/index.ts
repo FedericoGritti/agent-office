@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { Chess, type Square as Sq } from 'chess.js';
 import { parsePiece, squareAt, squareCentre, statusOf, type ChessGame, type Square } from '../../../shared/chess';
 import { spawned } from '../../../shared/placement';
-import { aside, hintTitle, key } from '../../core/hint';
+import { aside, hintTitle, key, onE } from '../../core/hint';
 import { store } from '../../state';
 import { EYE_HEIGHT } from '../../player';
 import { toast } from '../../ui/dom';
@@ -103,6 +103,15 @@ export function installChess(ctx: Ctx) {
   const rays = new THREE.Raycaster();
   rays.far = REACH + 6;
   const centre = new THREE.Vector2(0, 0);
+  /** Where the mouse is over the office: in third person that is what you point at, not the middle of the
+   *  screen — the middle of a screen is aimed at the far wall when the board is at your feet. */
+  let pointer: THREE.Vector2 | null = null;
+  const canvas = ctx.canvas;
+  canvas.addEventListener('pointermove', (e) => {
+    const r = canvas.getBoundingClientRect();
+    (pointer ??= new THREE.Vector2()).set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  });
+  canvas.addEventListener('pointerleave', () => (pointer = null));
   const eye = new THREE.Vector3();
   const markGeometry = new THREE.CircleGeometry(0.32, 20);
   let lookedAt = 0;
@@ -261,7 +270,8 @@ export function installChess(ctx: Ctx) {
   /** Which square of a board you're looking at, and how far away it is. */
   function aim(board: Board): number | null {
     eye.set(player.pos.x, player.pos.y + EYE_HEIGHT, player.pos.z);
-    rays.setFromCamera(centre, camera);
+    // The crosshair in first person; the mouse in third (see the pointer above).
+    rays.setFromCamera(player.view === 'first' ? centre : (pointer ?? centre), camera);
     const hits = rays.intersectObject(board.board, false);
     if (!hits.length) return null;
     const local = board.frame.worldToLocal(hits[0].point.clone());
@@ -284,7 +294,7 @@ export function installChess(ctx: Ctx) {
       }
       return { k: `${board?.piece.id ?? ''}|${board?.held ?? ''}|${board?.aimed ?? ''}`, parts };
     },
-    use: (it) => {
+    use: onE((it) => {
       const board = where.get(it);
       if (!board?.aimed) return;
       const id = board.piece.id;
@@ -302,7 +312,7 @@ export function installChess(ctx: Ctx) {
       // Something in hand: put it down there, and let the office say whether that was a move.
       net.send({ t: 'chess.move', board: id, from: board.held, to: board.aimed });
       board.held = null;
-    },
+    }),
   });
 
   ctx.keys.bind({

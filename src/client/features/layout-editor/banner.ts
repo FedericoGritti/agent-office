@@ -39,11 +39,13 @@ export interface BannerWants {
   window?: BannerWindow;
 }
 
-/** What its buttons do: one step down (`dir` < 0) or up, for the size, the height and the facing. */
+/** What its buttons do: one step down (`dir` < 0) or up, for the size, the height, the facing, and a
+ *  step across the way the piece faces (see Carrying.nudge). */
 export interface BannerSteps {
   size(dir: number): void;
   lift(dir: number): void;
   turn(dir: number): void;
+  move(dir: number): void;
   /** A window's width and its height: one step a click, the same as the wheel and the `-`/`+` keys. */
   widen(dir: number): void;
   heighten(dir: number): void;
@@ -63,17 +65,34 @@ function step(lower: string, higher: string, down: () => void, up: () => void, s
   return { read, el: h('span.step', {}, button(sides[0], lower, down), read, button(sides[1], higher, up)) };
 }
 
+/** A step each way with nothing between them: for one that has no reading of its own (see Move). */
+function pair(lower: string, higher: string, down: () => void, up: () => void, sides: [string, string]): HTMLElement {
+  const button = (side: string, title: string, run: () => void) => h('button.btn', { onclick: run, title }, side);
+  return h('span.step', {}, button(sides[0], lower, down), button(sides[1], higher, up));
+}
+
 export function makeBanner(steps: BannerSteps): Banner {
   const text = h('span.text');
   const facing = step('A quarter turn to the left', 'A quarter turn to the right', () => steps.turn(-1), () => steps.turn(1), ['⟲', '⟳']);
+  const beside = pair('A step to its left', 'A step to its right', () => steps.move(-1), () => steps.move(1), ['←', '→']);
   const size = step('Smaller', 'Bigger', () => steps.size(-1), () => steps.size(1));
   const height = step('Lower', 'Higher', () => steps.lift(-1), () => steps.lift(1));
-  const buttons = h('span.room-banner-buttons.hidden', {}, h('span.what', {}, 'Turn'), facing.el, h('span.what', {}, 'Size'), size.el, h('span.what', {}, 'Up'), height.el);
+  // Each control is a box of its own, its name over its own buttons: a run of buttons and names on one
+  // line leaves you counting along it to find out which name a button belongs to (see banner.css).
+  const group = (what: string, ...parts: HTMLElement[]) => h('span.group', {}, h('span.what', {}, what), ...parts);
+  const buttons = h(
+    'span.room-banner-buttons.hidden',
+    {},
+    group('Turn', facing.el),
+    group('Move', beside),
+    group('Size', size.el),
+    group('Up', height.el),
+  );
   // A window's own pair, in metres where a piece is a percentage of what it came as, and with no turn
   // between them: a hole in a wall is not facing anything (see BannerWindow).
   const wide = step('Narrower', 'Wider', () => steps.widen(-1), () => steps.widen(1));
   const tall = step('Shorter', 'Taller', () => steps.heighten(-1), () => steps.heighten(1));
-  const windowButtons = h('span.room-banner-buttons.hidden', {}, h('span.what', {}, 'Width'), wide.el, h('span.what', {}, 'Height'), tall.el);
+  const windowButtons = h('span.room-banner-buttons.hidden', {}, group('Width', wide.el), group('Height', tall.el));
   const el = h('div.room-banner.hidden', {}, text, buttons, windowButtons);
   document.body.append(el);
   return {

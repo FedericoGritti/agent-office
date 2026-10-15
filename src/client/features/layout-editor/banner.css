@@ -5,7 +5,7 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 40;
-  max-width: min(760px, 92vw);
+  max-width: min(980px, 94vw);
   padding: 7px 14px;
   background: #ffd166;
   color: #2b2d42;
@@ -23,21 +23,35 @@
 }
 
 /*
- * The two things a piece has, each with a step down and a step up beside what it is now. The sign itself
- * never takes the mouse — you look straight through it — so only the buttons do.
+ * The things a piece has, each in a box of its own with its name over its own buttons: a run of names and
+ * buttons on one line leaves you counting along it to find out which name a button belongs to.
+ *
+ * The sign itself never takes the mouse — you look straight through it — so only the buttons do.
  */
 .room-banner-buttons {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   margin-left: 12px;
   pointer-events: auto;
 }
 .room-banner-buttons.hidden {
   display: none;
 }
+.room-banner-buttons .group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(43, 45, 66, 0.55);
+  border-radius: 999px;
+}
 .room-banner-buttons .what {
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   opacity: 0.75;
 }
 .room-banner-buttons .step {

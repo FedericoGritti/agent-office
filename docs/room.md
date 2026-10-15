@@ -134,7 +134,12 @@ what you walk into grows with it and goes up with it, and the place you use it f
 board lifted two metres is still the board you press E at. The sign at the top carries a **−**/**+** pair
 for each — the size and the height beside them — and a click is one step and no more,
 which is what a scroll can't promise; a button needs a cursor, so in first person, where the mouse is
-captured, it is the keys that do it. Left up there it stays up there, because nothing in this room falls.
+captured, it is the keys that do it (**`[`**/**`]`** step a piece across the way it faces, on the room's
+25 cm grid: where the look carries it, one step over, for setting a piece against something rather than
+looking at it square). Each of the sign's controls is a box of its own, its name over its own buttons —
+**Turn** a quarter turn each way, **Move** a step across, **Size**, **Up** — because a run of names and
+buttons along one line leaves you counting along it to find out which name a button belongs to.
+Left up there it stays up there, because nothing in this room falls.
 It stops at the room's floor and at the ceiling above it, less the thing's own height, so a tall model
 held up over the loft doesn't end up standing through the roof. The sign says how big it is and how high
 on those buttons, and both are saved with everything else: they come back that way for everyone on the

@@ -64,6 +64,8 @@ export class Carrying {
   }
 
   private moving = false;
+  /** How far across its own facing a piece has been nudged from where the look leaves it (see nudge). */
+  private across = { x: 0, z: 0 };
 
   /** What you're carrying, if anything. */
   get carrying(): Piece | null {
@@ -97,6 +99,7 @@ export class Carrying {
     this.held = piece;
     this.from = { ...piece.at };
     this.carriedY = piece.at.y ?? null;
+    this.across = { x: 0, z: 0 };
     this.deps.changed();
   }
 
@@ -134,7 +137,7 @@ export class Carrying {
     this.raycaster.setFromCamera(CENTRE, this.camera);
     if (this.held) {
       const to = this.destination(this.held);
-      if (to) this.place(this.held, { ...this.held.at, ...to, hidden: false }, false);
+      if (to) this.place(this.held, { ...this.held.at, ...to, x: to.x + this.across.x, z: to.z + this.across.z, hidden: false }, false);
       return;
     }
     const at = this.lookingAt();
@@ -264,6 +267,27 @@ export class Carrying {
     const piece = this.held;
     if (!piece || !this.adjustable) return false;
     this.place(piece, { ...piece.at, y: liftBy(piece.at.y ?? 0, dir, this.ceilingFor(piece)) }, false);
+    this.deps.changed();
+    return true;
+  }
+
+  /**
+   * One press moves it a step across the way it faces — to its own left (`dir` < 0) or right — on the
+   * room's 25 cm grid, the same one everything else moves in.
+   *
+   * A piece in your hands stands where the look puts it (see destination), so this is kept as an offset
+   * from that: the look keeps carrying it, a quarter of a metre further over than the look alone would
+   * leave it, and a press is one step from where it is now. It is for setting a piece against something
+   * rather than looking at it square — a sofa along a wall, a plant in a corner, a desk a row over.
+   */
+  nudge(dir: number): boolean {
+    const piece = this.held;
+    if (!piece) return false;
+    const across = piece.at.rotY + (Math.PI / 2) * dir;
+    const dx = Math.sin(across) * SNAP;
+    const dz = Math.cos(across) * SNAP;
+    this.across = { x: this.across.x + dx, z: this.across.z + dz };
+    this.place(piece, { ...piece.at, x: piece.at.x + dx, z: piece.at.z + dz, hidden: false }, false);
     this.deps.changed();
     return true;
   }

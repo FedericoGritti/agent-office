@@ -28,6 +28,9 @@ export function installLayoutEditor(ctx: Ctx) {
     // A quarter turn each way, the same as R and Shift+R: a button is one step, and in third person a
     // button is what there is (see banner.ts).
     turn: (dir) => void carrying.turn(dir < 0),
+    // A step across the way the piece faces, on the room's own 25 cm grid: where the look leaves it, one
+    // step over (see Carrying.nudge).
+    move: (dir) => void carrying.nudge(dir),
     // A window's own two steps: a hole in a wall is widened and heightened where it stands, not turned.
     widen: (dir) => void windows.resize(dir),
     heighten: (dir) => void windows.heighten(dir),
@@ -50,7 +53,7 @@ export function installLayoutEditor(ctx: Ctx) {
       });
     else if (held)
       banner.set({
-        text: `🛠️ Carrying ${labelFor(held.id)} — E puts it down · R turns it${carrying.adjustable ? ' · scroll sizes it · −/+ up and down' : ''} · Canc takes it away · Esc puts it back`,
+        text: `🛠️ Carrying ${labelFor(held.id)} — E puts it down · R turns it · [ ] steps it across${carrying.adjustable ? ' · scroll sizes it · −/+ up and down' : ''} · Canc takes it away · Esc puts it back`,
         // A piece with a seat has no size, height or facing of its own to change: a desk or a couch keeps
         // the way the room built it (see room.md), so the sign carries no buttons.
         ...(carrying.adjustable ? { piece: { size: carrying.size, height: carrying.height, turned: carrying.turned } } : {}),
@@ -229,6 +232,14 @@ export function installLayoutEditor(ctx: Ctx) {
       e.preventDefault();
       if (!carrying.carrying) toast('Only furniture turns');
       else carrying.turn(e.shiftKey);
+      return true;
+    }
+    if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
+      // A step across the way the piece faces: the Move buttons' own work, for first person, where the
+      // mouse is looking around and a button has no cursor (see Carrying.nudge).
+      if (!carrying.carrying) return false;
+      e.preventDefault();
+      carrying.nudge(e.code === 'BracketRight' ? 1 : -1);
       return true;
     }
     if (e.code === 'KeyN') {

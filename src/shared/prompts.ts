@@ -41,7 +41,7 @@ const BOARD: Record<StationKind, string> = {
 };
 
 const JOB: Record<StationKind, string> = {
-  coordinator: `Read the coordinator skill (skill://coordinator) and follow it to the letter: it holds your role, the plan's files and the board, the dispatch of a ready subplan to a worker, the verification and integration of what comes back, the advance between phases, and the question protocol. Ask the user one question at a time, in plain language.`,
+  coordinator: `Read and follow the coordinator skill (skill://coordinator): it owns your role, the plan's files and the board, the dispatch of a ready subplan to a worker, the verification and integration of what comes back, the advance between phases, and the question protocol.`,
 };
 
 /** What the coordinator is told ahead of the first request typed to it. */

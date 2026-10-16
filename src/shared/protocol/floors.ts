@@ -157,8 +157,10 @@ export type FloorClientMsg =
    * floor list), or the ladder or fire pole you came by.
    */
   | { t: 'floor.go'; floor: string; at?: { x: number; y: number; z: number; rotY: number } }
-  /** The folders of the office's machine a floor could be made of (`path` is the folder to show, home by default); answered with `floor.folders`. */
+  /** Browse folders on the office machine (`path` is the folder to show, home by default); answered with `floor.folders`. */
   | { t: 'floor.folders'; path?: string }
+  /** Choose the folder whose pictures the current floor's Figures boards show. */
+  | { t: 'images.folder'; path: string }
   /** Make the folder at `path` a floor, as it is: nothing is cloned and nothing in it is written; answered with `floor.added`. */
   | { t: 'floor.addFolder'; path: string }
   /** Stop a floor's clone before it's there (admins, or whoever added it). */
@@ -188,7 +190,7 @@ export type FloorServerMsg =
   /** Your floor's signs changed, or its back office was built out or walled up. */
   | { t: 'plan'; plan: FloorPlan }
   /**
-   * Your floor's `images/` folder changed: a figure was added, taken away, or written again under
-   * its own name. The figures boards read the folder and their picture again (see features/figures).
+   * The source or contents of this floor's Figures boards changed. Each board reads the selected
+   * folder and its current picture again.
    */
   | { t: 'images' };

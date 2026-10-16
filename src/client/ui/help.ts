@@ -23,7 +23,7 @@ export const HELP_ROWS: readonly (readonly [string, string])[] = [
   ['🎯', 'Up on the roof, in the corner past the DJ: a dart board and an axe-throwing lane. E at either steps up to the line. The mouse (or the arrow keys) aims, and your hand wanders more after a few drinks. Hold Space (or the mouse button) and let go in the green: three darts a visit, five axes a round, chalked up for everyone up there. E steps back'],
   ['Drag / wheel', 'Orbit and zoom the camera in third person'],
   ['P', 'Prompt: give a task to a new or existing worker at the desk you face'],
-  ['C', 'Changes: what the worker at the desk you face changed — files and diff, commit, discard, open a PR'],
+  ['C', 'Changes at a worker desk; at a Figures board, choose the folder of pictures it shows'],
   ['B', 'Open a shared shell (dev servers, git, tests) at an empty desk'],
   ['R', 'Resume a sleeping worker'],
   ['X', 'Send a worker home (frees the desk)'],

@@ -26,6 +26,11 @@ export const floorHandlers = {
     if (typeof listing === 'string') return ctx.sendTo(c, { t: 'floor.folders', path: msg.path ?? home, home, dirs: [], error: listing });
     ctx.sendTo(c, { t: 'floor.folders', ...listing });
   },
+  'images.folder'(ctx, c, msg) {
+    const floor = ctx.floorOf(c);
+    if (!floor) return;
+    ctx.warn(c, floor.setImagesFolder(str(msg.path, 4096)));
+  },
   'floor.addFolder'(ctx, c, msg) {
     const who = c.peer.name;
     const dir = str(msg.path, 1024);

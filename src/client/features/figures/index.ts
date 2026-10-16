@@ -1,10 +1,11 @@
-/** The figures boards: one picture from the project's `images/` folder each, its whole name on the plate under it. */
+/** The Figures boards: one picture from their selected folder each, its whole name on the plate under it. */
 import type { ImageList } from '../../../shared/images';
 import type { Ctx } from '../../core/context';
-import { aside, hintTitle, key, onE } from '../../core/hint';
+import { aside, hintTitle, key } from '../../core/hint';
 import { store } from '../../state';
 import { clip } from '../../ui/dom';
 import type { FiguresStand } from './world';
+import { openFiguresFolder } from './folder';
 
 // The kinds of thing you can use that this defines (see InteractKinds in world/types.ts).
 declare module '../../world/types' {
@@ -31,19 +32,21 @@ export function installFigures(ctx: Ctx) {
   const boards: Board[] = ctx.office.figures.map((stand) => {
     const g = stand.face.getContext('2d')!;
     const height = stand.face.height;
-    return { stand, g, width: stand.face.width, height, scale: height / 570, at: 0, note: 'Reading images/…' };
+    return { stand, g, width: stand.face.width, height, scale: height / 570, at: 0, note: 'Reading pictures…' };
   });
   /** Which board something you aim at is: the point you aim at is the board's own, so it says which.
    *  Keyed by that point, not by where it stands: moving a board moves the point with it. */
   const boardAt = new Map(boards.map((b) => [b.stand.interactable, b]));
   let names: string[] = [];
+  let folder = 'images';
+  let source = 'images';
   /** The first read opens each board on a different picture; later ones keep what each board was on. */
   let opening = true;
 
-  /** The plate under the board says what the board is on: the whole file name, and where it is in the folder. */
+  /** The plate under the board says which picture it is on and where it sits in the selected folder. */
   function label(b: Board) {
     const name = names[b.at];
-    b.stand.setLabel(name ? `🖼️ ${name} · ${b.at + 1}/${names.length}` : '🖼️ images/');
+    b.stand.setLabel(name ? `🖼️ ${name} · ${b.at + 1}/${names.length}` : `🖼️ ${source}/`);
   }
 
   /** Draws whatever board `b` is on: its picture if it has landed, its note over white if it hasn't. */
@@ -76,7 +79,7 @@ export function installFigures(ctx: Ctx) {
     const name = names[b.at];
     label(b);
     if (!name) {
-      b.note = 'No pictures in images/ yet';
+      b.note = `No pictures in ${source}/ yet`;
       return draw(b, null);
     }
     b.note = `Loading ${name}…`;
@@ -116,7 +119,11 @@ export function installFigures(ctx: Ctx) {
     try {
       const r = await fetch(`/api/images?floor=${encodeURIComponent(store.floor)}`, { credentials: 'same-origin' });
       if (!r.ok) throw new Error(String(r.status));
-      names = ((await r.json()) as ImageList).files;
+      const list = (await r.json()) as ImageList;
+      names = list.files;
+      folder = list.folder;
+      const trimmed = folder.replace(/[\\/]+$/, '');
+      source = trimmed.split(/[\\/]/).pop() || folder;
     } catch {
       names = [];
     } finally {
@@ -133,9 +140,8 @@ export function installFigures(ctx: Ctx) {
   for (const b of boards) draw(b, null);
   void refresh();
   store.on('floor', () => void refresh());
-  // The office watches the project's images/ and says when it moves: a figure added, taken away or
-  // written again under its own name. The boards read the folder and their picture again then, and on
-  // E at one of them. Nothing is kept between times, so what a board shows is always what's there.
+  // The office watches the selected folder and says when it moves. The boards reread the folder and
+  // their current picture then, and on E at one of them. Nothing is cached between reads.
   ctx.messages.on('images', () => void refresh());
 
   ctx.interactions.define('figures', {
@@ -143,11 +149,16 @@ export function installFigures(ctx: Ctx) {
     hint: (it) => {
       const b = boardAt.get(it);
       const name = b ? names[b.at] : undefined;
-      return { k: String(names.length && b ? b.at + 1 : 0), parts: [hintTitle('🖼️ Figures'), aside(clip(name ?? 'images/', 40)), key('E', names.length ? 'Next' : 'Look')] };
+      return {
+        k: String(names.length && b ? b.at + 1 : 0),
+        parts: [hintTitle('🖼️ Figures'), aside(clip(name ? `${source}/${name}` : folder, 40)), key('E', names.length ? 'Next' : 'Look'), key('C', 'Choose folder')],
+      };
     },
-    use: onE((it) => {
+    use: (it, pressed) => {
+      if (pressed === 'C') return openFiguresFolder(ctx.net, folder);
+      if (pressed !== 'E') return;
       const b = boardAt.get(it);
       if (b) next(b);
-    }),
+    },
   });
 }

@@ -145,7 +145,7 @@ export const fileRoutes = {
     auth: 'session',
     async handle(ctx, { res, url, path: p }) {
       const floor = floorParam(ctx, url);
-      // The gallery: the project's figures, by name, and the bytes of one (see images.ts).
+      // The Figures boards: the selected folder's pictures by relative name, and the bytes of one.
       if (!floor) return send(res, 404, { error: 'No such floor' });
       if (p === '/api/images') return send(res, 200, await floor.images.list());
       const file = str(url.searchParams.get('path'), 4096);

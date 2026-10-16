@@ -1,9 +1,10 @@
-// The figures of a floor's project: the `images/` folder at its root (one images folder per
-// repository, the file names are the index — see the project's own rules). The gallery in the office
-// (features/gallery/) shows them one at a time, off this list and these bytes.
+// The pictures a floor's Figures boards show: the project's `images/` folder by default, or another
+// folder on the office machine chosen at the boards.
 
-/** What GET /api/images answers: the floor's figures, by path from the project folder. */
+/** What GET /api/images answers: the selected folder and its figures by relative path. */
 export interface ImageList {
+  /** The absolute source folder on the office machine. */
+  folder: string;
   files: string[];
   /** There were more than the office lists. */
   more: boolean;

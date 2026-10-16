@@ -19,6 +19,12 @@ test('E remains handled by representative nearby interactions', () => {
   assert.equal(interactionAvailable(interaction('ladder'), 'E', state()), true);
 });
 
+test('C chooses the source only at a Figures board', () => {
+  assert.equal(interactionAvailable(interaction('figures'), 'C', state()), true);
+  assert.equal(interactionAvailable(interaction('figures'), 'E', state()), true);
+  assert.equal(interactionAvailable(interaction('dog'), 'C', state()), false);
+});
+
 test('desk-specific keys are handled only when their action is available', () => {
   const desk = interaction('desk', { deskId: 'desk-1' });
   assert.equal(interactionAvailable(desk, 'B', state()), true);

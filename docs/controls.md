@@ -12,7 +12,7 @@ Back to the [README](../README.md).
 | Y | At a chess board (see [Features](features.md)): start the game again from the first position |
 | K | On the castle's throne (or in the station's captain's chair): speak to the Hand of the King (the First Officer), to send out a new worker |
 | P | Prompt: give a task to a new worker, or to the one at this desk or the coordinator |
-| C | Changes: the files the worker at this desk changed and their diff; commit, discard or open a PR |
+| C | At a worker's desk, open Changes: its files and diff, commit, discard or open a PR. At a Figures board, choose the folder of pictures it shows |
 | B | Open a shared shell at an empty desk |
 | R | Resume a sleeping worker (or restart a shell) |
 | X | Send a worker home (frees the desk; a worker with its own worktree asks what to do with it). In the [castle](maps.md#the-castle), the Kingsguard takes it down to the dungeon; on the [space station](maps.md#the-space-station), Security puts it out of the airlock |

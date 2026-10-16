@@ -1,6 +1,5 @@
-// The folders of the office's machine, for the elevator's "add a project": a floor is a folder you
-// already keep your work in (see building.ts), so this is what the picker browses. Nothing here
-// writes: adding a floor to a folder, and taking it off, leave the folder exactly as it was.
+// The folders of the office's machine, for any server-folder picker: adding a project from the
+// elevator, or choosing what the Figures boards show. Browsing never writes to the selected folder.
 import { readdirSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import type { FolderListing } from '../shared/protocol.js';

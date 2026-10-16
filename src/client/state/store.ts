@@ -101,7 +101,7 @@ export class Store {
   floor: string | null = null;
   /** Where a floor cloned by the first-run walkthrough goes. */
   projectsDir: ProjectsDirState = { dir: '', custom: false };
-  /** The folders of the office's machine the elevator is browsing, once asked for (see floor.folders). */
+  /** The folders of the office's machine the active folder picker is browsing. */
   folders: { path: string; home: string; parent?: string; dirs: string[]; error?: string; loading: boolean } = { path: '', home: '', dirs: [], loading: false };
   issues: GhState<GhIssue> = { items: [], fetchedAt: 0, loading: true };
   pulls: GhState<GhPull> = { items: [], fetchedAt: 0, loading: true };

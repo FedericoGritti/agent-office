@@ -5,9 +5,9 @@ import { mesh, roundedBox, textPlane, toon } from '../../world/toon';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture } from '../../world/office/fixture';
 
-// The figures board: a rolling stand where the potted plant used to stand, in the middle of the
-// desks. Its face shows one picture from the project's `images/` folder at a time, with the file
-// name along the bottom (see index.ts). A click, or E, moves to the next.
+// The Figures board: a rolling stand where the potted plant used to stand, in the middle of the
+// desks. Its face shows one picture from the floor's selected folder at a time, with the file name
+// along the bottom (see index.ts). A click, or E, moves to the next; C chooses the folder.
 
 const ALU = '#aab4be';
 const RUBBER = '#3a3a3a';

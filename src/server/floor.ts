@@ -142,7 +142,7 @@ export class Floor {
   readonly meetings: MeetingRoom;
   /** The bookshelf: the project's Markdown files (see docs.ts). */
   readonly docs: Docs;
-  /** The project's figures: the images/ folder at its root (see images.ts). */
+  /** The pictures shown on this floor's Figures boards, from their persisted source folder. */
   readonly images: Images;
   /** Settles once the workers whose terminals outlived the last office are picked back up, and the rest woken. */
   readonly ready: Promise<void>;
@@ -154,7 +154,7 @@ export class Floor {
   /** Workers sent home on a map that locks them up (see MapPlan.sendHome). */
   readonly jail: Jail;
   private timer: NodeJS.Timeout;
-  /** Stops watching the project's `images/` for the figures boards (see images.watch). */
+  /** Stops watching the source folder used by this floor's Figures boards. */
   private imagesOff: () => void;
   /** Pull requests merging, to ring the gong for. */
   private merges = new MergeWatch();
@@ -174,9 +174,8 @@ export class Floor {
     excludeFromGit(def.dir);
     this.project = projectInfo(def.dir, def.name, ctx.agentCmd, ctx.agentArgs);
     this.docs = new Docs(def.dir);
-    this.images = new Images(def.dir);
-    // The figures boards read images/ again when it moves: a figure added, taken away or written
-    // again under its own name reaches every board on the floor by itself (see features/figures).
+    this.images = new Images(def.dir, dataDir);
+    // The Figures boards read their source again when a picture is added, removed or rewritten.
     this.imagesOff = this.images.watch(() => ctx.emit(this, { t: 'images' }));
     // Before the workers and the dog: the back office's desks are only there once it's built.
     this.plan = new FloorPlanStore(dataDir);
@@ -346,6 +345,16 @@ export class Floor {
     this.timer = setInterval(() => {
       if (this.active() || Date.now() - this.github.issues.fetchedAt > IDLE_REFRESH_MS) void this.github.refresh();
     }, REFRESH_MS);
+  }
+
+  /** Changes the Figures boards' source and moves their watcher with it. */
+  setImagesFolder(raw: string): string | undefined {
+    const err = this.images.setFolder(raw);
+    if (err) return err;
+    this.imagesOff();
+    this.imagesOff = this.images.watch(() => this.ctx.emit(this, { t: 'images' }));
+    this.ctx.emit(this, { t: 'images' });
+    return undefined;
   }
 
   /** Pull request `n` merged (`by` someone, from the PR window): the gong rings, once per PR. */

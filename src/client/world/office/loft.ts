@@ -6,7 +6,7 @@ import type { Collider, DeskView, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE, box, floorTexture, type Looks } from './materials';
 import { accent } from './paint';
-import { floorPlant, pendant, plant } from './props';
+import { floorPlant, plant } from './props';
 import { chair, seatable } from './seats';
 
 /**
@@ -209,10 +209,6 @@ export function buildLoft(group: THREE.Group, colliders: Collider[], interactabl
     // The room's six pots are 1 to 6, so the loft's carry on from there.
     placed(p, `plant-${7 + i}`, { x: px, z: pz }, [potCollider], { colliders, interactables });
   }
-
-  const lamp = pendant();
-  lamp.position.set(deskX, roofY - 0.4, cz);
-  group.add(lamp);
 }
 
 /** The loft up the stairs, over the meeting room: the boss's office. */

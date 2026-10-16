@@ -21,7 +21,7 @@ import { kitchen } from '../kitchen';
 import { signs } from '../desksigns';
 import type { Collider, DeskView, Interactable, LookColors, Office, OfficeHandles } from '../types';
 import { PALETTE, floorTexture, paintPlanks, type Looks } from './materials';
-import { boards, clearOfStairs, lamps, lounge, machineMonitor, nightLights, plants, rugs, tv } from './room';
+import { boards, clearOfStairs, lounge, machineMonitor, nightLights, plants, rugs, tv } from './room';
 import { plug, walls, type Door } from './shell';
 import { balcony } from './balcony';
 import { downstairs } from './ground';
@@ -63,7 +63,6 @@ function floorPlan() {
     bookshelf,
     kitchen,
     plants,
-    lamps,
     wing,
     signs,
     loft,

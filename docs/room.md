@@ -36,7 +36,6 @@ in the room at two metres, and turned on the spot.
 | `meetingRoom` | the board on the back wall, the panel beside the door | ✔ each |
 | `meetingRoom` | the table | ✔ |
 | `meetingRoom` | the chairs round it | ✘ seats a meeting is seated at |
-| `lamps` | five pendant lamps | ✘ each lights a halo of its own, and the light would stay behind |
 | `desks`, `stationDesks` | every desk a worker sits at, and the coordinator's | ✔ each: the seat moves with the desk |
 | `beanbags` | the cushions the overflow sits on, out in the room | ✔ each: the seat moves with the cushion |
 | `signs` | the signs over the desks | ✘ on their own: each belongs to the desk it names, and travels with it |

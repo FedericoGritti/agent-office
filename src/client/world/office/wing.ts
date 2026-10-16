@@ -7,7 +7,6 @@ import type { Collider, DeskView, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE, box, type Looks } from './materials';
 import { accent } from './paint';
-import { pendant } from './props';
 import { buildDesk } from './seats';
 import { wallRun, wetPane, windowIn } from './shell';
 
@@ -24,9 +23,9 @@ export interface WingView {
 /**
  * The back office: the bit of north wall between the gong and the east wall, which comes down when
  * the floor's built out, and behind it the bay, a row deeper each time, with a pair of desks down the
- * middle of each row, a rug under them, a lamp over them and a window in the east wall. No sign says
- * so: the wall itself is what you use (see the expand interaction in features/workers/views.ts), and
- * the hint bar says what pressing E there does. Whichever wall is at the back is the one it acts on.
+ * middle of each row, a rug beneath them and a window in the east wall. No sign says so: the wall
+ * itself is what you use (see the expand interaction in features/workers/views.ts), and the hint bar
+ * says what pressing E there does. Whichever wall is at the back is the one it acts on.
  */
 export function buildWing(group: THREE.Group, colliders: Collider[], interactables: Interactable[], desks: Map<string, DeskView>, looks: Looks, trimMat: THREE.Material, planks: THREE.Material, ceiling: THREE.Material, night: NightParts): WingView {
   const T = WALL_T;
@@ -50,16 +49,13 @@ export function buildWing(group: THREE.Group, colliders: Collider[], interactabl
   knockable(plug);
   group.add(plug);
 
-  // Each row's desks, and its rug and lamp.
+  // Each row's desks and rug.
   const rows = Array.from({ length: WING.rows }, (_, i) => {
     const row = i + 1;
     const z = wingRowZ(row);
     const extras = new THREE.Group();
     const slot = (row + 1) % PALETTE.rugs.length;
     extras.add(mesh(roundedBox(3.4, 0.02, WING.row - 1, 0.5), accent(slot, PALETTE.rugs[slot]), midX, 0.011, z, false));
-    const lamp = pendant(WALL_HEIGHT - 4.05);
-    lamp.position.set(midX, 4.05, z);
-    extras.add(lamp);
     extras.visible = false;
     group.add(extras);
     const seats = WING_DESKS.filter((d) => d.wing === row).map((def) => {

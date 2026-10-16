@@ -8,11 +8,11 @@ import type { Collider, Interactable } from '../types';
 import type { Fixture } from './fixture';
 import { PALETTE } from './materials';
 import { accent } from './paint';
-import { coffeeTable, floorPlant, loungeCouch, pendant, plant, pouf, wallBoard } from './props';
+import { coffeeTable, floorPlant, loungeCouch, plant, pouf, wallBoard } from './props';
 import { seatable } from './seats';
 
 // The room itself, past its walls and its seats: the rugs, what the sky lights and darkens, the boards
-// on the walls, the TV and the machine's monitor, the lounge, the plants and the lamps.
+// on the walls, the TV and the machine's monitor, the lounge and the plants.
 
 declare module '../types' {
   interface OfficeHandles {
@@ -186,25 +186,6 @@ export const plants: Fixture<'plants'> = (site) => {
     if (plantByWing(spot)) site.inTheWay.push({ group: p, collider });
   }
   return { handle: { plants: pots } };
-};
-
-/** Ceiling lamps (cartoon pendants), hung on long cords down from the high ceiling. */
-export const lamps: Fixture = (site) => {
-  const night = site.get('night');
-  const lampY = 4.05;
-  for (const [x, z] of [
-    [-10.5, -4],
-    [-1.5, -4],
-    [-10.5, 4],
-    [-1.5, 4],
-    [13, 0],
-  ]) {
-    const lamp = pendant(WALL_HEIGHT - lampY);
-    lamp.position.set(x, lampY, z);
-    site.group.add(lamp);
-    night.halos.push({ at: new THREE.Vector3(x, lampY - 0.12, z), size: 1.3, color: '#ffe08a' });
-  }
-  return {};
 };
 
 /**

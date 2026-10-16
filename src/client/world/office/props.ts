@@ -5,8 +5,8 @@ import { PALETTE } from './materials';
 import { accent } from './paint';
 
 // The office's furnishings: the potted plants, the desks' knick-knacks and the lounge's furniture (all
-// modelled in Blender), the pendant lamps and the framed boards on the walls. The lab (lab/props.ts), the
-// holidays and the castle use some of them too.
+// modelled in Blender), and the framed boards on the walls. The lab (lab/props.ts), the holidays and
+// the castle use some of them too.
 
 // The potted plants are modelled in Blender (blender/scripts/build_plants.py): each plant is a painted
 // copy of one species in plants.glb (see piece()). A species is its pot, named after it, with everything that
@@ -124,17 +124,6 @@ export function pouf(color: string | THREE.Material): THREE.Object3D {
 /** The lounge's round coffee table, 0.9 round, its top 0.46 up (where the holiday pumpkin stands). */
 export function coffeeTable(): THREE.Object3D {
   return piece('lounge', 'coffee_table', paintLounge);
-}
-
-/** A pendant lamp, its shade at 0, on a cord `cord` meters long. */
-export function pendant(cord = 0.48): THREE.Group {
-  const lamp = new THREE.Group();
-  const c = cord / 0.8;
-  lamp.add(mesh(new THREE.CylinderGeometry(0.01, 0.01, c, 4), toon(PALETTE.ink), 0, c / 2, 0, false));
-  lamp.add(mesh(new THREE.ConeGeometry(0.5, 0.45, 16, 1, true), toon('#ffd166'), 0, 0, 0, false));
-  lamp.add(mesh(new THREE.SphereGeometry(0.16, 10, 8), toon('#fff7d6', { emissive: '#ffe08a' }), 0, -0.15, 0, false));
-  lamp.scale.setScalar(0.8);
-  return lamp;
 }
 
 /** A framed board on a wall; the face gets a canvas texture (cork, chalk or whiteboard). */

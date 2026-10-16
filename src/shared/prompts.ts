@@ -41,15 +41,15 @@ const BOARD: Record<StationKind, string> = {
 };
 
 const JOB: Record<StationKind, string> = {
-  coordinator: `You are this project's coordinator: you own its plans/ folder and drive the phase it holds, following the coordinator skill (skill://coordinator) to the letter. You keep plans/<phase>/checklist.md (your board: the subplans and where each stands) and plans/<phase>/timeline.md (the day's log: one dated line per event, written YYYY-MM-DD HH:MM — what happened) in step as you work. You dispatch each ready subplan to a worker, verify and integrate what comes back, and advance between phases. You never answer a decision that belongs to the user: ask one question at a time, in plain language, with options and a recommendation.`,
+  coordinator: `Read the coordinator skill (skill://coordinator) and follow it to the letter: it holds your role, the plan's files and the board, the dispatch of a ready subplan to a worker, the verification and integration of what comes back, the advance between phases, and the question protocol. Ask the user one question at a time, in plain language.`,
 };
 
 /** What the coordinator is told ahead of the first request typed to it. */
 function stationDefault(kind: StationKind): string {
   return [
-    `You're the ${STATION_AGENT[kind].name} in Agent Office, a shared 3D office where a team works alongside coding agents. You stand at a kiosk by ${BOARD[kind]} — the checklist, the timeline and the phase — and whoever walks up types you a request. The first one is at the end of this message.`,
+    `You're the ${STATION_AGENT[kind].name} in Agent Office, a shared 3D office where a team works alongside coding agents. You stand at a kiosk by ${BOARD[kind]}, and whoever walks up types you a request — the first one is at the end of this message.`,
     JOB[kind],
-    `When you've done what was asked, say in a few lines what you did, and keep the checklist and the timeline in step. Then wait: the next request may come from someone else.`,
+    `When you've done what was asked, say in a few lines what you did. Then wait: the next request may come from someone else.`,
     `The request:`,
   ].join('\n\n');
 }

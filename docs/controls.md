@@ -30,8 +30,9 @@ Back to the [README](../README.md).
 | M | Mute / unmute in voice |
 | Ctrl + Space | Dictate, in a worker's terminal or a prompt box: hold it and talk, and what you said is typed in when you let go. A quick tap leaves it listening until the next tap. The **🎤** does the same |
 | Tab | The ☰ menu: every window, and what shows on screen |
-| Esc | Close any window (a terminal too) and get back to looking around |
-| Ctrl + [ | Send Esc to a terminal instead, to close a menu like Claude's `/skills` or interrupt Claude. **⎋ Esc** in the terminal's header does the same |
+| Esc | Close any window but a terminal, and get back to looking around. In a terminal it is the program's key instead (see below) |
+| Ctrl + [ | Send Esc to a terminal, to close a menu like Claude's `/skills` or interrupt the agent — as does the **Esc** key while one is open |
+| Ctrl + ] | Close the terminal window, and get back to looking around |
 
 You can also click a nearby desk to interact with it, or click a worker in the Workers panel (**🤖 Workers**, top right) to open its terminal.
 
@@ -49,3 +50,7 @@ The prompt edits the way it does in your own terminal (iTerm2's *Natural Text Ed
 | ⌘ + ⌫ | Delete to the start of the line (Mac) |
 | ⌘ + ⌦ | Delete to the end of the line (Mac) |
 | ⌘ + ← / → | Jump to the start / end of the line (Mac) |
+| Esc | Esc to the program: close a menu like Claude's `/skills`, or interrupt what it is doing. **Ctrl + [** does the same |
+| ⛶ | Full screen, or back to a window. What this browser remembers, so the next terminal opens the way you left it |
+
+The terminal is the one window **Esc** doesn't close: it is the program's key there. Close it with its **✕**, **Ctrl + ]** or a click outside it.

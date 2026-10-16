@@ -73,11 +73,13 @@ export function setDoing(modal: Modal, doing: string | undefined) {
 
 /**
  * Opens a modal. Esc closes it unless `escCloses` is false (for dialogs you mustn't skip), and so
- * does a ✕ in its top right corner unless `closeButton` is false (it follows `escCloses`). `doing`
+ * does a ✕ in its top right corner unless `closeButton` is false (it follows `escCloses`). A window
+ * that needs the Esc key for what's inside it passes `onEsc` instead: it hears the key, and doesn't
+ * close on it (the terminal does: see ui/terminal.ts). `doing`
  * is what teammates see under your name tag while it's open, like "reading PR #12", and `reading`
  * puts an open book in your character's hands. `onClose` hears whether it was the Esc key.
  */
-export function openModal(content: HTMLElement, opts: { escCloses?: boolean; onClose?: (byEsc: boolean) => void; backdropCloses?: boolean; closeButton?: boolean; doing?: string; reading?: boolean } = {}): Modal {
+export function openModal(content: HTMLElement, opts: { escCloses?: boolean; onEsc?: (e: KeyboardEvent) => void; onClose?: (byEsc: boolean) => void; backdropCloses?: boolean; closeButton?: boolean; doing?: string; reading?: boolean } = {}): Modal {
   const backdrop = h('div.backdrop', {}, content);
   const root = document.getElementById('modal-root')!;
   root.append(backdrop);
@@ -85,8 +87,17 @@ export function openModal(content: HTMLElement, opts: { escCloses?: boolean; onC
   let byEsc = false;
   const onKey = (e: KeyboardEvent) => {
     if (stack[stack.length - 1] !== modal) return;
-    if (e.key === 'Escape' && opts.escCloses !== false) {
-      // Stop it here so the Esc that closes a terminal isn't also typed into it.
+    if (e.key !== 'Escape') return;
+    // A window that keeps Esc for itself (a terminal: the key belongs to the program in it) hears it
+    // here, stopped on the way, so the key reaches the program once and nothing else reads it.
+    if (opts.onEsc) {
+      e.preventDefault();
+      e.stopPropagation();
+      opts.onEsc(e);
+      return;
+    }
+    if (opts.escCloses !== false) {
+      // Stop it here so the Esc that closes a window isn't also typed into whatever is in it.
       e.preventDefault();
       e.stopPropagation();
       byEsc = true;

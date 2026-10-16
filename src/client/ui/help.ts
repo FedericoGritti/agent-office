@@ -41,7 +41,8 @@ export const HELP_ROWS: readonly (readonly [string, string])[] = [
   ['M', 'Mute or unmute your mic in voice. ⚙️ Settings can have you join muted, for push to talk'],
   ['Ctrl+Space', 'Dictate: in a worker’s terminal or a prompt box, hold Ctrl+Space (or the 🎤) and talk, and what you said is typed in when you let go, for you to read over and send. A quick tap leaves it listening until you tap again. The browser does the listening (Chrome, Edge and Safari can), so there’s nothing to install'],
   ['Tab', 'The ☰ menu, top right: every window, and what shows on screen. Pin what you use most to the top bar'],
-  ['Esc', 'Close any window and get back to looking around'],
-  ['Ctrl + [', 'Send Esc to a terminal instead, to close a menu like Claude’s /skills or interrupt Claude. ⎋ Esc in the terminal’s header does the same'],
+  ['Esc', 'Close any window but a terminal, and get back to looking around'],
+  ['Ctrl + [', 'Send a terminal an Esc (the Esc key does the same while one is open), to close a menu like Claude’s /skills or interrupt Claude'],
+  ['Ctrl + ]', 'Close the terminal window'],
   ['⚙️', 'Settings (in the ☰ menu): switch between first and third person'],
 ];

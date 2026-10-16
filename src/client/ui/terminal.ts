@@ -27,23 +27,14 @@ export interface TerminalFind {
 /** How long someone shows as typing after the last word from their keyboard (they send one about every second). */
 const TYPING_SHOWS_MS = 2500;
 
+/** What this browser remembers about the terminal window, between visits. */
+const FULL_KEY = 'agent-office.terminal-full';
+
 /** "Sam is typing…", "Sam and Ada are typing…", "Sam and 2 others are typing…". */
 function typingLine(names: string[]): string {
   if (names.length === 1) return `${names[0]} is typing…`;
   if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
   return `${names[0]} and ${names.length - 1} others are typing…`;
-}
-
-/**
- * Whether the program in the terminal says Esc does something right now, like Claude's /skills
- * menu ("Esc to close") or a question ("Esc to cancel"), apart from interrupting it while it works.
- */
-function screenMentionsEsc(term: Terminal): boolean {
-  const buf = term.buffer.active;
-  for (let y = buf.baseY; y < buf.baseY + term.rows; y++) {
-    if (/\besc(ape)?\b(?!\s+(to\s+)?interrupt)/i.test(buf.getLine(y)?.translateToString(true) ?? '')) return true;
-  }
-  return false;
 }
 
 /** Up to two letters for someone's face: "Sam" -> "S", "Ada Lovelace" -> "AL". */
@@ -118,15 +109,12 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     'aria-label': 'OpenCode models',
   }, '🧠 Models');
   const typed = h('span.typed', {});
-  // The Esc key leaves the terminal, so this is how Esc reaches the program: to close a menu like
-  // Claude's /skills, or to interrupt it. Ctrl+[ does the same from the keyboard.
-  const escBtn = h('button.btn', {
-    type: 'button',
-    title: 'Send Esc to the terminal (Ctrl+[): closes a menu like /skills, or interrupts the agent. The Esc key on its own leaves the terminal',
-    'aria-label': 'Send Esc to the terminal',
-  }, '⎋ Esc');
   const changesBtn = h('button.btn', { type: 'button', title: 'What this worker changed: files, diff, commit, open a PR (C at the desk)' }, '🌿 Changes');
-  const closeBtn = h('button.btn.close', { title: 'Leave terminal (Esc or Ctrl+]) · ⎋ Esc or Ctrl+[ sends Esc to the terminal', 'aria-label': 'Close' }, '✕');
+  const closeBtn = h('button.btn.close', { title: 'Leave terminal (✕, Ctrl+], or a click outside it)', 'aria-label': 'Close' }, '✕');
+  // The whole screen for the terminal, since a narrow window is not much of a terminal. Remembered
+  // between visits: whoever wants one full screen wants the next one that way too.
+  const fullBtn = h('button.btn', { type: 'button', 'aria-label': 'Full screen' }, '⛶');
+  const full = localStorage.getItem(FULL_KEY) === '1';
   const host = h('div.term-host', { 'data-drop': '📎 Drop screenshots or files here to put them in the terminal' });
   const keys = h('div.term-keys', { role: 'group', 'aria-label': 'Keys' });
   const say = h('input', { type: 'text', placeholder: 'Reply, or tell it what to do next…', 'aria-label': 'Prompt', enterkeyhint: 'send', autocomplete: 'off' }) as HTMLInputElement;
@@ -148,7 +136,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   );
   host.append(mic.live);
   // The keypad has an Esc of its own, and a 🎤 on its prompt box.
-  const el = h('div.modal.term', { role: 'dialog', 'aria-label': `${info.name} terminal` }, h('header', {}, dot, title, pill, cost, viewers, typed, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, closeBtn), tabs.bar, host, tabs.pages, keypad);
+  const el = h('div.modal.term', { role: 'dialog', 'aria-label': `${info.name} terminal` }, h('header', {}, dot, title, pill, cost, viewers, typed, modelsBtn, keypad ? null : mic.button, onChanges ? changesBtn : null, fullBtn, closeBtn), tabs.bar, host, tabs.pages, keypad);
 
   const term = new Terminal({
     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
@@ -264,7 +252,6 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     const openCode = w.kind === 'agent' && resolvedProvider(w.provider, store.project) === 'opencode';
     modelsBtn.classList.toggle('hidden', !openCode);
     modelsBtn.toggleAttribute('disabled', !openCode || !ready || isAsleep(w.status));
-    escBtn.toggleAttribute('disabled', !ready || isAsleep(w.status));
     mic.button?.toggleAttribute('disabled', !ready || isAsleep(w.status));
     for (const b of keys.children) b.toggleAttribute('disabled', !ready || isAsleep(w.status));
     sayBtn.toggleAttribute('disabled', isAsleep(w.status));
@@ -333,12 +320,20 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   });
   const ro = new ResizeObserver(() => sendSize());
 
+  /** Tells the program in the terminal it was sent an Esc: to close a menu like /skills, or to interrupt it. */
+  const sendEsc = () => {
+    sendSize(true);
+    sayTyping();
+    term.input('\x1b');
+  };
+
   const modal = openModal(el, {
     backdropCloses: true,
     doing: `💻 in ${info.name}'s terminal`,
-    onClose: (byEsc) => {
-      // Leaving with Esc while the program wanted one (you were in /skills, say): say how to send it one.
-      if (byEsc && ready && screenMentionsEsc(term)) toast(`Esc left the terminal. To send ${store.workers.get(workerId)?.name ?? info.name} an Esc (to close a menu), use ⎋ Esc at the top or Ctrl+[`);
+    // Esc is the program's key: it closes a menu like Claude's /skills, or interrupts what it is
+    // doing. The window closes with its ✕, Ctrl+] or a click outside it, like any other.
+    onEsc: () => sendEsc(),
+    onClose: () => {
       listeners.delete(onMsg);
       unsub();
       unsubPeers();
@@ -364,12 +359,19 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     modal.close();
   });
 
-  term.open(host);
-  const sendEsc = () => {
-    sendSize(true);
-    sayTyping();
-    term.input('\x1b');
+  /** Full screen or a window again, and the fit follows it (the host's own ResizeObserver). */
+  const setFull = (on: boolean, remember = true) => {
+    el.classList.toggle('full', on);
+    modal.backdrop.classList.toggle('term-full', on);
+    fullBtn.textContent = on ? '⤢' : '⛶';
+    fullBtn.title = on ? 'Back to a window (⛶)' : 'Full screen (⛶)';
+    fullBtn.setAttribute('aria-pressed', String(on));
+    if (remember) localStorage.setItem(FULL_KEY, on ? '1' : '0');
   };
+  setFull(full, false);
+  fullBtn.addEventListener('click', () => setFull(!el.classList.contains('full')));
+
+  term.open(host);
   term.attachCustomKeyEventHandler((e) => {
     // Ctrl+Space, held: push to talk.
     if (mic.key(e)) return false;
@@ -466,11 +468,6 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     },
     true,
   );
-  escBtn.addEventListener('click', () => {
-    if (escBtn.hasAttribute('disabled')) return;
-    sendEsc();
-    term.focus();
-  });
   // A finger has no wheel: drag the terminal to scroll it, the way a finger moves anything it touches.
   // This xterm binds no touch handler of its own, and the office only hears about a wheel when there
   // is one, so without this a phone could read a terminal but never scroll back through it.

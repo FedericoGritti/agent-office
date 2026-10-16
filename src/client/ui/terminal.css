@@ -2,6 +2,10 @@
 
 /* Terminal modal */
 .modal.term { width: min(1200px, 100%); height: min(820px, calc(100vh - 32px)); background: #1e1f2e; }
+/* Full screen (⛶ in the header): the terminal takes the whole screen, and the margin the backdrop
+   keeps around its windows goes with it. */
+.backdrop.term-full { padding: 0; }
+.modal.term.full { width: 100%; height: 100%; max-height: none; border-width: 0; border-radius: 0; box-shadow: none; }
 .modal.term header { background: var(--paper); }
 .modal.term .term-host { flex: 1; min-height: 0; padding: 8px 4px 4px 10px; background: #1e1f2e; }
 .modal.term .term-host .xterm { height: 100%; }

@@ -27,8 +27,6 @@ export interface GongDeps {
   workerViews: ReadonlyMap<string, { deskId: string; model: Worker }>;
   /** On a castle-style map, its workers walking between their seats and the line for the throne (see Court). */
   court(): Court | null;
-  /** The board agents waiting by their boards on this map. */
-  idleAgents(): readonly { model: Worker; view: DeskView }[];
 }
 
 export function installGong(ctx: Ctx, deps: GongDeps) {
@@ -70,8 +68,6 @@ export function installGong(ctx: Ctx, deps: GongDeps) {
       if (court?.away(id)) v.model.cheer(4);
       else v.model.dance(stageOf(desk, v.model));
     }
-    // The board agents still waiting to be asked, too.
-    for (const a of deps.idleAgents()) if (a.view.vacancy.visible) a.model.dance(stageOf(a.view, a.model));
   }
 
   /** Confetti a square meter of floor gets when a pull request merges, and the most there is in all. */

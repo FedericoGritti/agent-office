@@ -12,13 +12,11 @@ import { BUILDERS } from '../world/styles';
 import { officeWorld, type World } from '../world/world';
 import type { Ctx } from './context';
 import { noOutline } from './outline';
-import { idleAgentsIn, type IdleAgent } from './stations';
 
-/** A map's world, with its court (on a castle-style map) and the board agents waiting in it. */
+/** A map's world, with its court on a castle-style map. */
 export interface MapWorld {
   world: World;
   court: Court | null;
-  idle: IdleAgent[];
 }
 
 /** How far down there's anything to stand on, on a map of its own: its dungeon's floor, or the hall's. */
@@ -35,22 +33,17 @@ export function createWorlds(ctx: Ctx) {
   const plan = (): MapPlan => world.plan;
   /** On a castle-style map: its workers walking between their seats and the line for the throne. */
   let court: Court | null = null;
-  /** The ones in the world you're in. */
-  let idleAgents = idleAgentsIn(world);
-  /** The board agents waiting at the office's kiosks (the ones made at the start). */
-  const officeIdle = idleAgents;
   /** The worlds built for maps of their own, by map id, with the plan each was built from (a custom map can change). */
-  const built = new Map<string, { plan: MapPlan; world: World; court: Court; idle: IdleAgent[] }>();
+  const built = new Map<string, { plan: MapPlan; world: World; court: Court }>();
 
   /** The world for `p`: the office, or the one its style's builder puts up for it, the first time it's wanted. */
   function worldFor(p: MapPlan): MapWorld {
-    if (p.style === 'office') return { world: theOffice, court: null, idle: officeIdle };
+    if (p.style === 'office') return { world: theOffice, court: null };
     let b = built.get(p.id);
     // A map of your own was edited since: it's built again.
     if (b && b.plan !== p) {
       scene.remove(b.world.group);
       b.world.dispose?.();
-      for (const a of b.idle) a.model.dispose();
       built.delete(p.id);
       b = undefined;
     }
@@ -60,7 +53,7 @@ export function createWorlds(ctx: Ctx) {
       scene.add(w.group);
       noOutline(w.group);
       const ground = (x: number, z: number, y: number) => Math.max(groundAt(w.colliders, x, z, y), w.dungeon?.plan.floor ?? 0);
-      b = { plan: p, world: w, court: new Court(w.group, p, w.nav, ground, (x, y, z) => ctx.sound.stepAt(x, z, y)), idle: idleAgentsIn(w) };
+      b = { plan: p, world: w, court: new Court(w.group, p, w.nav, ground, (x, y, z) => ctx.sound.stepAt(x, z, y)) };
       built.set(p.id, b);
     }
     return b;
@@ -81,8 +74,6 @@ export function createWorlds(ctx: Ctx) {
     /** The world the building's map is built as. */
     world: () => world,
     court: () => court,
-    /** The board agents waiting by their boards in the world you're in. */
-    idleAgents: () => idleAgents,
     inOffice,
     plan,
     officeWing,
@@ -92,7 +83,6 @@ export function createWorlds(ctx: Ctx) {
     enter(next: MapWorld) {
       world = next.world;
       court = next.court;
-      idleAgents = next.idle;
     },
   };
 }

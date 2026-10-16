@@ -34,11 +34,11 @@ test('riding the elevator between floors that share a kiosk and a desk leaves ne
   assert.ok(vacantSeats(survive).has('beanbag-1'), 'the bean bag only agent-office uses is free on the other floor');
 });
 
-test('a kiosk shows its idle agent again only once the hired one sent home has got up', () => {
+test('a kiosk becomes free again only once the hired one sent home has got up', () => {
   const packing = new Set(['station-coordinator']);
   // Sent home: gone from the store, but still packing up at the kiosk.
   assert.ok(!vacantSeats([], (id) => packing.has(id)).has('station-coordinator'));
-  // Up and walking off: the idle agent is back.
+  // Up and walking off: the kiosk is free.
   packing.clear();
   assert.ok(vacantSeats([], (id) => packing.has(id)).has('station-coordinator'));
   // Someone new hired there while the last one was still packing: taken either way.

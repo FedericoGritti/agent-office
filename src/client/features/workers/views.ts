@@ -281,9 +281,6 @@ export function installWorkerViews(ctx: Ctx, core: CoreState, parts: WorkerViews
     // Someone sent home still counts until they get up, so a bean bag stays out under them.
     const free = vacantSeats(store.workers.values(), (id) => departures.seated(id) || sendoffs.seated(id));
     for (const [id, desk] of world.desks) desk.vacancy.visible = free.has(id) && seatBuilt(id);
-    // The board agent waiting at a kiosk stands there only while nobody is hired at it: one hired
-    // there takes its place, and it comes back once that one has got up and walked off.
-    for (const a of parts.worlds.idleAgents()) a.model.root.visible = free.has(a.view.def.id);
     const appeared = world.setBeanbags(beanbagsOut((id) => !free.has(id), store.floorPlan.wing));
     // One came out right where you're standing (on the office floor, not down in the garage): you end up on top of it.
     const p = player.pos;
@@ -312,7 +309,6 @@ export function installWorkerViews(ctx: Ctx, core: CoreState, parts: WorkerViews
       // the anchor is hidden and the laptop goes with it.
       v.laptop.update(dt, store.screens.get(id), Math.hypot(desk.x - camPos.x, desk.z - camPos.z));
     }
-    for (const a of parts.worlds.idleAgents()) if (a.view.vacancy.visible) a.model.update(dt, t);
     departures.update(dt, t);
     if (!core.upTop) {
       sendoffs.update(dt, t);
@@ -390,7 +386,6 @@ export function installWorkerViews(ctx: Ctx, core: CoreState, parts: WorkerViews
     me.setCostume(theme);
     for (const r of parts.peers.remotes.values()) r.person.setCostume(theme);
     for (const v of workerViews.values()) v.model.setCostume(theme);
-    for (const a of parts.worlds.idleAgents()) a.model.setCostume(theme);
     ctx.world().herald?.person.setCostume(theme);
   }
   store.on('theme', dressUp);

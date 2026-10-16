@@ -154,6 +154,8 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   term.loadAddon(new WebLinksAddon());
 
   let ready = false;
+  /** The next fit owns the shared PTY size: full screen was chosen, not merely observed. */
+  let claimNextSize = full;
   let lastSentSize = '';
   /**
    * Sizes the shared PTY to this window. Typing always claims it (latest typist wins); merely
@@ -303,7 +305,8 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       term.resize(msg.cols, msg.rows);
       term.write(msg.data, () => {
         ready = true;
-        sendSize();
+        sendSize(claimNextSize);
+        claimNextSize = false;
         term.scrollToBottom();
         refresh();
         if (pendingFind) jumpTo(pendingFind);
@@ -369,7 +372,17 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     if (remember) localStorage.setItem(FULL_KEY, on ? '1' : '0');
   };
   setFull(full, false);
-  fullBtn.addEventListener('click', () => setFull(!el.classList.contains('full')));
+  fullBtn.addEventListener('click', () => {
+    setFull(!el.classList.contains('full'));
+    claimNextSize = true;
+    // Once layout has the new size, fit the cells and claim that resolution even when another
+    // viewer has the terminal open. This click is an explicit resize, not a passive observer.
+    requestAnimationFrame(() => {
+      if (!ready) return;
+      sendSize(true);
+      claimNextSize = false;
+    });
+  });
 
   term.open(host);
   term.attachCustomKeyEventHandler((e) => {
